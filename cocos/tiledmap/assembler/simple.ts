@@ -87,6 +87,7 @@ export const simple: IAssembler = {
         }
     },
 
+    // batch2d commit component <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk)
     fillBuffers (layer: XTiledLayer, renderer: IBatcher) {
         if (!layer || layer.tiledDataArray.length === 0) return;
 
@@ -113,6 +114,7 @@ export const simple: IAssembler = {
         renderData.chunk.meshBuffer.indexOffset = indexOffset;
     },
 
+    // ui-renderer.ts updateRenderer <= ui-renderer-manager.ts
     updateRenderData (comp: XTiledLayer) {
         comp.updateCulling();
         _moveX = comp.leftDownToCenterX;
@@ -160,6 +162,7 @@ export const simple: IAssembler = {
         }
     },
 
+    // ui-renderer.ts _updateColor <= setColor
     updateColor (tiled: XTiledLayer) {
         const color = tiled.color;
         const colorV = new Float32Array(4);

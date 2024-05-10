@@ -497,9 +497,9 @@ export class XTiledLayer extends UIRenderer {
       * @example
       * tiledLayer.setLayerName("New Layer");
       */
-    public setLayerName (layerName: string): void {
-        this._layerName = layerName;
-    }
+    // public setLayerName (layerName: string): void {
+    //     this._layerName = layerName;
+    // }
 
     /**
       * @en Return the value for the specific property name.
@@ -644,20 +644,20 @@ export class XTiledLayer extends UIRenderer {
       * @example
       * tiledLayer.setTilesGIDAt([1, 1, 1, 1], 10, 10, 2)
       */
-    public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
-        if (!gids || gids.length === 0 || totalCols <= 0) return;
-        if (beginRow < 0) beginRow = 0;
-        if (beginCol < 0) beginCol = 0;
-        let gidsIdx = 0;
-        const endCol = beginCol + totalCols;
-        for (let row = beginRow; ; row++) {
-            for (let col = beginCol; col < endCol; col++) {
-                if (gidsIdx >= gids.length) return;
-                this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
-                gidsIdx++;
-            }
-        }
-    }
+    // public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
+    //     if (!gids || gids.length === 0 || totalCols <= 0) return;
+    //     if (beginRow < 0) beginRow = 0;
+    //     if (beginCol < 0) beginCol = 0;
+    //     let gidsIdx = 0;
+    //     const endCol = beginCol + totalCols;
+    //     for (let row = beginRow; ; row++) {
+    //         for (let col = beginCol; col < endCol; col++) {
+    //             if (gidsIdx >= gids.length) return;
+    //             this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
+    //             gidsIdx++;
+    //         }
+    //     }
+    // }
 
     /**
       * @en
@@ -927,9 +927,9 @@ export class XTiledLayer extends UIRenderer {
       * let orientation = tiledLayer.getLayerOrientation();
       * cc.log("Layer Orientation: " + orientation);
       */
-    public getLayerOrientation (): bmap.Orientation | null {
-        return this._layerOrientation;
-    }
+    // public getLayerOrientation (): bmap.Orientation | null {
+    //     return this._layerOrientation;
+    // }
 
     /**
       * @en properties from the layer. They can be added using Tiled.
@@ -1263,9 +1263,9 @@ export class XTiledLayer extends UIRenderer {
       * let size = tiledLayer.getLayerSize();
       * cc.log("layer size: " + size);
       */
-    public getLayerSize (): Size {
-        return this._layerSize!;
-    }
+    // public getLayerSize (): Size {
+    //     return this._layerSize!;
+    // }
 
     /**
       * @en Size of the map's tile (could be different from the tile's size).
@@ -1276,9 +1276,9 @@ export class XTiledLayer extends UIRenderer {
       * let mapTileSize = tiledLayer.getMapTileSize();
       * cc.log("MapTile size: " + mapTileSize);
       */
-    public getMapTileSize (): Size {
-        return this._mapTileSize!;
-    }
+    // public getMapTileSize (): Size {
+    //     return this._mapTileSize!;
+    // }
 
     /**
       * @en Gets Tile set first information for the layer.

@@ -131,7 +131,7 @@ export class XTiledMap extends Component {
 
     @serializable
     protected _enableCulling = true;
-    // @editable
+    @editable
     get enableCulling (): boolean {
         return this._enableCulling;
     }
@@ -143,7 +143,7 @@ export class XTiledMap extends Component {
         }
     }
 
-    // @serializable
+    @serializable
     protected cleanupImageCache = true;
 
     /**
@@ -332,7 +332,6 @@ export class XTiledMap extends Component {
     }
 
     _applyFile (): void {
-        // const spriteFrames: SpriteFrame[] = [];
         // const spriteFramesCache = {};
 
         // const file = this._btile;
@@ -342,27 +341,13 @@ export class XTiledMap extends Component {
 
         if (this._bMap) {
             // let texValues = file.textures;
-            let spfNames: string[] = [] //= file.spriteFrameNames;
-            const spfSizes: Size[] = [] //= file.spriteFrameSizes;
-            for (const sf of this.sfs) {
-                spfNames.push( sf.name );
-                spfSizes.push(new Size(sf.originalSize.x, sf.originalSize.y));
-            }
-            // const fSpriteFrames: SpriteFrame[] = [] //= file.spriteFrames;
-
             const spfTexturesMap: { [key: string]: SpriteFrame } = {};
             const spfTextureSizeMap: { [key: string]: Size } = {};
-
-            for (let i = 0; i < spfNames.length; ++i) {
-                const texName = spfNames[i];
-                // textures[texName] = texValues[i];
-                spfTextureSizeMap[texName] = spfSizes[i];
-                // spriteFrames[i] = this.sfs[i];
-                const frame = this.sfs[i];
-                if (frame) {
-                    // spriteFramesCache[frame.name] = frame;
-                    spfTexturesMap[texName] = frame;
-                }
+            for (const sf of this.sfs) {
+                // spfNames.push( sf.name );
+                // spfSizes.push(new Size(sf.originalSize.x, sf.originalSize.y));
+                spfTextureSizeMap[sf.name] = new Size(sf.originalSize.x, sf.originalSize.y);//spfSizes[i];
+                spfTexturesMap[sf.name] = sf;
             }
 
             const imageLayerTextures: { [key: string]: SpriteFrame } = {};
@@ -370,15 +355,6 @@ export class XTiledMap extends Component {
             // spfNames = file.imageLayerSpriteFrameNames;
             // for (let i = 0; i < texValues.length; ++i) {
             //     imageLayerTextures[spfNames[i]] = texValues[i];
-            // }
-
-            // const tsxFileNames = file.tsxFileNames;
-            // const tsxFiles = file.tsxFiles;
-            // const tsxContentMap: { [key: string]: string } = {};
-            // for (let i = 0; i < tsxFileNames.length; ++i) {
-            //     if (tsxFileNames[i].length > 0) {
-            //         tsxContentMap[tsxFileNames[i]] = tsxFiles[i].text;
-            //     }
             // }
 
             const mapInfo = new XTMXMapInfo(this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
@@ -593,7 +569,7 @@ export class XTiledMap extends Component {
         this._mapInfo = mapInfo;
         this._mapSize = mapInfo.getMapSize();
         this._tileSize = mapInfo.getTileSize();
-        this._mapOrientation = this._bMap!.orientation;//mapInfo.orientation!;
+        this._mapOrientation = mapInfo.orientation!;
         this._properties = mapInfo.properties;
         this._tileProperties = mapInfo.getTileProperties();
         this._imageLayers = mapInfo.getImageLayers();
@@ -603,18 +579,19 @@ export class XTiledMap extends Component {
         const tilesets = this._tilesets;
         this._textures.length = 0;
 
-        const totalTextures: SpriteFrame[] = [];
+        // const totalTextures: SpriteFrame[] = [];
         for (let i = 0, l = tilesets.length; i < l; ++i) {
             const tilesetInfo = tilesets[i];
             if (!tilesetInfo || !tilesetInfo.sourceImage) continue;
             this._textures[i] = tilesetInfo.sourceImage;
-            totalTextures.push(tilesetInfo.sourceImage);
+            // totalTextures.push(tilesetInfo.sourceImage);
         }
 
         for (let i = 0; i < this._imageLayers.length; i++) {
             const imageLayer = this._imageLayers[i];
             if (!imageLayer || !imageLayer.sourceImage) continue;
-            totalTextures.push(imageLayer.sourceImage);
+            this._textures[i] = imageLayer.sourceImage;
+            // totalTextures.push(imageLayer.sourceImage);
         }
 
         this._buildLayerAndGroup();
@@ -653,7 +630,7 @@ export class XTiledMap extends Component {
             }
             texGrids.set(aniGID, frame.grid!);
         }
-        const layers = this.getLayers();
+        const layers = this._layers;//this.getLayers();
         for (let i = 0, l = layers.length; i < l; i++) {
             const layer = layers[i];
             if (layer.hasAnimation() || layer.node.hasChangedFlags) {
