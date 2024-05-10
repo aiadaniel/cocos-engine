@@ -35,6 +35,8 @@ legacyCC.geometry = geometry;
 
 export { math, memop, geometry, VERSION };
 
+export * from './bright';
+
 export * from './math';
 export * from './memop';
 export * from './value-types';

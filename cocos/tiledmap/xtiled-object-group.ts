@@ -29,12 +29,13 @@ import { Sprite } from '../2d/components/sprite';
 import { Label } from '../2d/components/label';
 import { BlendFactor } from '../gfx';
 
-import { TMXMapInfo } from './tmx-xml-parser';
-import { TiledTextureGrids, GID, TileFlag, Orientation, StaggerAxis, TMXObjectType, PropertiesInfo, TiledAnimationType, TMXObject, TMXObjectGroupInfo } from './tiled-types';
+import { XTMXMapInfo } from './xtmx-xml-parser';
+import { TiledTextureGrids, GID, TileFlag, TMXObjectType, PropertiesInfo, TiledAnimationType, TMXObject, TMXObjectGroupInfo } from './xtiled-types';
 import { UITransform } from '../2d/framework/ui-transform';
 import { CCBoolean, Vec2, Color, CCObject } from '../core';
 import { SpriteFrame } from '../2d/assets';
-import { Node } from '../scene-graph/node';
+import { Node } from '../scene-graph/node';import { bmap } from './BTile';
+
 
 /**
  * @en Renders the TMX object group.
@@ -42,10 +43,13 @@ import { Node } from '../scene-graph/node';
  * @class TiledObjectGroup
  * @extends Component
  */
-@ccclass('cc.TiledObjectGroup')
+@ccclass('XTiledObjectGroup')
 @help('i18n:cc.TiledObjectGroup')
 @requireComponent(UITransform)
-export class TiledObjectGroup extends Component {
+export class XTiledObjectGroup extends Component {
+
+    // _bMap: bmap.BMap = null;
+
     protected _premultiplyAlpha = false;
 
     @type(CCBoolean)
@@ -137,7 +141,7 @@ export class TiledObjectGroup extends Component {
 
     protected _groupName?: string;
     protected _positionOffset?: Vec2;
-    protected _mapInfo?: TMXMapInfo;
+    protected _mapInfo?: XTMXMapInfo;
     protected _properties?: PropertiesInfo;
     protected _offset?: Vec2;
     get offset (): Vec2 { return this._offset!; }
@@ -157,10 +161,12 @@ export class TiledObjectGroup extends Component {
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
      */
-    public _init (groupInfo: TMXObjectGroupInfo, mapInfo: TMXMapInfo, texGrids: TiledTextureGrids): void {
+    public _init (groupInfo: TMXObjectGroupInfo, mapInfo: XTMXMapInfo, texGrids: TiledTextureGrids): void {
         const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
         const FLAG_HORIZONTAL = TileFlag.HORIZONTAL;
         const FLAG_VERTICAL = TileFlag.VERTICAL;
+
+        // this._bMap = bm;
 
         this._groupName = groupInfo.name;
         this._positionOffset = groupInfo.offset;
@@ -184,10 +190,10 @@ export class TiledObjectGroup extends Component {
         let height = 0;
         const colorVal = new Color();
 
-        const iso = Orientation.ISO === mapInfo.orientation;
+        const iso = bmap.Orientation.Isometric === mapInfo.orientation; //this._bMap.orientation;//
 
-        if (mapInfo.orientation === Orientation.HEX) {
-            if (mapInfo.getStaggerAxis() === StaggerAxis.STAGGERAXIS_X) {
+        if (mapInfo.orientation === bmap.Orientation.Hexagonal) {
+            if (mapInfo.getStaggerAxis() === bmap.StaggerAxis.StaggerY) {
                 height = tileSize.height * (mapSize.height + 0.5);
                 width = (tileSize.width + mapInfo.getHexSideLength()) * Math.floor(mapSize.width / 2) + tileSize.width * (mapSize.width % 2);
             } else {
@@ -345,7 +351,7 @@ export class TiledObjectGroup extends Component {
                 sprite.sizeMode = Sprite.SizeMode.CUSTOM;
 
                 // HACK: we should support _premultiplyAlpha when group had material
-                const srcBlendFactor = this._premultiplyAlpha ? BlendFactor.ONE : BlendFactor.SRC_ALPHA;
+                const srcBlendFactor = this._premultiplyAlpha ? gfx.BlendFactor.ONE : gfx.BlendFactor.SRC_ALPHA;
                 if (sprite.srcBlendFactor !== srcBlendFactor) {
                     sprite.srcBlendFactor = srcBlendFactor;
                     if (sprite.material) {
@@ -394,7 +400,7 @@ export class TiledObjectGroup extends Component {
 
         const aniObjects = this.aniObjects!;
         const _texGrids = this._texGrids!;
-        const iso = Orientation.ISO === this._mapInfo!.orientation;
+        const iso = bmap.Orientation.Isometric ===  this._mapInfo!.orientation;//this._bMap.orientation;//
 
         for (let i = 0, len = aniObjects.length; i < len; i++) {
             const aniObj = aniObjects[i];

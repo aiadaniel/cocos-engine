@@ -25,7 +25,7 @@
 import { SpriteFrame } from '../2d/assets';
 import { Texture2D } from '../asset/assets';
 import { Rect } from '../core';
-import { GID, TiledGrid, TiledTextureGrids, TMXTilesetInfo } from './tiled-types';
+import { GID, TiledGrid, TiledTextureGrids, TMXTilesetInfo } from './xtiled-types';
 
 export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextureGrids, spFrame?: SpriteFrame): void {
     const spf: SpriteFrame = spFrame || tileset.sourceImage!;

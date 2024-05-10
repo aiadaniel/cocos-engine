@@ -35,18 +35,18 @@
 
 import { ccclass, executeInEditMode, help, menu, requireComponent, type } from 'cc.decorator';
 import { Component } from '../scene-graph/component';
-import { TiledLayer } from './tiled-layer';
+import { XTiledLayer } from './xtiled-layer';
 import { CCInteger, warn } from '../core';
 import { UITransform } from '../2d/framework';
 import { NodeEventType } from '../scene-graph/node-event';
 
-@ccclass('cc.TiledTile')
+@ccclass('XTiledTile')
 @help('i18n:cc.TiledTile')
-@menu('TiledMap/TiledTile')
+@menu('XTiledMap/XTiledTile')
 @requireComponent(UITransform)
 @executeInEditMode
-export class TiledTile extends Component {
-    _layer: TiledLayer | null = null;
+export class XTiledTile extends Component {
+    _layer: XTiledLayer | null = null;
 
     constructor () {
         super();
@@ -120,7 +120,7 @@ export class TiledTile extends Component {
 
     onEnable (): void {
         const parent = this.node.parent!;
-        this._layer = parent.getComponent('cc.TiledLayer') as TiledLayer;
+        this._layer = parent.getComponent('XTiledLayer') as XTiledLayer;
         this.node.on(NodeEventType.TRANSFORM_CHANGED, this._updatePosition, this);
         this.node.on(NodeEventType.SIZE_CHANGED, this._updatePosition, this);
         this._resetTile();

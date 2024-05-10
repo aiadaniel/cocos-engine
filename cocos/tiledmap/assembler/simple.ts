@@ -26,8 +26,8 @@ import { JSB } from 'internal:constants';
 import { Mat4, Size, Vec3 } from '../../core/math';
 import { IAssembler } from '../../2d/renderer/base';
 import { IBatcher } from '../../2d/renderer/i-batcher';
-import { TiledLayer, TiledRenderData, TiledTile } from '..';
-import { GID, MixedGID, RenderOrder, TiledGrid, TileFlag } from '../tiled-types';
+import { XTiledLayer, XTiledRenderData, XTiledTile } from '..';
+import { GID, MixedGID, TiledGrid, TileFlag } from '../xtiled-types';
 import { director, Director } from '../../game';
 import { StaticVBAccessor } from '../../2d/renderer/static-vb-accessor';
 import { vfmtPosUvColor } from '../../2d/renderer/vertex-format';
@@ -35,6 +35,7 @@ import { RenderData } from '../../2d/renderer/render-data';
 import { RenderDrawInfoType } from '../../2d/renderer/render-draw-info';
 import { Texture2D } from '../../asset/assets';
 import { Node } from '../../scene-graph';
+import { bmap } from '../BTile';
 
 const MaxGridsLimit = Math.ceil(65535 / 6);
 
@@ -58,7 +59,7 @@ let _moveY = 0;
 let _fillCount = 0;
 let _curTexture : Texture2D | null = null;
 let _tempBuffers : Float32Array;
-let _curLayer: TiledLayer;
+let _curLayer: XTiledLayer;
 
 let flipTexture: (grid: TiledGrid, gid: MixedGID) => void;
 
@@ -80,19 +81,19 @@ export const simple: IAssembler = {
         }
     },
 
-    createData (layer: TiledLayer) {
+    createData (layer: XTiledLayer) {
         if (JSB) {
             this.ensureAccessor();
         }
     },
 
-    fillBuffers (layer: TiledLayer, renderer: IBatcher) {
+    fillBuffers (layer: XTiledLayer, renderer: IBatcher) {
         if (!layer || layer.tiledDataArray.length === 0) return;
 
         const dataArray = layer.tiledDataArray;
 
         // 当前渲染的数据
-        const data = dataArray[layer._tiledDataArrayIdx] as TiledRenderData;
+        const data = dataArray[layer._tiledDataArrayIdx] as XTiledRenderData;
         const renderData = data.renderData!;
         const iBuf = renderData.chunk.meshBuffer.iData;
 
@@ -112,7 +113,7 @@ export const simple: IAssembler = {
         renderData.chunk.meshBuffer.indexOffset = indexOffset;
     },
 
-    updateRenderData (comp: TiledLayer) {
+    updateRenderData (comp: XTiledLayer) {
         comp.updateCulling();
         _moveX = comp.leftDownToCenterX;
         _moveY = comp.leftDownToCenterY;
@@ -134,19 +135,19 @@ export const simple: IAssembler = {
 
             switch (comp.renderOrder) {
             // left top to right down, col add, row sub,
-            case RenderOrder.RightDown:
+            case bmap.RenderOrder.RightDown:
                 traverseGrids(leftDown, rightTop, -1, 1, comp);
                 break;
                 // right top to left down, col sub, row sub
-            case RenderOrder.LeftDown:
+            case bmap.RenderOrder.LeftDown:
                 traverseGrids(leftDown, rightTop, -1, -1, comp);
                 break;
                 // left down to right up, col add, row add
-            case RenderOrder.RightUp:
+            case bmap.RenderOrder.RightUp:
                 traverseGrids(leftDown, rightTop, 1, 1, comp);
                 break;
                 // right down to left up, col sub, row add
-            case RenderOrder.LeftUp:
+            case bmap.RenderOrder.LeftUp:
             default:
                 traverseGrids(leftDown, rightTop, 1, -1, comp);
                 break;
@@ -159,7 +160,7 @@ export const simple: IAssembler = {
         }
     },
 
-    updateColor (tiled: TiledLayer) {
+    updateColor (tiled: XTiledLayer) {
         const color = tiled.color;
         const colorV = new Float32Array(4);
         colorV[0] = color.r / 255;
@@ -326,7 +327,7 @@ function packRenderData (): void {
 // rowMoveDir is -1 or 1, -1 means decrease, 1 means increase
 // colMoveDir is -1 or 1, -1 means decrease, 1 means increase
 function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col: number, row: number },
-    rowMoveDir: number, colMoveDir: number, comp: TiledLayer): void {
+    rowMoveDir: number, colMoveDir: number, comp: XTiledLayer): void {
     // show nothing
     if (rightTop.row < 0 || rightTop.col < 0) return;
 
@@ -358,7 +359,7 @@ function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col:
     let bottom = 0;
     let right = 0;
     let top = 0; // x, y
-    let tiledNode: TiledTile | null;
+    let tiledNode: XTiledTile | null;
     let colNodesCount = 0;
     let isCheckColRange = true;
 

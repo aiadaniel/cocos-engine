@@ -22,9 +22,11 @@
  THE SOFTWARE.
 */
 
-export * from './tiled-map';
+export * from './xtiled-map';
 export * from './tiled-map-asset';
-export * from './tiled-layer';
-export * from './tiled-object-group';
-export * from './tiled-tile';
+export * from './xtiled-layer';
+export * from './xtiled-object-group';
+export * from './xtiled-tile';
 export * from './assembler';
+
+export * from './BTile';

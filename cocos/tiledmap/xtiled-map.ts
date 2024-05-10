@@ -22,22 +22,26 @@
  THE SOFTWARE.
 */
 
+
 import { ccclass, displayOrder, executeInEditMode, help, menu, requireComponent, type, serializable, editable } from 'cc.decorator';
 import { EDITOR, JSB } from 'internal:constants';
 import { Component } from '../scene-graph/component';
 import { UITransform } from '../2d/framework';
-import { GID, Orientation, PropertiesInfo, Property, RenderOrder, StaggerAxis, StaggerIndex, TiledAnimationType, TiledTextureGrids, TileFlag,
-    TMXImageLayerInfo, TMXLayerInfo, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo } from './tiled-types';
-import { TMXMapInfo } from './tmx-xml-parser';
-import { TiledLayer } from './tiled-layer';
-import { TiledObjectGroup } from './tiled-object-group';
-import { TiledMapAsset } from './tiled-map-asset';
+import { GID, PropertiesInfo, Property, TiledAnimationType, TiledTextureGrids, TileFlag,
+    TMXImageLayerInfo, TMXLayerInfo, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo } from './xtiled-types';
+import { XTMXMapInfo } from './xtmx-xml-parser';
+import { XTiledLayer } from './xtiled-layer';
+import { XTiledObjectGroup } from './xtiled-object-group';
+// import { TiledMapAsset } from './tiled-map-asset';
 import { Sprite } from '../2d/components/sprite';
-import { fillTextureGrids } from './tiled-utils';
+import { fillTextureGrids } from './xtiled-utils';
 import { Size, Vec2, logID, Color, sys } from '../core';
 import { SpriteFrame } from '../2d/assets';
 import { NodeEventType } from '../scene-graph/node-event';
 import { Node } from '../scene-graph';
+import { bmap } from './BTile';
+import { BufferAsset } from '../asset/assets';
+import { ByteBuf } from '../core/bright/ByteBuf';
 
 interface ImageExtendedNode extends Node {
     layerInfo: TMXImageLayerInfo;
@@ -50,12 +54,12 @@ interface ImageExtendedNode extends Node {
  * @class TiledMap
  * @extends Component
  */
-@ccclass('cc.TiledMap')
+@ccclass('XTiledMap')
 @help('i18n:cc.TiledMap')
-@menu('TiledMap/TiledMap')
+@menu('XTiledMap/XTiledMap')
 @requireComponent(UITransform)
 @executeInEditMode
-export class TiledMap extends Component {
+export class XTiledMap extends Component {
     // store all layer gid corresponding texture info, index is gid, format likes '[gid0]=tex-info,[gid1]=tex-info, ...'
     _texGrids: TiledTextureGrids = new Map();
     // store all tileset texture, index is tileset index, format likes '[0]=texture0, [1]=texture1, ...'
@@ -64,30 +68,35 @@ export class TiledMap extends Component {
 
     _animations: TiledAnimationType = new Map();
     _imageLayers: TMXImageLayerInfo[] = [];
-    _layers: TiledLayer[] = [];
-    _groups: TiledObjectGroup[] = [];
+    _layers: XTiledLayer[] = [];
+    _groups: XTiledObjectGroup[] = [];
     _images: ImageExtendedNode[] = [];
     _properties: PropertiesInfo = {} as any;
     _tileProperties: Map<GID, PropertiesInfo> = new Map();
 
-    _mapInfo: TMXMapInfo | null = null;
+    _mapInfo: XTMXMapInfo | null = null;
     _mapSize: Size = new Size(0, 0);
     _tileSize: Size = new Size(0, 0);
 
-    _mapOrientation = Orientation.ORTHO;
+    _mapOrientation = bmap.Orientation.Orthogonal;
 
-    static Orientation = Orientation;
+    static Orientation = bmap.Orientation;
     static Property = Property;
     static TileFlag = TileFlag;
-    static StaggerAxis = StaggerAxis;
-    static StaggerIndex = StaggerIndex;
+    static StaggerAxis = bmap.StaggerAxis;
+    static StaggerIndex = bmap.StaggerIndex;
     static TMXObjectType = TMXObjectType;
-    static RenderOrder = RenderOrder;
+    static RenderOrder = bmap.RenderOrder;
 
     private _isApplied = false;
 
+    _bMap: bmap.BMap | undefined;
+    
     @serializable
-    _tmxFile: TiledMapAsset | null = null;
+    _btile: BufferAsset | null = null;
+    // @serializable
+    // _tmxFile: XTiledMapAsset | null = null;
+    
     /**
      * @en The TiledMap Asset.
      * @zh TiledMap 资源。
@@ -95,19 +104,22 @@ export class TiledMap extends Component {
      * @default ""
      */
 
-    @type(TiledMapAsset)
+    @type(BufferAsset)
     @displayOrder(7)
-    get tmxAsset (): TiledMapAsset {
-        return this._tmxFile!;
+    get btileAsset (): BufferAsset {
+        return this._btile!;
     }
 
-    set tmxAsset (value: TiledMapAsset) {
-        if (this._tmxFile !== value || EDITOR) {
-            this._tmxFile = value;
+    set btileAsset (value: BufferAsset) {
+        if (this._btile !== value || EDITOR) {
+            this._btile = value;
             this._applyFile();
             this._isApplied = true;
         }
     }
+
+    @type([SpriteFrame])
+    sfs: SpriteFrame[] = []
 
     /**
      * @en
@@ -116,9 +128,10 @@ export class TiledMap extends Component {
      * @zh
      * 是否开启瓦片地图的自动裁减功能。瓦片地图如果设置了 skew, rotation 或者采用了摄像机的话，需要手动关闭，否则渲染会出错。
      */
+
     @serializable
     protected _enableCulling = true;
-    @editable
+    // @editable
     get enableCulling (): boolean {
         return this._enableCulling;
     }
@@ -130,7 +143,7 @@ export class TiledMap extends Component {
         }
     }
 
-    @serializable
+    // @serializable
     protected cleanupImageCache = true;
 
     /**
@@ -168,7 +181,7 @@ export class TiledMap extends Component {
      * let mapOrientation = tiledMap.getMapOrientation();
      * cc.log("Map Orientation: " + mapOrientation);
      */
-    getMapOrientation (): Orientation {
+    getMapOrientation (): bmap.Orientation {
         return this._mapOrientation;
     }
 
@@ -176,14 +189,14 @@ export class TiledMap extends Component {
      * @en object groups.
      * @zh 获取所有的对象层。
      * @method getObjectGroups
-     * @return {TiledObjectGroup[]}
+     * @return {XTiledObjectGroup[]}
      * @example
      * let objGroups = titledMap.getObjectGroups();
      * for (let i = 0; i < objGroups.length; ++i) {
      *     cc.log("obj: " + objGroups[i]);
      * }
      */
-    getObjectGroups (): TiledObjectGroup[] {
+    getObjectGroups (): XTiledObjectGroup[] {
         return this._groups;
     }
 
@@ -192,12 +205,12 @@ export class TiledMap extends Component {
      * @zh 获取指定的 TMXObjectGroup。
      * @method getObjectGroup
      * @param {String} groupName
-     * @return {TiledObjectGroup}
+     * @return {XTiledObjectGroup}
      * @example
      * let group = titledMap.getObjectGroup("Players");
      * cc.log("ObjectGroup: " + group);
      */
-    getObjectGroup (groupName: string): TiledObjectGroup | null {
+    getObjectGroup (groupName: string): XTiledObjectGroup | null {
         const groups = this._groups;
         for (let i = 0, l = groups.length; i < l; i++) {
             const group = groups[i];
@@ -228,14 +241,14 @@ export class TiledMap extends Component {
      * @en Return All layers array.
      * @zh 返回包含所有 layer 的数组。
      * @method getLayers
-     * @returns {TiledLayer[]}
+     * @returns {XTiledLayer[]}
      * @example
      * let layers = titledMap.getLayers();
      * for (let i = 0; i < layers.length; ++i) {
      *     cc.log("Layers: " + layers[i]);
      * }
      */
-    getLayers (): TiledLayer[] {
+    getLayers (): XTiledLayer[] {
         return this._layers;
     }
 
@@ -244,12 +257,12 @@ export class TiledMap extends Component {
      * @zh 获取指定名称的 layer。
      * @method getLayer
      * @param {String} layerName
-     * @return {TiledLayer}
+     * @return {XTiledLayer}
      * @example
      * let layer = titledMap.getLayer("Player");
      * cc.log(layer);
      */
-    getLayer (layerName): TiledLayer | null {
+    getLayer (layerName): XTiledLayer | null {
         const layers = this._layers;
         for (let i = 0, l = layers.length; i < l; i++) {
             const layer = layers[i];
@@ -300,7 +313,8 @@ export class TiledMap extends Component {
     }
 
     __preload (): void {
-        if (!this._tmxFile) {
+        console.log("__preload xtilemap");
+        if (!this._btile) {
             return;
         }
         if (this._isApplied === false) {
@@ -318,16 +332,24 @@ export class TiledMap extends Component {
     }
 
     _applyFile (): void {
-        const spriteFrames: SpriteFrame[] = [];
-        const spriteFramesCache = {};
+        // const spriteFrames: SpriteFrame[] = [];
+        // const spriteFramesCache = {};
 
-        const file = this._tmxFile;
+        // const file = this._btile;
+        const arr: ArrayBuffer = this._btile!.buffer();
+        const buf = new ByteBuf(new Uint8Array(arr));
+        this._bMap = new bmap.BMap(buf);
 
-        if (file) {
+        if (this._bMap) {
             // let texValues = file.textures;
-            let spfNames: string[] = file.spriteFrameNames;
-            const spfSizes: Size[] = file.spriteFrameSizes;
-            const fSpriteFrames: SpriteFrame[] = file.spriteFrames;
+            let spfNames: string[] = [] //= file.spriteFrameNames;
+            const spfSizes: Size[] = [] //= file.spriteFrameSizes;
+            for (const sf of this.sfs) {
+                spfNames.push( sf.name );
+                spfSizes.push(new Size(sf.originalSize.x, sf.originalSize.y));
+            }
+            // const fSpriteFrames: SpriteFrame[] = [] //= file.spriteFrames;
+
             const spfTexturesMap: { [key: string]: SpriteFrame } = {};
             const spfTextureSizeMap: { [key: string]: Size } = {};
 
@@ -335,31 +357,31 @@ export class TiledMap extends Component {
                 const texName = spfNames[i];
                 // textures[texName] = texValues[i];
                 spfTextureSizeMap[texName] = spfSizes[i];
-                spriteFrames[i] = fSpriteFrames[i];
-                const frame = spriteFrames[i];
+                // spriteFrames[i] = this.sfs[i];
+                const frame = this.sfs[i];
                 if (frame) {
-                    spriteFramesCache[frame.name] = frame;
+                    // spriteFramesCache[frame.name] = frame;
                     spfTexturesMap[texName] = frame;
                 }
             }
 
             const imageLayerTextures: { [key: string]: SpriteFrame } = {};
-            const texValues = file.imageLayerSpriteFrame;
-            spfNames = file.imageLayerSpriteFrameNames;
-            for (let i = 0; i < texValues.length; ++i) {
-                imageLayerTextures[spfNames[i]] = texValues[i];
-            }
+            // const texValues = file.imageLayerSpriteFrame;
+            // spfNames = file.imageLayerSpriteFrameNames;
+            // for (let i = 0; i < texValues.length; ++i) {
+            //     imageLayerTextures[spfNames[i]] = texValues[i];
+            // }
 
-            const tsxFileNames = file.tsxFileNames;
-            const tsxFiles = file.tsxFiles;
-            const tsxContentMap: { [key: string]: string } = {};
-            for (let i = 0; i < tsxFileNames.length; ++i) {
-                if (tsxFileNames[i].length > 0) {
-                    tsxContentMap[tsxFileNames[i]] = tsxFiles[i].text;
-                }
-            }
+            // const tsxFileNames = file.tsxFileNames;
+            // const tsxFiles = file.tsxFiles;
+            // const tsxContentMap: { [key: string]: string } = {};
+            // for (let i = 0; i < tsxFileNames.length; ++i) {
+            //     if (tsxFileNames[i].length > 0) {
+            //         tsxContentMap[tsxFileNames[i]] = tsxFiles[i].text;
+            //     }
+            // }
 
-            const mapInfo = new TMXMapInfo(file.tmxXmlStr, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
+            const mapInfo = new XTMXMapInfo(this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
             const tilesets = mapInfo.getTilesets();
             if (!tilesets || tilesets.length === 0) {
                 logID(7241);
@@ -506,9 +528,9 @@ export class TiledMap extends Component {
                 child.active = layerInfo.visible;
 
                 if (layerInfo instanceof TMXLayerInfo) {
-                    let layer = child.getComponent(TiledLayer);
+                    let layer = child.getComponent(XTiledLayer);
                     if (!layer) {
-                        layer = child.addComponent(TiledLayer);
+                        layer = child.addComponent(XTiledLayer);
                     }
 
                     layer.init(layerInfo, mapInfo, tilesets, textures, texGrids);
@@ -518,9 +540,9 @@ export class TiledMap extends Component {
                     layerInfo.ownTiles = false;
                     layers.push(layer);
                 } else if (layerInfo instanceof TMXObjectGroupInfo) {
-                    let group = child.getComponent(TiledObjectGroup);
+                    let group = child.getComponent(XTiledObjectGroup);
                     if (!group) {
-                        group = child.addComponent(TiledObjectGroup);
+                        group = child.addComponent(XTiledObjectGroup);
                     }
                     group._init(layerInfo, mapInfo, texGrids);
                     groups.push(group);
@@ -567,11 +589,11 @@ export class TiledMap extends Component {
         this._syncAnchorPoint();
     }
 
-    protected _buildWithMapInfo (mapInfo: TMXMapInfo): void {
+    protected _buildWithMapInfo (mapInfo: XTMXMapInfo): void {
         this._mapInfo = mapInfo;
         this._mapSize = mapInfo.getMapSize();
         this._tileSize = mapInfo.getTileSize();
-        this._mapOrientation = mapInfo.orientation!;
+        this._mapOrientation = this._bMap!.orientation;//mapInfo.orientation!;
         this._properties = mapInfo.properties;
         this._tileProperties = mapInfo.getTileProperties();
         this._imageLayers = mapInfo.getImageLayers();

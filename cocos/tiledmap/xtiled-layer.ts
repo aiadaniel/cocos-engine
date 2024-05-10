@@ -30,22 +30,26 @@ import { EDITOR_NOT_IN_PREVIEW } from 'internal:constants';
 import { UIRenderer } from '../2d/framework/ui-renderer';
 import { SpriteFrame } from '../2d/assets/sprite-frame';
 import { Component, Node } from '../scene-graph';
-import { TMXMapInfo } from './tmx-xml-parser';
+import { XTMXMapInfo } from './xtmx-xml-parser';
 import { Color, IVec2Like, Mat4, Size, Vec2, Vec3, warn, logID } from '../core';
-import { TiledTile } from './tiled-tile';
+import { XTiledTile } from './xtiled-tile';
 import { RenderData } from '../2d/renderer/render-data';
 import { IBatcher } from '../2d/renderer/i-batcher';
 import {
-    MixedGID, GID, Orientation, TiledTextureGrids, TMXTilesetInfo, RenderOrder, StaggerAxis, StaggerIndex, TileFlag,
+    MixedGID, GID, TiledTextureGrids, TMXTilesetInfo, TileFlag,
     GIDFlags, TiledAnimationType, PropertiesInfo, TMXLayerInfo,
-} from './tiled-types';
-import { fillTextureGrids } from './tiled-utils';
+} from './xtiled-types';
+import { fillTextureGrids } from './xtiled-utils';
 import { NodeEventType } from '../scene-graph/node-event';
 import { RenderEntity, RenderEntityType } from '../2d/renderer/render-entity';
 import { RenderDrawInfo, RenderDrawInfoType } from '../2d/renderer/render-draw-info';
 import { Texture2D } from '../asset/assets';
 import { director } from '../game';
 import { Camera } from '../render-scene/scene';
+import { bmap } from './BTile';
+
+
+type SafeArray<T> = Array<T | undefined>;// from engine global
 
 const _mat4_temp = new Mat4();
 const _vec2_temp = new Vec2();
@@ -53,27 +57,27 @@ const _vec3_temp = new Vec3();
 const _vec3_temp2 = new Vec3();
 const _tempRowCol = { row: 0, col: 0 };
 
-@ccclass('cc.TiledUserNodeData')
-export class TiledUserNodeData extends Component {
+@ccclass('cc.XTiledUserNodeData')
+export class XTiledUserNodeData extends Component {
     _index = -1;
     _row = -1;
     _col = -1;
-    _tiledLayer: TiledLayer | null = null;
+    _tiledLayer: XTiledLayer | null = null;
     constructor () {
         super();
     }
 }
 
-export interface TiledRenderData {
+export interface XTiledRenderData {
     renderData: RenderData | null;
     texture: Texture2D | null;
 }
 
-interface TiledSubNodeData {
-    subNodes: (null | TiledUserNodeData)[];
+interface XTiledSubNodeData {
+    subNodes: (null | XTiledUserNodeData)[];
 }
 
- type TiledDataArray = (TiledRenderData | TiledSubNodeData)[];
+ type TiledDataArray = (XTiledRenderData | XTiledSubNodeData)[];
 
 /**
   * @en Render the TMX layer.
@@ -81,15 +85,15 @@ interface TiledSubNodeData {
   * @class TiledLayer
   * @extends Component
   */
-@ccclass('cc.TiledLayer')
-export class TiledLayer extends UIRenderer {
+@ccclass('XTiledLayer')
+export class XTiledLayer extends UIRenderer {
     // [row][col] = {count: 0, nodesList: []};
-    protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (TiledUserNodeData | null)[] } >> = {};
-    protected _userNodeMap: { [key: string]: TiledUserNodeData } = {};// [id] = node;
+    protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (XTiledUserNodeData | null)[] } >> = {};
+    protected _userNodeMap: { [key: string]: XTiledUserNodeData } = {};// [id] = node;
     protected _userNodeDirty = false;
 
     // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
-    public tiledTiles: (TiledTile | null)[] = [];
+    public tiledTiles: (XTiledTile | null)[] = [];
 
     // // store the layer tilesets index array
     // _tilesetIndexArr: number[] = [];
@@ -120,7 +124,8 @@ export class TiledLayer extends UIRenderer {
     } { return this._rightTop; }
 
     protected _layerInfo: TMXLayerInfo | null = null;
-    protected _mapInfo: TMXMapInfo | null = null;
+    protected _mapInfo: XTMXMapInfo | null = null;
+    // _bMap: bmap.BMap = null;
 
     // record max or min tile texture offset,
     // it will make culling rect more large, which insure culling rect correct.
@@ -144,7 +149,7 @@ export class TiledLayer extends UIRenderer {
 
     protected _minGID?: GID;
     protected _maxGID?: GID;
-    protected _layerOrientation: null | Orientation = null;
+    protected _layerOrientation: null | bmap.Orientation = null;
 
     protected _opacity?: number;
     protected _tintColor?: Color;
@@ -168,9 +173,9 @@ export class TiledLayer extends UIRenderer {
     public colorChanged = false;
 
     protected _properties?: PropertiesInfo;
-    public renderOrder?: RenderOrder;
-    protected _staggerAxis?: StaggerAxis;
-    protected _staggerIndex?: StaggerIndex;
+    public renderOrder?: bmap.RenderOrder;
+    protected _staggerAxis?: bmap.StaggerAxis;
+    protected _staggerIndex?: bmap.StaggerIndex;
     protected _hexSideLength?: number;
 
     protected _mapTileSize?: Size;
@@ -233,13 +238,13 @@ export class TiledLayer extends UIRenderer {
       * @return {Boolean}
       */
     public addUserNode (node: Node): boolean {
-        let dataComp = node.getComponent(TiledUserNodeData);
+        let dataComp = node.getComponent(XTiledUserNodeData);
         if (dataComp) {
             warn('CCTiledLayer:addUserNode node has been added');
             return false;
         }
 
-        dataComp = node.addComponent(TiledUserNodeData);
+        dataComp = node.addComponent(XTiledUserNodeData);
         node.parent = this.node;
         this._userNodeMap[node.uuid] = dataComp;
 
@@ -264,7 +269,7 @@ export class TiledLayer extends UIRenderer {
       * @return {Boolean}
       */
     public removeUserNode (node: Node): boolean {
-        const dataComp = node.getComponent(TiledUserNodeData);
+        const dataComp = node.getComponent(XTiledUserNodeData);
         if (!dataComp) {
             warn('CCTiledLayer:removeUserNode node is not exist');
             return false;
@@ -299,7 +304,7 @@ export class TiledLayer extends UIRenderer {
 
     public getNodesByRowCol (row: number, col: number): {
         count: number;
-        list: (TiledUserNodeData | null)[];
+        list: (XTiledUserNodeData | null)[];
     } | null | undefined {
         const rowData = this._userNodeGrid[row];
         if (!rowData) return null;
@@ -340,7 +345,7 @@ export class TiledLayer extends UIRenderer {
     }
 
     protected _userNodeSizeChange (): void {
-        const dataComp: TiledUserNodeData = this as unknown as any;
+        const dataComp: XTiledUserNodeData = this as unknown as any;
         const node = dataComp.node;
         const self = dataComp._tiledLayer!;
         self._updateCullingOffsetByUserNode(node);
@@ -349,7 +354,7 @@ export class TiledLayer extends UIRenderer {
     }
 
     protected _userNodePosChange (): void {
-        const dataComp: TiledUserNodeData = this as unknown as any;
+        const dataComp: XTiledUserNodeData = this as unknown as any;
         const node = dataComp.node;
         const self = dataComp._tiledLayer!;
         self._nodeLocalPosToLayerPos(node.getPosition(), _vec2_temp);
@@ -362,7 +367,7 @@ export class TiledLayer extends UIRenderer {
         self._addUserNodeToGrid(dataComp, _tempRowCol);
     }
 
-    protected _removeUserNodeFromGrid (dataComp: TiledUserNodeData): void {
+    protected _removeUserNodeFromGrid (dataComp: XTiledUserNodeData): void {
         const row = dataComp._row;
         const col = dataComp._col;
         const index = dataComp._index;
@@ -395,7 +400,7 @@ export class TiledLayer extends UIRenderer {
         if (col > this._rightTop.col) rowCol.col = this._rightTop.col;
     }
 
-    protected _addUserNodeToGrid (dataComp: TiledUserNodeData, tempRowCol: { col: number, row: number }): void {
+    protected _addUserNodeToGrid (dataComp: XTiledUserNodeData, tempRowCol: { col: number, row: number }): void {
         const row = tempRowCol.row;
         const col = tempRowCol.col;
         const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
@@ -534,11 +539,11 @@ export class TiledLayer extends UIRenderer {
         }
 
         switch (this._layerOrientation) {
-        case Orientation.ORTHO:
+        case bmap.Orientation.Orthogonal:
             return this._positionForOrthoAt(x, y);
-        case Orientation.ISO:
+        case bmap.Orientation.Isometric:
             return this._positionForIsoAt(x, y);
-        case Orientation.HEX:
+        case bmap.Orientation.Hexagonal:
             return this._positionForHexAt(x, y);
         }
         return null;
@@ -600,13 +605,13 @@ export class TiledLayer extends UIRenderer {
             offset = { x: 0, y: 0 };
         }
 
-        const odd_even = (this._staggerIndex === StaggerIndex.STAGGERINDEX_ODD) ? 1 : -1;
+        const odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
         let x = 0;
         let y = 0;
         let diffX = 0;
         let diffY = 0;
         switch (this._staggerAxis) {
-        case StaggerAxis.STAGGERAXIS_Y:
+        case bmap.StaggerAxis.StaggerY:
             diffX = 0;
             if (row % 2 === 1) {
                 diffX = tileWidth / 2 * odd_even;
@@ -614,7 +619,7 @@ export class TiledLayer extends UIRenderer {
             x = col * tileWidth + diffX + offset.x;
             y = (rows - row - 1) * (tileHeight - (tileHeight - this._hexSideLength!) / 2) - offset.y;
             break;
-        case StaggerAxis.STAGGERAXIS_X:
+        case bmap.StaggerAxis.StaggerX:
             diffY = 0;
             if (col % 2 === 1) {
                 diffY = tileHeight / 2 * -odd_even;
@@ -792,7 +797,7 @@ export class TiledLayer extends UIRenderer {
 
         // if map's type is iso, reserve bottom line is 2 to avoid show empty grid because of iso grid arithmetic
         let reserveLine = 1;
-        if (this._layerOrientation === Orientation.ISO) {
+        if (this._layerOrientation === bmap.Orientation.Isometric) {
             reserveLine = 2;
         }
 
@@ -860,19 +865,19 @@ export class TiledLayer extends UIRenderer {
 
         switch (this._layerOrientation) {
         // left top to right dowm
-        case Orientation.ORTHO:
+        case bmap.Orientation.Orthogonal:
             col = Math.floor(x / maptw);
             row = Math.floor(y / mapth);
             break;
             // right top to left down
             // iso can be treat as special hex whose hex side length is 0
-        case Orientation.ISO:
+        case bmap.Orientation.Isometric:
             col = Math.floor(x / maptw2);
             row = Math.floor(y / mapth2);
             break;
             // left top to right dowm
-        case Orientation.HEX:
-            if (axis === StaggerAxis.STAGGERAXIS_Y) {
+        case bmap.Orientation.Hexagonal:
+            if (axis === bmap.StaggerAxis.StaggerY) {
                 row = Math.floor(y / (mapth - this._diffY1!));
                 diffX2 = row % 2 === 1 ? maptw2 * this._odd_even! : 0;
                 col = Math.floor((x - diffX2) / maptw);
@@ -922,7 +927,7 @@ export class TiledLayer extends UIRenderer {
       * let orientation = tiledLayer.getLayerOrientation();
       * cc.log("Layer Orientation: " + orientation);
       */
-    public getLayerOrientation (): Orientation | null {
+    public getLayerOrientation (): bmap.Orientation | null {
         return this._layerOrientation;
     }
 
@@ -962,14 +967,14 @@ export class TiledLayer extends UIRenderer {
 
         let left = 0;
         let bottom = 0;
-        let axis: StaggerAxis;
+        let axis: bmap.StaggerAxis;
         let diffX1: number;
         let diffY1: number;
         let odd_even: number;
         let diffX2: number;
         let diffY2: number;
 
-        if (layerOrientation === Orientation.HEX) {
+        if (layerOrientation === bmap.Orientation.Hexagonal) {
             axis = this._staggerAxis!;
             diffX1 = this._diffX1!;
             diffY1 = this._diffY1!;
@@ -999,14 +1004,14 @@ export class TiledLayer extends UIRenderer {
 
         switch (layerOrientation) {
         // left top to right dowm
-        case Orientation.ORTHO:
+        case bmap.Orientation.Orthogonal:
             cullingCol = col;
             cullingRow = rows - row - 1;
             left = cullingCol * maptw;
             bottom = cullingRow * mapth;
             break;
             // right top to left down
-        case Orientation.ISO:
+        case bmap.Orientation.Isometric:
             // if not consider about col, then left is 'w/2 * (rows - row - 1)'
             // if consider about col then left must add 'w/2 * col'
             // so left is 'w/2 * (rows - row - 1) + w/2 * col'
@@ -1021,9 +1026,9 @@ export class TiledLayer extends UIRenderer {
             bottom = mapth2 * cullingRow;
             break;
             // left top to right dowm
-        case Orientation.HEX:
-            diffX2 = (axis! === StaggerAxis.STAGGERAXIS_Y && row % 2 === 1) ? maptw2 * odd_even! : 0;
-            diffY2 = (axis! === StaggerAxis.STAGGERAXIS_X && col % 2 === 1) ? mapth2 * -odd_even! : 0;
+        case bmap.Orientation.Hexagonal:
+            diffX2 = (axis! === bmap.StaggerAxis.StaggerY && row % 2 === 1) ? maptw2 * odd_even! : 0;
+            diffY2 = (axis! === bmap.StaggerAxis.StaggerX && col % 2 === 1) ? mapth2 * -odd_even! : 0;
 
             left = col * (maptw - diffX1!) + diffX2;
             bottom = (rows - row - 1) * (mapth - diffY1!) + diffY2;
@@ -1047,14 +1052,14 @@ export class TiledLayer extends UIRenderer {
         // record max rect, when viewPort is bigger than layer, can make it smaller
         if (rightTop.row < cullingRow) {
             rightTop.row = cullingRow;
-            if (layerOrientation === Orientation.ISO) {
+            if (layerOrientation === bmap.Orientation.Isometric) {
                 rightTop.row += 1;
             }
         }
 
         if (rightTop.col < cullingCol) {
             rightTop.col = cullingCol;
-            if (layerOrientation === Orientation.ISO) {
+            if (layerOrientation === bmap.Orientation.Isometric) {
                 rightTop.col += 1;
             }
         }
@@ -1146,7 +1151,7 @@ export class TiledLayer extends UIRenderer {
       * let tile = tiledLayer.getTiledTileAt(100, 100, true);
       * cc.log(tile);
       */
-    public getTiledTileAt (x: number, y: number, forceCreate?: boolean): TiledTile | null {
+    public getTiledTileAt (x: number, y: number, forceCreate?: boolean): XTiledTile | null {
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.getTiledTileAt: invalid position');
         }
@@ -1159,7 +1164,7 @@ export class TiledLayer extends UIRenderer {
         let tile = this.tiledTiles[index];
         if (!tile && forceCreate) {
             const node = new Node();
-            tile = node.addComponent(TiledTile);
+            tile = node.addComponent(XTiledTile);
             tile._x = x;
             tile._y = y;
             tile._layer = this;
@@ -1181,7 +1186,7 @@ export class TiledLayer extends UIRenderer {
       * @param {cc.TiledTile} tiledTile
       * @return {cc.TiledTile}
       */
-    public setTiledTileAt (x: number, y: number, tiledTile: TiledTile | null): TiledTile | null {
+    public setTiledTileAt (x: number, y: number, tiledTile: XTiledTile | null): XTiledTile | null {
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.setTiledTileAt: invalid position');
         }
@@ -1336,10 +1341,11 @@ export class TiledLayer extends UIRenderer {
         this._prepareToRender();
     }
 
-    public init (layerInfo: TMXLayerInfo, mapInfo: TMXMapInfo, tilesets: TMXTilesetInfo[], textures: SpriteFrame[], texGrids: TiledTextureGrids): void {
+    public init (layerInfo: TMXLayerInfo, mapInfo: XTMXMapInfo, tilesets: TMXTilesetInfo[], textures: SpriteFrame[], texGrids: TiledTextureGrids): void {
         this._cullingDirty = true;
         this._layerInfo = layerInfo;
         this._mapInfo = mapInfo;
+        // this._bMap = bm;
 
         const size = layerInfo.layerSize!;
 
@@ -1357,7 +1363,7 @@ export class TiledLayer extends UIRenderer {
             // this.node.color = this._tintColor;
         }
 
-        this.renderOrder = mapInfo.renderOrder;
+        this.renderOrder = mapInfo.renderOrder;//this._bMap.renderorder;//
         this._staggerAxis = mapInfo.getStaggerAxis()!;
         this._staggerIndex = mapInfo.getStaggerIndex()!;
         this._hexSideLength = mapInfo.getHexSideLength();
@@ -1371,34 +1377,34 @@ export class TiledLayer extends UIRenderer {
         this.texGrids = texGrids;
 
         // mapInfo
-        this._layerOrientation = mapInfo.orientation;
+        this._layerOrientation = mapInfo.orientation;//this._bMap.orientation;//
         this._mapTileSize = mapInfo.getTileSize();
 
-        const maptw = this._mapTileSize.width;
-        const mapth = this._mapTileSize.height;
+        const maptw = this._mapTileSize!.width;
+        const mapth = this._mapTileSize!.height;
         const layerW = this._layerSize.width;
         const layerH = this._layerSize.height;
 
-        if (this._layerOrientation === Orientation.HEX) {
+        if (this._layerOrientation === bmap.Orientation.Hexagonal) {
             let width = 0;
             let height = 0;
             const tileWidth = maptw & ~1;
             const tileHeight = mapth & ~1;
 
-            this._odd_even = (this._staggerIndex === StaggerIndex.STAGGERINDEX_ODD) ? 1 : -1;
-            if (this._staggerAxis === StaggerAxis.STAGGERAXIS_X) {
-                this._diffX1 = (tileWidth - this._hexSideLength) / 2;
+            this._odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
+            if (this._staggerAxis === bmap.StaggerAxis.StaggerX) {
+                this._diffX1 = (tileWidth - this._hexSideLength!) / 2;
                 this._diffY1 = 0;
-                width = (this._diffX1 + this._hexSideLength) * layerW + this._diffX1;
+                width = (this._diffX1 + this._hexSideLength!) * layerW + this._diffX1;
                 height = (tileHeight * layerH) + tileHeight / 2;
             } else {
                 this._diffX1 = 0;
-                this._diffY1 = (tileHeight - this._hexSideLength) / 2;
+                this._diffY1 = (tileHeight - this._hexSideLength!) / 2;
                 width = (tileWidth * layerW) + tileWidth / 2;
-                height = (this._diffY1 + this._hexSideLength) * layerH + this._diffY1;
+                height = (this._diffY1 + this._hexSideLength!) * layerH + this._diffY1;
             }
             this.node._uiProps.uiTransformComp!.setContentSize(width, height);
-        } else if (this._layerOrientation === Orientation.ISO) {
+        } else if (this._layerOrientation === bmap.Orientation.Isometric) {
             const wh = layerW + layerH;
             this.node._uiProps.uiTransformComp!.setContentSize(maptw * 0.5 * wh, mapth * 0.5 * wh);
         } else {
@@ -1418,7 +1424,7 @@ export class TiledLayer extends UIRenderer {
         this._updateAllUserNode();
     }
 
-    public requestTiledRenderData (): TiledRenderData {
+    public requestTiledRenderData (): XTiledRenderData {
         const arr = this._tiledDataArray as any[];
         while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
             arr.pop();
@@ -1426,22 +1432,22 @@ export class TiledLayer extends UIRenderer {
         if (arr.length > 0) {
             const last = arr[arr.length - 1];
             if (last.renderData && last.renderData.vertexCount === 0) {
-                return last as TiledRenderData;
+                return last as XTiledRenderData;
             }
         }
         const comb = { renderData: null, texture: null };
         this._tiledDataArray.push(comb);
-        return (comb as TiledRenderData);
+        return (comb as XTiledRenderData);
     }
 
-    public requestSubNodesData (): TiledSubNodeData {
+    public requestSubNodesData (): XTiledSubNodeData {
         const arr = this._tiledDataArray as any[];
         if (arr.length > 0) {
             if (arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
-                return arr[arr.length - 1] as TiledSubNodeData;
+                return arr[arr.length - 1] as XTiledSubNodeData;
             }
         }
-        const renderData: (TiledUserNodeData | null)[] = [];
+        const renderData: (XTiledUserNodeData | null)[] = [];
         const comb = { subNodes: renderData };
         this._tiledDataArray.push(comb);
         return comb;
@@ -1449,7 +1455,7 @@ export class TiledLayer extends UIRenderer {
 
     public destroyRenderData (): void {
         this._tiledDataArray.forEach((rd) => {
-            const renderData = (rd as TiledRenderData).renderData;
+            const renderData = (rd as XTiledRenderData).renderData;
             if (renderData) RenderData.remove(renderData);
         });
         this._tiledDataArray.length = 0;
@@ -1457,7 +1463,7 @@ export class TiledLayer extends UIRenderer {
     }
 
     protected _flushAssembler (): void {
-        const assembler = TiledLayer.Assembler.getAssembler(this);
+        const assembler = XTiledLayer.Assembler.getAssembler(this);
         if (this._assembler !== assembler) {
             this._assembler = assembler;
             this._assembler.createData(this);
@@ -1480,13 +1486,13 @@ export class TiledLayer extends UIRenderer {
         for (let i = 0; i < this._tiledDataArray.length; i++) {
             this._tiledDataArrayIdx = i;
             const m = this._tiledDataArray[i];
-            if ((m as TiledSubNodeData).subNodes) {
+            if ((m as XTiledSubNodeData).subNodes) {
                 // 提前处理 User Nodes
-                (m as TiledSubNodeData).subNodes.forEach((c) => {
+                (m as XTiledSubNodeData).subNodes.forEach((c) => {
                     if (c) ui.walk(c.node);
                 });
             } else {
-                const td = m as TiledRenderData;
+                const td = m as XTiledRenderData;
                 if (td.texture) {
                     // NOTE: 由于 commitComp 只支持单张纹理, 故分多次提交
                     ui.commitComp(this, td.renderData, td.texture, this._assembler, null);
@@ -1528,9 +1534,9 @@ export class TiledLayer extends UIRenderer {
         const tiledDataArray = this._tiledDataArray;
         let idx = 0;
         tiledDataArray.forEach((m) => {
-            if ((m as TiledSubNodeData).subNodes) {
+            if ((m as XTiledSubNodeData).subNodes) {
                 // 提前处理 User Nodes
-                (m as TiledSubNodeData).subNodes.forEach((c) => {
+                (m as XTiledSubNodeData).subNodes.forEach((c) => {
                     if (c) {
                         if (!this._drawInfoList[idx]) {
                             this._drawInfoList[idx] = new RenderDrawInfo();
@@ -1543,7 +1549,7 @@ export class TiledLayer extends UIRenderer {
                     }
                 });
             } else {
-                const td = m as TiledRenderData;
+                const td = m as XTiledRenderData;
                 if (td.texture) {
                     if (!this._drawInfoList[idx]) {
                         this._drawInfoList[idx] = new RenderDrawInfo();

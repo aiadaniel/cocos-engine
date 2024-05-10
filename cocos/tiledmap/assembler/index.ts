@@ -23,19 +23,19 @@
 */
 
 import { IAssemblerManager } from '../../2d/renderer/base';
-import { TiledLayer } from '../tiled-layer';
+import { XTiledLayer } from '../xtiled-layer';
 import { simple } from './simple';
 
 // Inline all type switch to avoid jit deoptimization during inlined function change
 
-const tiledLayerAssembler: IAssemblerManager = {
+const xtiledLayerAssembler: IAssemblerManager = {
     getAssembler () {
         return simple;
     },
 };
 
-TiledLayer.Assembler = tiledLayerAssembler;
+XTiledLayer.Assembler = xtiledLayerAssembler;
 
 export {
-    tiledLayerAssembler,
+    xtiledLayerAssembler,
 };
