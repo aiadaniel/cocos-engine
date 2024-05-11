@@ -615,7 +615,7 @@ export class XTiledMap extends Component {
     lateUpdate (dt: number): void {
         const animations = this._animations;
         const texGrids = this._texGrids;
-        for (const aniGID of animations.keys()) {
+        for (const aniGID of animations?.keys()) {
             const animation = animations.get(aniGID)!;
             const frames = animation.frames;
             let frame = frames[animation.frameIdx];
