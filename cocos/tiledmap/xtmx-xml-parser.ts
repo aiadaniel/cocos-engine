@@ -474,19 +474,17 @@ export class XTMXMapInfo {
         this.orientation = this._bm.orientation;
         this.renderOrder = this._bm.renderorder;
 
-            this._mapSize.width = this._bm.width;
-            this._mapSize.height = this._bm.height;
+        this._mapSize.width = this._bm.width;
+        this._mapSize.height = this._bm.height;
 
-            this._tileSize.width = this._bm.tilewidth;
-            this._tileSize.height = this._bm.tileheight;
+        this._tileSize.width = this._bm.tilewidth;
+        this._tileSize.height = this._bm.tileheight;
 
-            // The parent element is the map
-            this.properties = {} //getPropertyList(map);
-        
-
+        // The parent element is the map
+        this.properties = {} //getPropertyList(map);
 
         for (i = 0; i < this._bm.tileset.length; i++) {
-            const curTileset = this._bm.tileset[i];
+                const curTileset = this._bm.tileset[i];
 
                 let images = curTileset.image;//getElementsByTagName('image');
                 // const collection = images.length > 1;
@@ -520,9 +518,9 @@ export class XTMXMapInfo {
                 for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
                     // parse tiles by tileIdx
                     let tile = curTileset.tiles[tileIdx];// tiles && tiles[tileIdx];
-                    if (!tile) {
-                        continue;
-                    }
+                    // if (!tile) {
+                    //     continue;
+                    // }
 
                     const curImage = images ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;
                     if (!curImage) continue;
@@ -537,6 +535,7 @@ export class XTMXMapInfo {
                         tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
 
                         tileset.collection = ( tile.image != undefined );//collection;
+                        console.log("tileset " + tileset.name + " isCollection " + tileset.collection);
                         if (!tileset.collection) {
                             tileset.imageName = curImageName;
                             tileset.imageSize.width = curImage.width;//parseFloat(curImage.getAttribute('width')!) || 0;
@@ -567,7 +566,6 @@ export class XTMXMapInfo {
                     }
 
                     this.parentGID = (curTileset.firstgid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
-                    const tileImages = tile.image;//tile.getElementsByTagName('image');
                     // if (tile.hasAttribute('x') && tile.hasAttribute('y')) {
                     //     tileset.imageOffset = new Vec2(parseFloat(tile.getAttribute('x')!) || 0, parseFloat(tile.getAttribute('y')!) || 0);
                     // }
@@ -576,6 +574,7 @@ export class XTMXMapInfo {
                     //     tileset._tileSize.width = parseFloat(tile.getAttribute('width')!) || 0;
                     //     tileset._tileSize.height = parseFloat(tile.getAttribute('height')!) || 0;
                     // }
+                    const tileImages = tile.image;//tile.getElementsByTagName('image');
                     if (tileImages /*&& tileImages.length > 0*/) {
                         const image = tileImages;//[0];
                         let imageName = image.source;//getAttribute('source')!;
@@ -617,12 +616,12 @@ export class XTMXMapInfo {
                         // const framesData = animation.getElementsByTagName('frame');
                         const animationProp: XTiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
                         this._tileAnimations.set(pid, animationProp);
-                        const frames = animationProp.frames;
+                        // const frames = animationProp.frames;
                         for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
                             const frame = animations[frameIdx];// framesData[frameIdx];
                             const tileid = curTileset.firstgid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
                             const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
-                            frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
+                            animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
                         }
                     }
                 }
@@ -815,13 +814,13 @@ export class XTMXMapInfo {
                 objectProp.x = selObj.x;//parseFloat(selObj.getAttribute('x')!) || 0;
                 objectProp.y = selObj.y;//parseFloat(selObj.getAttribute('y')!) || 0;
 
-                // objectProp.rotation = parseFloat(selObj.getAttribute('rotation')!) || 0;
+                objectProp.rotation = 0;//parseFloat(selObj.getAttribute('rotation')!) || 0;
 
                 // getPropertyList(selObj, objectProp as any);
 
                 // visible
                 // const visibleAttr = selObj.getAttribute('visible');
-                // objectProp.visible = !(visibleAttr && parseInt(visibleAttr) === 0);
+                objectProp.visible = true;//!(visibleAttr && parseInt(visibleAttr) === 0);
 
                 // text
                 // const texts = selObj.getElementsByTagName('text');

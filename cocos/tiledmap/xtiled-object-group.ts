@@ -350,8 +350,8 @@ export class XTiledObjectGroup extends Component {
 
                 sprite.sizeMode = Sprite.SizeMode.CUSTOM;
 
-                // HACK: we should support _premultiplyAlpha when group had material
-                const srcBlendFactor = this._premultiplyAlpha ? gfx.BlendFactor.ONE : gfx.BlendFactor.SRC_ALPHA;
+                // HACK: we should support _premultiplyAlpha when group had material    todo: gfx此时可能空！
+                const srcBlendFactor = this._premultiplyAlpha ? 1 : 2;//gfx.BlendFactor.ONE : gfx.BlendFactor.SRC_ALPHA;
                 if (sprite.srcBlendFactor !== srcBlendFactor) {
                     sprite.srcBlendFactor = srcBlendFactor;
                     if (sprite.material) {
@@ -361,8 +361,10 @@ export class XTiledObjectGroup extends Component {
 
                 let spf = grid.spriteFrame;
                 if (!spf) {
+                    // console.log("grid hasnot spf");
                     spf = new SpriteFrame();
                 } else {
+                    // console.log("grid has spf");
                     spf = spf.clone();
                 }
                 if (((gid as unknown as number) & FLAG_HORIZONTAL) >>> 0) {
