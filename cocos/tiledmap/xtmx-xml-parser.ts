@@ -24,8 +24,8 @@
 
 
 import { Label, HorizontalTextAlignment, VerticalTextAlignment } from '../2d/components/label';
-// import codec from '../../external/compression/ZipUtils.js';
-// import zlib from '../../external/compression/zlib.min.js';
+import codec from '../../external/compression/ZipUtils.js';
+import zlib from '../../external/compression/zlib.min.js';
 // import { SAXParser } from '../asset/asset-manager/plist-parser';
 import {
     GID, MixedGID, PropertiesInfo, XTiledAnimation, TiledAnimationType,
@@ -36,16 +36,16 @@ import { SpriteFrame } from '../2d/assets';
 
 import { bmap } from './BTile';
 
-// function uint8ArrayToUint32Array (uint8Arr: Uint8Array): null | Uint32Array | number[] {
-//     if (uint8Arr.length % 4 !== 0) return null;
-//     const arrLen = uint8Arr.length / 4;
-//     const retArr = window.Uint32Array ? new Uint32Array(arrLen) : [];
-//     for (let i = 0; i < arrLen; i++) {
-//         const offset = i * 4;
-//         retArr[i] = uint8Arr[offset] + uint8Arr[offset + 1] * (1 << 8) + uint8Arr[offset + 2] * (1 << 16) + uint8Arr[offset + 3] * (1 << 24);
-//     }
-//     return retArr;
-// }
+function uint8ArrayToUint32Array (uint8Arr: Uint8Array): null | Uint32Array | number[] {
+    if (uint8Arr.length % 4 !== 0) return null;
+    const arrLen = uint8Arr.length / 4;
+    const retArr = window.Uint32Array ? new Uint32Array(arrLen) : [];
+    for (let i = 0; i < arrLen; i++) {
+        const offset = i * 4;
+        retArr[i] = uint8Arr[offset] + uint8Arr[offset + 1] * (1 << 8) + uint8Arr[offset + 2] * (1 << 16) + uint8Arr[offset + 3] * (1 << 24);
+    }
+    return retArr;
+}
 
 // function strToHAlign (value): HorizontalTextAlignment {
 //     const hAlign = Label.HorizontalAlign;
@@ -518,9 +518,9 @@ export class XTMXMapInfo {
                 for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
                     // parse tiles by tileIdx
                     let tile = curTileset.tiles[tileIdx];// tiles && tiles[tileIdx];
-                    // if (!tile) {
-                    //     continue;
-                    // }
+                    if (!tile) {
+                        continue;
+                    }
 
                     const curImage = images ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;
                     if (!curImage) continue;
@@ -717,7 +717,7 @@ export class XTMXMapInfo {
         const tintColor = selLayer.tintcolor;//.getAttribute('tintcolor');
         layer.tintColor = tintColor ? strToColor(tintColor) : null;
 
-        // let nodeValue = '';
+        let nodeValue = data!.bdata;//'';
         // for (let j = 0; j < data.childNodes.length; j++) {// 会有多个data节点吗？
         //     nodeValue += data.childNodes[j].nodeValue; // 数据是用子节点的nodeValue获取的
         // }
@@ -730,14 +730,14 @@ export class XTMXMapInfo {
         //     logID(7218);
         //     return null;
         // }
-        let tiles = data!.bdata;
+        let tiles;//= data!.bdata;
         // switch (compression) {
         // case 'gzip':
         //     tiles = codec.unzipBase64AsArray(nodeValue, 4);
         //     break;
         // case 'zlib': {
-        //     const inflator = new zlib.Inflate(codec.Base64.decodeAsArray(nodeValue, 1));
-        //     tiles = uint8ArrayToUint32Array(inflator.decompress());
+            const inflator = new zlib.Inflate(codec.Base64.decodeAsArray(nodeValue, 1));
+            tiles = uint8ArrayToUint32Array(inflator.decompress());
         //     break;
         // }
         // case null:
@@ -759,6 +759,8 @@ export class XTMXMapInfo {
         //     if (this.layerAttrs === TMXLayerInfo.ATTRIB_NONE) logID(7219);
         //     break;
         // }
+        if (layer.name=="groundLayer")
+            console.log(tiles);
         if (tiles) {
             layer.tiles = new Uint32Array(tiles);
         }

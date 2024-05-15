@@ -294,7 +294,7 @@ export namespace bmap {
             this.height = _buf_.ReadInt()
             this.visible = _buf_.ReadInt()
             this.locked = _buf_.ReadInt()
-            this.opacity = _buf_.ReadInt()
+            this.opacity = _buf_.ReadFloat()
             this.tintcolor = _buf_.ReadString()
             this.offsetx = _buf_.ReadInt()
             this.offsety = _buf_.ReadInt()
@@ -342,10 +342,11 @@ export namespace bmap {
     export  class LayerData  {
     
         constructor(_buf_: ByteBuf) {
-            { this.bdata = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :number; _e = _buf_.ReadInt(); this.bdata.push(_e) } }
+            this.bdata = _buf_.ReadString()
         }
     
-        readonly bdata: number[]
+        readonly bdata: string
         
     }
     }
+    
