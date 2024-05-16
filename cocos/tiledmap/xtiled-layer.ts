@@ -88,6 +88,7 @@ interface XTiledSubNodeData {
 @ccclass('XTiledLayer')
 export class XTiledLayer extends UIRenderer {
     // [row][col] = {count: 0, nodesList: []};
+    // & 符号是交叉类型
     protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (XTiledUserNodeData | null)[] } >> = {};
     protected _userNodeMap: { [key: string]: XTiledUserNodeData } = {};// [id] = node;
     protected _userNodeDirty = false;
@@ -538,15 +539,15 @@ export class XTiledLayer extends UIRenderer {
             y = Math.floor((pos as IVec2Like).y);
         }
 
-        switch (this._layerOrientation) {
-        case bmap.Orientation.Orthogonal:
-            return this._positionForOrthoAt(x, y);
-        case bmap.Orientation.Isometric:
+        // switch (this._layerOrientation) {
+        // case bmap.Orientation.Orthogonal:
+        //     return this._positionForOrthoAt(x, y);
+        // case bmap.Orientation.Isometric:
             return this._positionForIsoAt(x, y);
-        case bmap.Orientation.Hexagonal:
-            return this._positionForHexAt(x, y);
-        }
-        return null;
+        // case bmap.Orientation.Hexagonal:
+        //     return this._positionForHexAt(x, y);
+        // }
+        // return null;
     }
 
     public isInvalidPosition (x: number, y: number): boolean {
@@ -572,64 +573,64 @@ export class XTiledLayer extends UIRenderer {
         );
     }
 
-    protected _positionForOrthoAt (x: number, y: number): Vec2 {
-        let offsetX = 0;
-        let offsetY = 0;
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        const gidAndFlags = this.tiles[index];
-        if (gidAndFlags) {
-            const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID;
-            const tileset = this.texGrids!.get(gid)!.tileset;
-            const offset = tileset.tileOffset;
-            offsetX = offset.x;
-            offsetY = offset.y;
-        }
+    // protected _positionForOrthoAt (x: number, y: number): Vec2 {
+    //     let offsetX = 0;
+    //     let offsetY = 0;
+    //     const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
+    //     const gidAndFlags = this.tiles[index];
+    //     if (gidAndFlags) {
+    //         const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID;
+    //         const tileset = this.texGrids!.get(gid)!.tileset;
+    //         const offset = tileset.tileOffset;
+    //         offsetX = offset.x;
+    //         offsetY = offset.y;
+    //     }
 
-        return new Vec2(
-            x * this._mapTileSize!.width + offsetX,
-            (this._layerSize!.height - y - 1) * this._mapTileSize!.height - offsetY,
-        );
-    }
+    //     return new Vec2(
+    //         x * this._mapTileSize!.width + offsetX,
+    //         (this._layerSize!.height - y - 1) * this._mapTileSize!.height - offsetY,
+    //     );
+    // }
 
-    protected _positionForHexAt (col: number, row: number): Vec2 {
-        const tileWidth = this._mapTileSize!.width;
-        const tileHeight = this._mapTileSize!.height;
-        const rows = this._layerSize!.height;
+    // protected _positionForHexAt (col: number, row: number): Vec2 {
+    //     const tileWidth = this._mapTileSize!.width;
+    //     const tileHeight = this._mapTileSize!.height;
+    //     const rows = this._layerSize!.height;
 
-        const index = Math.floor(col) + Math.floor(row) * this._layerSize!.width;
-        const gid = ((this.tiles[index] as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0;
-        let offset: IVec2Like;
-        if (this.texGrids!.get(gid as unknown as GID)) {
-            offset = this.texGrids!.get(gid as unknown as GID)!.tileset.tileOffset;
-        } else {
-            offset = { x: 0, y: 0 };
-        }
+    //     const index = Math.floor(col) + Math.floor(row) * this._layerSize!.width;
+    //     const gid = ((this.tiles[index] as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0;
+    //     let offset: IVec2Like;
+    //     if (this.texGrids!.get(gid as unknown as GID)) {
+    //         offset = this.texGrids!.get(gid as unknown as GID)!.tileset.tileOffset;
+    //     } else {
+    //         offset = { x: 0, y: 0 };
+    //     }
 
-        const odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
-        let x = 0;
-        let y = 0;
-        let diffX = 0;
-        let diffY = 0;
-        switch (this._staggerAxis) {
-        case bmap.StaggerAxis.StaggerY:
-            diffX = 0;
-            if (row % 2 === 1) {
-                diffX = tileWidth / 2 * odd_even;
-            }
-            x = col * tileWidth + diffX + offset.x;
-            y = (rows - row - 1) * (tileHeight - (tileHeight - this._hexSideLength!) / 2) - offset.y;
-            break;
-        case bmap.StaggerAxis.StaggerX:
-            diffY = 0;
-            if (col % 2 === 1) {
-                diffY = tileHeight / 2 * -odd_even;
-            }
-            x = col * (tileWidth - (tileWidth - this._hexSideLength!) / 2) + offset.x;
-            y = (rows - row - 1) * tileHeight + diffY - offset.y;
-            break;
-        }
-        return new Vec2(x, y);
-    }
+    //     const odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
+    //     let x = 0;
+    //     let y = 0;
+    //     let diffX = 0;
+    //     let diffY = 0;
+    //     switch (this._staggerAxis) {
+    //     case bmap.StaggerAxis.StaggerY:
+    //         diffX = 0;
+    //         if (row % 2 === 1) {
+    //             diffX = tileWidth / 2 * odd_even;
+    //         }
+    //         x = col * tileWidth + diffX + offset.x;
+    //         y = (rows - row - 1) * (tileHeight - (tileHeight - this._hexSideLength!) / 2) - offset.y;
+    //         break;
+    //     case bmap.StaggerAxis.StaggerX:
+    //         diffY = 0;
+    //         if (col % 2 === 1) {
+    //             diffY = tileHeight / 2 * -odd_even;
+    //         }
+    //         x = col * (tileWidth - (tileWidth - this._hexSideLength!) / 2) + offset.x;
+    //         y = (rows - row - 1) * tileHeight + diffY - offset.y;
+    //         break;
+    //     }
+    //     return new Vec2(x, y);
+    // }
 
     /**
       * @en
@@ -644,20 +645,20 @@ export class XTiledLayer extends UIRenderer {
       * @example
       * tiledLayer.setTilesGIDAt([1, 1, 1, 1], 10, 10, 2)
       */
-    // public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
-    //     if (!gids || gids.length === 0 || totalCols <= 0) return;
-    //     if (beginRow < 0) beginRow = 0;
-    //     if (beginCol < 0) beginCol = 0;
-    //     let gidsIdx = 0;
-    //     const endCol = beginCol + totalCols;
-    //     for (let row = beginRow; ; row++) {
-    //         for (let col = beginCol; col < endCol; col++) {
-    //             if (gidsIdx >= gids.length) return;
-    //             this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
-    //             gidsIdx++;
-    //         }
-    //     }
-    // }
+    public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
+        if (!gids || gids.length === 0 || totalCols <= 0) return;
+        if (beginRow < 0) beginRow = 0;
+        if (beginCol < 0) beginCol = 0;
+        let gidsIdx = 0;
+        const endCol = beginCol + totalCols;
+        for (let row = beginRow; ; row++) {
+            for (let col = beginCol; col < endCol; col++) {
+                if (gidsIdx >= gids.length) return;
+                this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
+                gidsIdx++;
+            }
+        }
+    }
 
     /**
       * @en
@@ -859,35 +860,35 @@ export class XTiledLayer extends UIRenderer {
         const mapth2 = mapth * 0.5;
         let row = 0;
         let col = 0;
-        let diffX2 = 0;
-        let diffY2 = 0;
-        const axis = this._staggerAxis;
+        // let diffX2 = 0;
+        // let diffY2 = 0;
+        // const axis = this._staggerAxis;
 
-        switch (this._layerOrientation) {
-        // left top to right dowm
-        case bmap.Orientation.Orthogonal:
-            col = Math.floor(x / maptw);
-            row = Math.floor(y / mapth);
-            break;
+        // switch (this._layerOrientation) {
+        // // left top to right dowm
+        // case bmap.Orientation.Orthogonal:
+        //     col = Math.floor(x / maptw);
+        //     row = Math.floor(y / mapth);
+        //     break;
             // right top to left down
             // iso can be treat as special hex whose hex side length is 0
-        case bmap.Orientation.Isometric:
+        // case bmap.Orientation.Isometric:
             col = Math.floor(x / maptw2);
             row = Math.floor(y / mapth2);
-            break;
-            // left top to right dowm
-        case bmap.Orientation.Hexagonal:
-            if (axis === bmap.StaggerAxis.StaggerY) {
-                row = Math.floor(y / (mapth - this._diffY1!));
-                diffX2 = row % 2 === 1 ? maptw2 * this._odd_even! : 0;
-                col = Math.floor((x - diffX2) / maptw);
-            } else {
-                col = Math.floor(x / (maptw - this._diffX1!));
-                diffY2 = col % 2 === 1 ? mapth2 * -this._odd_even! : 0;
-                row = Math.floor((y - diffY2) / mapth);
-            }
-            break;
-        }
+        //     break;
+        //     // left top to right dowm
+        // case bmap.Orientation.Hexagonal:
+        //     if (axis === bmap.StaggerAxis.StaggerY) {
+        //         row = Math.floor(y / (mapth - this._diffY1!));
+        //         diffX2 = row % 2 === 1 ? maptw2 * this._odd_even! : 0;
+        //         col = Math.floor((x - diffX2) / maptw);
+        //     } else {
+        //         col = Math.floor(x / (maptw - this._diffX1!));
+        //         diffY2 = col % 2 === 1 ? mapth2 * -this._odd_even! : 0;
+        //         row = Math.floor((y - diffY2) / mapth);
+        //     }
+        //     break;
+        // }
         result.row = row;
         result.col = col;
         return result;
@@ -974,12 +975,12 @@ export class XTiledLayer extends UIRenderer {
         let diffX2: number;
         let diffY2: number;
 
-        if (layerOrientation === bmap.Orientation.Hexagonal) {
-            axis = this._staggerAxis!;
-            diffX1 = this._diffX1!;
-            diffY1 = this._diffY1!;
-            odd_even = this._odd_even!;
-        }
+        // if (layerOrientation === bmap.Orientation.Hexagonal) {
+        //     axis = this._staggerAxis!;
+        //     diffX1 = this._diffX1!;
+        //     diffY1 = this._diffY1!;
+        //     odd_even = this._odd_even!;
+        // }
 
         let cullingCol = 0;
         let cullingRow = 0;
@@ -1002,16 +1003,16 @@ export class XTiledLayer extends UIRenderer {
             this._hasAniGrid = this._hasAniGrid || true;
         }
 
-        switch (layerOrientation) {
-        // left top to right dowm
-        case bmap.Orientation.Orthogonal:
-            cullingCol = col;
-            cullingRow = rows - row - 1;
-            left = cullingCol * maptw;
-            bottom = cullingRow * mapth;
-            break;
+        // switch (layerOrientation) {
+        // // left top to right dowm
+        // case bmap.Orientation.Orthogonal:
+        //     cullingCol = col;
+        //     cullingRow = rows - row - 1;
+        //     left = cullingCol * maptw;
+        //     bottom = cullingRow * mapth;
+        //     break;
             // right top to left down
-        case bmap.Orientation.Isometric:
+        // case bmap.Orientation.Isometric:
             // if not consider about col, then left is 'w/2 * (rows - row - 1)'
             // if consider about col then left must add 'w/2 * col'
             // so left is 'w/2 * (rows - row - 1) + w/2 * col'
@@ -1024,18 +1025,18 @@ export class XTiledLayer extends UIRenderer {
             cullingRow = rows + cols - col - row - 2;
             left = maptw2 * cullingCol;
             bottom = mapth2 * cullingRow;
-            break;
-            // left top to right dowm
-        case bmap.Orientation.Hexagonal:
-            diffX2 = (axis! === bmap.StaggerAxis.StaggerY && row % 2 === 1) ? maptw2 * odd_even! : 0;
-            diffY2 = (axis! === bmap.StaggerAxis.StaggerX && col % 2 === 1) ? mapth2 * -odd_even! : 0;
+        //     break;
+        //     // left top to right dowm
+        // case bmap.Orientation.Hexagonal:
+        //     diffX2 = (axis! === bmap.StaggerAxis.StaggerY && row % 2 === 1) ? maptw2 * odd_even! : 0;
+        //     diffY2 = (axis! === bmap.StaggerAxis.StaggerX && col % 2 === 1) ? mapth2 * -odd_even! : 0;
 
-            left = col * (maptw - diffX1!) + diffX2;
-            bottom = (rows - row - 1) * (mapth - diffY1!) + diffY2;
-            cullingCol = col;
-            cullingRow = rows - row - 1;
-            break;
-        }
+        //     left = col * (maptw - diffX1!) + diffX2;
+        //     bottom = (rows - row - 1) * (mapth - diffY1!) + diffY2;
+        //     cullingCol = col;
+        //     cullingRow = rows - row - 1;
+        //     break;
+        // }
 
         const rowData = vertices[cullingRow] = vertices[cullingRow] || { minCol: 0, maxCol: 0 };
         const colData = rowData[cullingCol] = rowData[cullingCol] || { left: 0, bottom: 0, index: 0 };
@@ -1385,31 +1386,31 @@ export class XTiledLayer extends UIRenderer {
         const layerW = this._layerSize.width;
         const layerH = this._layerSize.height;
 
-        if (this._layerOrientation === bmap.Orientation.Hexagonal) {
-            let width = 0;
-            let height = 0;
-            const tileWidth = maptw & ~1;
-            const tileHeight = mapth & ~1;
+        // if (this._layerOrientation === bmap.Orientation.Hexagonal) {
+        //     let width = 0;
+        //     let height = 0;
+        //     const tileWidth = maptw & ~1;
+        //     const tileHeight = mapth & ~1;
 
-            this._odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
-            if (this._staggerAxis === bmap.StaggerAxis.StaggerX) {
-                this._diffX1 = (tileWidth - this._hexSideLength!) / 2;
-                this._diffY1 = 0;
-                width = (this._diffX1 + this._hexSideLength!) * layerW + this._diffX1;
-                height = (tileHeight * layerH) + tileHeight / 2;
-            } else {
-                this._diffX1 = 0;
-                this._diffY1 = (tileHeight - this._hexSideLength!) / 2;
-                width = (tileWidth * layerW) + tileWidth / 2;
-                height = (this._diffY1 + this._hexSideLength!) * layerH + this._diffY1;
-            }
-            this.node._uiProps.uiTransformComp!.setContentSize(width, height);
-        } else if (this._layerOrientation === bmap.Orientation.Isometric) {
+        //     this._odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
+        //     if (this._staggerAxis === bmap.StaggerAxis.StaggerX) {
+        //         this._diffX1 = (tileWidth - this._hexSideLength!) / 2;
+        //         this._diffY1 = 0;
+        //         width = (this._diffX1 + this._hexSideLength!) * layerW + this._diffX1;
+        //         height = (tileHeight * layerH) + tileHeight / 2;
+        //     } else {
+        //         this._diffX1 = 0;
+        //         this._diffY1 = (tileHeight - this._hexSideLength!) / 2;
+        //         width = (tileWidth * layerW) + tileWidth / 2;
+        //         height = (this._diffY1 + this._hexSideLength!) * layerH + this._diffY1;
+        //     }
+        //     this.node._uiProps.uiTransformComp!.setContentSize(width, height);
+        // } else if (this._layerOrientation === bmap.Orientation.Isometric) {
             const wh = layerW + layerH;
             this.node._uiProps.uiTransformComp!.setContentSize(maptw * 0.5 * wh, mapth * 0.5 * wh);
-        } else {
-            this.node._uiProps.uiTransformComp!.setContentSize(layerW * maptw, layerH * mapth);
-        }
+        // } else {
+        //     this.node._uiProps.uiTransformComp!.setContentSize(layerW * maptw, layerH * mapth);
+        // }
 
         // offset (after layer orientation is set);
         this._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);

@@ -32,9 +32,11 @@ import {
     TileFlag, TMXImageLayerInfo, TMXLayerInfo, TMXObject, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo,
 } from './xtiled-types';
 import { Color, errorID, logID, Size, Vec2 } from '../core';
-import { SpriteFrame } from '../2d/assets';
+import { SpriteAtlas, SpriteFrame } from '../2d/assets';
 
 import { bmap } from './BTile';
+import Bundle from '../asset/asset-manager/bundle';
+import { assetManager } from '../asset/asset-manager';
 
 function uint8ArrayToUint32Array (uint8Arr: Uint8Array): null | Uint32Array | number[] {
     if (uint8Arr.length % 4 !== 0) return null;
@@ -200,6 +202,9 @@ export class XTMXMapInfo {
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
+    _ab: string;
+    _atlasMap: Map<string, SpriteAtlas> = new Map();
+
     // hex map values
     // protected _staggerAxis: bmap.StaggerAxis | null = null;
     // protected _staggerIndex: bmap.StaggerIndex | null = null;
@@ -209,8 +214,11 @@ export class XTMXMapInfo {
 
     _bm: bmap.BMap;
 
-    constructor (bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
+    constructor (ab: string, atlasmap: Map<string, SpriteAtlas>, bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
         textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
+        this._ab = ab;
+        this._atlasMap = atlasmap;
+        console.log(this._atlasMap[0]?.spriteFrames?.length); //自动图集此时的spriteFrames是空的哦
         this._bm = bm;
         this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
     }
@@ -469,7 +477,7 @@ export class XTMXMapInfo {
 
         // PARSE <map>
         // const map = mapXML.documentElement;
-        console.log(JSON.stringify(this._bm));
+        // console.log(JSON.stringify(this._bm));
 
         this.orientation = this._bm.orientation;
         this.renderOrder = this._bm.renderorder;
@@ -526,16 +534,16 @@ export class XTMXMapInfo {
                     if (!curImage) continue;
                     let curImageName: string = curImage.source;//getAttribute('source')!;
                     // curImageName = curImageName.replace(/\\/g, '/');
-
+                    
                     if (!tileset || tile.image/*|| collection*/) {
                         tileset = new TMXTilesetInfo();
                         tileset.name = curTileset.name;
                         tileset.firstGid = curTileset.firstgid! & TileFlag.FLIPPED_MASK;
                         tileset.tileOffset.x = curTileset.tileoffset?.x ?? 0;
                         tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
-
+                        
                         tileset.collection = ( tile.image != undefined );//collection;
-                        console.log("tileset " + tileset.name + " isCollection " + tileset.collection);
+                        // console.log("tileset:" + tileset.name + " curImageName:" + curImageName + " collect:" + tileset.collection);
                         if (!tileset.collection) {
                             tileset.imageName = curImageName;
                             tileset.imageSize.width = curImage.width;//parseFloat(curImage.getAttribute('width')!) || 0;
@@ -590,6 +598,14 @@ export class XTMXMapInfo {
                         // }
 
                         tileset.sourceImage = this._spriteFrameMap![imageName];
+                        // tileset.sourceImage = this._atlasMap[tileset.name]?.spriteFrames[imageName];
+                        // 从图集加载
+                        // const tts = tileset;
+                        // assetManager.getBundle(this._ab)?.load(tileset.name, SpriteAtlas, (err, atlas)=>{
+                        //     console.log("load atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
+                        //     tts.sourceImage = atlas?.getSpriteFrame(imageName) || undefined;
+                        // });
+
                         // if (!tileset.sourceImage) {
                         //     const nameWithPostfix = TMXMapInfo.getNameWithPostfix(imageName);
                         //     tileset.imageName = nameWithPostfix;
@@ -759,8 +775,8 @@ export class XTMXMapInfo {
         //     if (this.layerAttrs === TMXLayerInfo.ATTRIB_NONE) logID(7219);
         //     break;
         // }
-        if (layer.name=="groundLayer")
-            console.log(tiles);
+        // if (layer.name=="groundLayer")
+        //     console.log(tiles);
         if (tiles) {
             layer.tiles = new Uint32Array(tiles);
         }

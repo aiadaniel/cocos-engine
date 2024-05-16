@@ -23,7 +23,7 @@
 */
 
 
-import { ccclass, displayOrder, executeInEditMode, help, menu, requireComponent, type, serializable, editable } from 'cc.decorator';
+import { ccclass, displayOrder, executeInEditMode, help, menu, requireComponent, type, serializable, editable, string } from 'cc.decorator';
 import { EDITOR, JSB } from 'internal:constants';
 import { Component } from '../scene-graph/component';
 import { UITransform } from '../2d/framework';
@@ -36,12 +36,14 @@ import { XTiledObjectGroup } from './xtiled-object-group';
 import { Sprite } from '../2d/components/sprite';
 import { fillTextureGrids } from './xtiled-utils';
 import { Size, Vec2, logID, Color, sys } from '../core';
-import { SpriteFrame } from '../2d/assets';
+import { SpriteAtlas, SpriteFrame } from '../2d/assets';
 import { NodeEventType } from '../scene-graph/node-event';
 import { Node } from '../scene-graph';
 import { bmap } from './BTile';
 import { BufferAsset } from '../asset/assets';
 import { ByteBuf } from '../core/bright/ByteBuf';
+import { assetManager } from '../asset/asset-manager';
+import Bundle from '../asset/asset-manager/bundle';
 
 interface ImageExtendedNode extends Node {
     layerInfo: TMXImageLayerInfo;
@@ -120,6 +122,18 @@ export class XTiledMap extends Component {
 
     @type([SpriteFrame])
     sfs: SpriteFrame[] = []
+
+    @serializable
+    @displayOrder(8)
+    ab: string="resources";
+    // get ab(): string { return this._ab; }
+    // set ab(v) { this._ab = v; }
+
+    _atlasMap: Map<string, SpriteAtlas> = new Map();
+
+    // 使用指定图集（实测使用自动图集时，preload时还是空的）
+    @type([SpriteAtlas])
+    atlass: SpriteAtlas[] = [];
 
     /**
      * @en
@@ -340,6 +354,10 @@ export class XTiledMap extends Component {
         this._bMap = new bmap.BMap(buf);
 
         if (this._bMap) {
+            for (const at of this.atlass) {
+                this._atlasMap[at.name] = at;
+            }
+
             // let texValues = file.textures;
             const spfTexturesMap: { [key: string]: SpriteFrame } = {};
             const spfTextureSizeMap: { [key: string]: Size } = {};
@@ -357,7 +375,7 @@ export class XTiledMap extends Component {
             //     imageLayerTextures[spfNames[i]] = texValues[i];
             // }
 
-            const mapInfo = new XTMXMapInfo(this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
+            const mapInfo = new XTMXMapInfo(this.ab, this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
             const tilesets = mapInfo.getTilesets();
             if (!tilesets || tilesets.length === 0) {
                 logID(7241);
@@ -453,7 +471,7 @@ export class XTiledMap extends Component {
             const tilesetInfo = tilesets[i];
             if (!tilesetInfo) continue;
             if (!tilesetInfo.sourceImage) {
-                console.warn(`Can't find the spriteFrame of tilesets ${i}`);
+                console.warn(`Can't find the spriteFrame of tilesets ${tilesetInfo.name}`);
                 continue;
             }
             fillTextureGrids(tilesetInfo, texGrids, tilesetInfo.sourceImage);
@@ -563,6 +581,28 @@ export class XTiledMap extends Component {
 
         this.node._uiProps.uiTransformComp!.setContentSize(maxWidth, maxHeight);
         this._syncAnchorPoint();
+    }
+
+    // 随着资源加载，渐进式构建图层
+    public _stepBuildMapInfo() {
+        const tilesets = this._tilesets;
+        const texGrids = this._texGrids;
+        // const animations = this._animations;
+        // texGrids.clear();
+
+        for (let i = 0, l = tilesets.length; i < l; ++i) {
+            const tilesetInfo = tilesets[i];
+            if (!tilesetInfo) continue;
+            if (!tilesetInfo.sourceImage) {
+                const tts = tilesetInfo;
+                assetManager.getBundle(this.ab)?.load(tilesetInfo.name, SpriteAtlas, (err, atlas)=>{
+                    console.log("stepload atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
+                    tts.sourceImage = atlas?.getSpriteFrame(tts.imageName!) || undefined;
+                    if (!tts.sourceImage) return;
+                    fillTextureGrids(tilesetInfo, texGrids, tilesetInfo.sourceImage);
+                });
+            }
+        }
     }
 
     protected _buildWithMapInfo (mapInfo: XTMXMapInfo): void {
