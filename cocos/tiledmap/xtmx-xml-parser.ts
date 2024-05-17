@@ -187,10 +187,10 @@ export class XTMXMapInfo {
     // protected _supportVersion = [1, 4, 0];
     protected _objectGroups: TMXObjectGroupInfo[] = [];
     protected _allChildren: (TMXLayerInfo | TMXImageLayerInfo | TMXObjectGroupInfo)[] = [];
-    protected _mapSize = new Size(0, 0);
-    get mapSize (): Size { return this._mapSize; }
-    protected _tileSize = new Size(0, 0);
-    get tileSize (): Size { return this._tileSize; }
+    static readonly mapSize = new Size(0, 0);
+    // get mapSize (): Size { return XTMXMapInfo._mapSize; }
+    static readonly tileSize = new Size(0, 0);
+    // get tileSize (): Size { return XTMXMapInfo._tileSize; }
     protected _layers: TMXLayerInfo[] = [];
     protected _tilesets: TMXTilesetInfo[] = [];
     protected _imageLayers: TMXImageLayerInfo[] = [];
@@ -251,20 +251,20 @@ export class XTMXMapInfo {
      * Map width & height
      * @return {Size}
      */
-    getMapSize (): Size {
-        return new Size(this._mapSize.width, this._mapSize.height);
-    }
+    // getMapSize (): Size {
+    //     return new Size(this._mapSize.width, this._mapSize.height);
+    // }
 
-    get mapWidth (): number {
-        return this._mapSize.width;
-    }
+    // get mapWidth (): number {
+    //     return this._mapSize.width;
+    // }
     // set mapWidth (width: number) {
     //     this._mapSize.width = width;
     // }
 
-    get mapHeight (): number {
-        return this._mapSize.height;
-    }
+    // get mapHeight (): number {
+    //     return this._mapSize.height;
+    // }
     // set mapHeight (height: number) {
     //     this._mapSize.height = height;
     // }
@@ -273,13 +273,13 @@ export class XTMXMapInfo {
      * Tiles width & height
      * @return {Size}
      */
-    getTileSize (): Size {
-        return new Size(this._tileSize.width, this._tileSize.height);
-    }
+    // getTileSize (): Size {
+    //     return new Size(this._tileSize.width, this._tileSize.height);
+    // }
 
-    get tileWidth (): number {
-        return this._tileSize.width;
-    }
+    // get tileWidth (): number {
+    //     return this._tileSize.width;
+    // }
 
     // set tileWidth (width) {
     //     this._tileSize.width = width;
@@ -288,9 +288,9 @@ export class XTMXMapInfo {
     /**
      * Height of a tile
      */
-    get tileHeight (): number {
-        return this._tileSize.height;
-    }
+    // get tileHeight (): number {
+    //     return this._tileSize.height;
+    // }
 
     // set tileHeight (height: number) {
     //     this._tileSize.height = height;
@@ -482,11 +482,11 @@ export class XTMXMapInfo {
         this.orientation = this._bm.orientation;
         this.renderOrder = this._bm.renderorder;
 
-        this._mapSize.width = this._bm.width;
-        this._mapSize.height = this._bm.height;
+        XTMXMapInfo.mapSize.width = this._bm.width;
+        XTMXMapInfo.mapSize.height = this._bm.height;
 
-        this._tileSize.width = this._bm.tilewidth;
-        this._tileSize.height = this._bm.tileheight;
+        XTMXMapInfo.tileSize.width = this._bm.tilewidth;
+        XTMXMapInfo.tileSize.height = this._bm.tileheight;
 
         // The parent element is the map
         this.properties = {} //getPropertyList(map);
@@ -717,10 +717,10 @@ export class XTMXMapInfo {
         const layer = new TMXLayerInfo();
         layer.name = selLayer.name;//getAttribute('name')!;
 
-        const layerSize = new Size(0, 0);
-        layerSize.width = selLayer.width;//parseFloat(selLayer.getAttribute('width')!);
-        layerSize.height = selLayer.height;//parseFloat(selLayer.getAttribute('height')!);
-        layer.layerSize = layerSize;
+        // const layerSize = new Size(0, 0);
+        // layerSize.width = selLayer.width;//parseFloat(selLayer.getAttribute('width')!);
+        // layerSize.height = selLayer.height;//parseFloat(selLayer.getAttribute('height')!);
+        layer.layerSize = XTMXMapInfo.mapSize;//layerSize;
 
         const visible = selLayer.visible;//.getAttribute('visible');
         layer.visible = (visible !== 0);

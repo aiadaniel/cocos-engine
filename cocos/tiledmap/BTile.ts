@@ -290,8 +290,6 @@ export namespace bmap {
             this.name = _buf_.ReadString()
             if(_buf_.ReadBool()) { this.x = _buf_.ReadInt() } else { this.x = undefined }
             if(_buf_.ReadBool()) { this.y = _buf_.ReadInt() } else { this.y = undefined }
-            this.width = _buf_.ReadInt()
-            this.height = _buf_.ReadInt()
             this.visible = _buf_.ReadInt()
             this.locked = _buf_.ReadInt()
             this.opacity = _buf_.ReadFloat()
@@ -312,10 +310,6 @@ export namespace bmap {
         readonly x: number|undefined
         
         readonly y: number|undefined
-        
-        readonly width: number
-        
-        readonly height: number
         
         readonly visible: number
         

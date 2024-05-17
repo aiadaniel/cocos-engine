@@ -77,8 +77,8 @@ export class XTiledMap extends Component {
     _tileProperties: Map<GID, PropertiesInfo> = new Map();
 
     _mapInfo: XTMXMapInfo | null = null;
-    _mapSize: Size = new Size(0, 0);
-    _tileSize: Size = new Size(0, 0);
+    // _mapSize: Size = new Size(0, 0);
+    // _tileSize: Size = new Size(0, 0);
 
     _mapOrientation = bmap.Orientation.Orthogonal;
 
@@ -169,9 +169,9 @@ export class XTiledMap extends Component {
      * let mapSize = tiledMap.getMapSize();
      * cc.log("Map Size: " + mapSize);
      */
-    getMapSize (): Size {
-        return this._mapSize;
-    }
+    // getMapSize (): Size {
+    //     return this._mapSize;
+    // }
 
     /**
      * @en Gets the tile size.
@@ -182,9 +182,9 @@ export class XTiledMap extends Component {
      * let tileSize = tiledMap.getTileSize();
      * cc.log("Tile Size: " + tileSize);
      */
-    getTileSize (): Size {
-        return this._tileSize;
-    }
+    // getTileSize (): Size {
+    //     return this._tileSize;
+    // }
 
     /**
      * @en map orientation.
@@ -607,8 +607,8 @@ export class XTiledMap extends Component {
 
     protected _buildWithMapInfo (mapInfo: XTMXMapInfo): void {
         this._mapInfo = mapInfo;
-        this._mapSize = mapInfo.getMapSize();
-        this._tileSize = mapInfo.getTileSize();
+        // this._mapSize = mapInfo.getMapSize();
+        // this._tileSize = mapInfo.getTileSize();
         this._mapOrientation = mapInfo.orientation!;
         this._properties = mapInfo.properties;
         this._tileProperties = mapInfo.getTileProperties();

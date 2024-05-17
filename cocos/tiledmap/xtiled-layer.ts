@@ -24,7 +24,7 @@
  THE SOFTWARE.
 */
 
-import { ccclass } from 'cc.decorator';
+import { boolean, ccclass } from 'cc.decorator';
 
 import { EDITOR_NOT_IN_PREVIEW } from 'internal:constants';
 import { UIRenderer } from '../2d/framework/ui-renderer';
@@ -102,6 +102,20 @@ export class XTiledLayer extends UIRenderer {
     // _tilesetIndexToArrIndex: { [key: number]: number } = {};
 
     protected _viewPort = { x: -1, y: -1, width: -1, height: -1 };
+    // 我们以offset.x+offset.y为key来存储复用结果
+    _offsetKey: number = 0;
+    static readonly _sharedCullingRect: Map<number, {
+        cullingDirty: boolean;
+        leftDown: {
+            row: number;
+            col: number;
+        };
+        rightTop: {
+            row: number;
+            col: number;
+        };
+    } > = new Map();
+
     protected _cullingRect = {
         leftDown: { row: -1, col: -1 },
         rightTop: { row: -1, col: -1 },
@@ -126,7 +140,6 @@ export class XTiledLayer extends UIRenderer {
 
     protected _layerInfo: TMXLayerInfo | null = null;
     protected _mapInfo: XTMXMapInfo | null = null;
-    // _bMap: bmap.BMap = null;
 
     // record max or min tile texture offset,
     // it will make culling rect more large, which insure culling rect correct.
@@ -144,7 +157,19 @@ export class XTiledLayer extends UIRenderer {
     protected _verticesDirty = true;
 
     protected _layerName = '';
-    protected _layerSize?: Size;
+    protected _layerSize?: Size;// equal to mapsize
+
+    _isFirstLayer = false;
+
+    static hasInit = false;
+    static maptw = 0;
+    static mapth = 0 ;
+    static maptw2 = 0;
+    static mapth2 = 0;
+    static rows = 0;
+    static cols = 0;
+
+    _needCalcViewport = false;// 更新viewport是否复用
 
     get layerSize (): Size { return this._layerSize!; }
 
@@ -179,7 +204,7 @@ export class XTiledLayer extends UIRenderer {
     protected _staggerIndex?: bmap.StaggerIndex;
     protected _hexSideLength?: number;
 
-    protected _mapTileSize?: Size;
+    // protected _mapTileSize?: Size;
     protected _odd_even?: number;
     protected _diffX1?: number;
     protected _diffY1?: number;
@@ -317,7 +342,7 @@ export class XTiledLayer extends UIRenderer {
         if (!rowData) return 0;
         return rowData.count;
     }
-
+    // _prepareToRender
     protected _updateAllUserNode (): void {
         this._userNodeGrid = {};
         for (const dataId in this._userNodeMap) {
@@ -363,8 +388,9 @@ export class XTiledLayer extends UIRenderer {
         self._limitInLayer(_tempRowCol);
         // users pos not change
         if (_tempRowCol.row === dataComp._row && _tempRowCol.col === dataComp._col) return;
-
+        
         self._removeUserNodeFromGrid(dataComp);
+        console.log("_userNodePosChange " + _tempRowCol.row + " " + _tempRowCol.col);
         self._addUserNodeToGrid(dataComp, _tempRowCol);
     }
 
@@ -406,6 +432,7 @@ export class XTiledLayer extends UIRenderer {
         const col = tempRowCol.col;
         const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
         const colData = rowData[col] = rowData[col] || { count: 0, list: [] };
+        console.log("userNodeGrid:" + JSON.stringify(this._userNodeGrid));//todo lxm 这个数据不停增长，看上去是bug？
         dataComp._row = row;
         dataComp._col = col;
         dataComp._index = colData.list.length;
@@ -438,6 +465,7 @@ export class XTiledLayer extends UIRenderer {
     }
 
     protected _uninstallCamera (): void {
+        // console.log("_uninstallCamera " + this._layerName);
         if (this._cameraNode) {
             this._cameraNode.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
             this._cameraNode.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
@@ -473,6 +501,7 @@ export class XTiledLayer extends UIRenderer {
         const scale = node.getScale();
         this._leftDownToCenterX = trans.width * trans.anchorX * scale.x;
         this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
+        console.log("leftDownToCenter " + this._leftDownToCenterX + " " + this._leftDownToCenterY);
         this._cullingDirty = true;
         this.markForUpdateRenderData();
     }
@@ -568,8 +597,8 @@ export class XTiledLayer extends UIRenderer {
         }
 
         return new Vec2(
-            this._mapTileSize!.width * 0.5 * (this._layerSize!.height + x - y - 1) + offsetX,
-            this._mapTileSize!.height * 0.5 * (this._layerSize!.width - x + this._layerSize!.height - y - 2) - offsetY,
+            XTMXMapInfo.tileSize!.width * 0.5 * (this._layerSize!.height + x - y - 1) + offsetX,
+            XTMXMapInfo.tileSize!.height * 0.5 * (this._layerSize!.width - x + this._layerSize!.height - y - 2) - offsetY,
         );
     }
 
@@ -796,11 +825,19 @@ export class XTiledLayer extends UIRenderer {
         this._viewPort.width = width;
         this._viewPort.height = height;
 
+        if (!this._needCalcViewport) {
+            this._cullingRect.leftDown = XTiledLayer._sharedCullingRect.get(this._offsetKey)!.leftDown;
+            this._cullingRect.rightTop = XTiledLayer._sharedCullingRect.get(this._offsetKey)!.rightTop;
+            this._cullingDirty = XTiledLayer._sharedCullingRect.get(this._offsetKey)!.cullingDirty;
+            if (this._cullingDirty) this.markForUpdateRenderData();
+            return;
+        }
+
         // if map's type is iso, reserve bottom line is 2 to avoid show empty grid because of iso grid arithmetic
         let reserveLine = 1;
-        if (this._layerOrientation === bmap.Orientation.Isometric) {
+        // if (this._layerOrientation === bmap.Orientation.Isometric) {
             reserveLine = 2;
-        }
+        // }
 
         const vpx = this._viewPort.x - this._offset!.x + this._leftDownToCenterX;
         const vpy = this._viewPort.y - this._offset!.y + this._leftDownToCenterY;
@@ -850,14 +887,21 @@ export class XTiledLayer extends UIRenderer {
         }
 
         if (this._cullingDirty) this.markForUpdateRenderData();
+
+        // 存储复用结果
+        XTiledLayer._sharedCullingRect.set(this._offsetKey, { 
+            cullingDirty: this._cullingDirty,
+            leftDown: this._cullingRect.leftDown,
+            rightTop: this._cullingRect.rightTop
+        });
     }
 
     // the result may not precise, but it dose't matter, it just uses to be got range
     protected _positionToRowCol (x: number, y: number, result: { col: number, row: number }): { col: number, row: number } {
-        const maptw = this._mapTileSize!.width;
-        const mapth = this._mapTileSize!.height;
-        const maptw2 = maptw * 0.5;
-        const mapth2 = mapth * 0.5;
+        // const maptw = XTMXMapInfo.tileSize!.width;
+        // const mapth = XTMXMapInfo.tileSize!.height;
+        // const maptw2 = maptw * 0.5;
+        // const mapth2 = mapth * 0.5;
         let row = 0;
         let col = 0;
         // let diffX2 = 0;
@@ -867,25 +911,25 @@ export class XTiledLayer extends UIRenderer {
         // switch (this._layerOrientation) {
         // // left top to right dowm
         // case bmap.Orientation.Orthogonal:
-        //     col = Math.floor(x / maptw);
-        //     row = Math.floor(y / mapth);
+        //     col = Math.floor(x / XTiledLayer.maptw);
+        //     row = Math.floor(y / XTiledLayer.mapth);
         //     break;
             // right top to left down
             // iso can be treat as special hex whose hex side length is 0
         // case bmap.Orientation.Isometric:
-            col = Math.floor(x / maptw2);
-            row = Math.floor(y / mapth2);
+            col = Math.floor(x / XTiledLayer.maptw2);
+            row = Math.floor(y / XTiledLayer.mapth2);
         //     break;
         //     // left top to right dowm
         // case bmap.Orientation.Hexagonal:
         //     if (axis === bmap.StaggerAxis.StaggerY) {
-        //         row = Math.floor(y / (mapth - this._diffY1!));
-        //         diffX2 = row % 2 === 1 ? maptw2 * this._odd_even! : 0;
-        //         col = Math.floor((x - diffX2) / maptw);
+        //         row = Math.floor(y / (XTiledLayer.mapth - this._diffY1!));
+        //         diffX2 = row % 2 === 1 ? XTiledLayer.maptw2 * this._odd_even! : 0;
+        //         col = Math.floor((x - diffX2) / XTiledLayer.maptw);
         //     } else {
-        //         col = Math.floor(x / (maptw - this._diffX1!));
-        //         diffY2 = col % 2 === 1 ? mapth2 * -this._odd_even! : 0;
-        //         row = Math.floor((y - diffY2) / mapth);
+        //         col = Math.floor(x / (XTiledLayer.maptw - this._diffX1!));
+        //         diffY2 = col % 2 === 1 ? XTiledLayer.mapth2 * -this._odd_even! : 0;
+        //         row = Math.floor((y - diffY2) / XTiledLayer.mapth);
         //     }
         //     break;
         // }
@@ -898,24 +942,26 @@ export class XTiledLayer extends UIRenderer {
         if (EDITOR_NOT_IN_PREVIEW) {
             this.enableCulling = false;
         } else if (this._enableCulling) {
+            // 这行是否可以去掉？
             this.node.updateWorldTransform();
-            Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+            // 层节点设置完目前都是不动的，所以只需要初始化时计算一次， 后续需要观察下
+            // Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
             const camera = this._reinstallCamera(); // developer should call updateCalling if the camera has changed
-            if (camera) {
+            if (this._isFirstLayer && camera) {
                 _vec3_temp.x = 0;
                 _vec3_temp.y = 0;
                 _vec3_temp.z = 0;
                 _vec3_temp2.x = camera.width;
                 _vec3_temp2.y = camera.height;
                 _vec3_temp2.z = 0;
+                // 相机跟随，这里会不停变化
                 camera.screenToWorld(_vec3_temp, _vec3_temp);
                 camera.screenToWorld(_vec3_temp2, _vec3_temp2);
-                // camera.getScreenToWorldPoint(_vec2_temp, _vec2_temp);
-                // camera.getScreenToWorldPoint(_vec2_temp2, _vec2_temp2);
                 Vec3.transformMat4(_vec3_temp, _vec3_temp, _mat4_temp);
                 Vec3.transformMat4(_vec3_temp2, _vec3_temp2, _mat4_temp);
-                this.updateViewPort(_vec3_temp.x, _vec3_temp.y, _vec3_temp2.x - _vec3_temp.x, _vec3_temp2.y - _vec3_temp.y);
+                // console.log(this._layerName + " v3:" + _vec3_temp + " v32:" + _vec3_temp2 + " mat:" + _mat4_temp);
             }
+            this.updateViewPort(_vec3_temp.x, _vec3_temp.y, _vec3_temp2.x - _vec3_temp.x, _vec3_temp2.y - _vec3_temp.y);
         }
     }
 
@@ -950,7 +996,7 @@ export class XTiledLayer extends UIRenderer {
 
         const vertices = this.vertices;
 
-        const layerOrientation = this._layerOrientation;
+        // const layerOrientation = this._layerOrientation;
         const tiles = this.tiles;
 
         if (!tiles) {
@@ -958,23 +1004,22 @@ export class XTiledLayer extends UIRenderer {
         }
 
         const rightTop = this._rightTop;
-        const maptw = this._mapTileSize!.width;
-        const mapth = this._mapTileSize!.height;
-        const maptw2 = maptw * 0.5;
-        const mapth2 = mapth * 0.5;
-        const rows = this._layerSize!.height;
-        const cols = this._layerSize!.width;
+        // const maptw = this._mapTileSize!.width;
+        // const mapth = this._mapTileSize!.height;
+        // const maptw2 = maptw * 0.5;
+        // const mapth2 = mapth * 0.5;
+        // const rows = this._layerSize!.height;
+        // const cols = this._layerSize!.width;
         const grids = this.texGrids!;
 
         let left = 0;
         let bottom = 0;
-        let axis: bmap.StaggerAxis;
-        let diffX1: number;
-        let diffY1: number;
-        let odd_even: number;
-        let diffX2: number;
-        let diffY2: number;
-
+        // let axis: bmap.StaggerAxis;
+        // let diffX1: number;
+        // let diffY1: number;
+        // let odd_even: number;
+        // let diffX2: number;
+        // let diffY2: number;
         // if (layerOrientation === bmap.Orientation.Hexagonal) {
         //     axis = this._staggerAxis!;
         //     diffX1 = this._diffX1!;
@@ -988,9 +1033,10 @@ export class XTiledLayer extends UIRenderer {
 
         // grid border
         let topBorder = 0;
-        let downBorder = 0; let leftBorder = 0;
+        let downBorder = 0; 
+        let leftBorder = 0;
         let rightBorder = 0;
-        const index = row * cols + col;
+        const index = row * XTiledLayer.cols + col;
         const gid = tiles[index];
         gridGID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as unknown as GID;
         const grid = grids.get(gridGID)!;
@@ -1017,14 +1063,14 @@ export class XTiledLayer extends UIRenderer {
             // if consider about col then left must add 'w/2 * col'
             // so left is 'w/2 * (rows - row - 1) + w/2 * col'
             // combine expression is 'w/2 * (rows - row + col -1)'
-            cullingCol = rows + col - row - 1;
+            cullingCol = XTiledLayer.rows + col - row - 1;
             // if not consider about row, then bottom is 'h/2 * (cols - col -1)'
             // if consider about row then bottom must add 'h/2 * (rows - row - 1)'
             // so bottom is 'h/2 * (cols - col -1) + h/2 * (rows - row - 1)'
             // combine expressionn is 'h/2 * (rows + cols - col - row - 2)'
-            cullingRow = rows + cols - col - row - 2;
-            left = maptw2 * cullingCol;
-            bottom = mapth2 * cullingRow;
+            cullingRow = XTiledLayer.rows + XTiledLayer.cols - col - row - 2;
+            left = XTiledLayer.maptw2 * cullingCol;
+            bottom = XTiledLayer.mapth2 * cullingRow;
         //     break;
         //     // left top to right dowm
         // case bmap.Orientation.Hexagonal:
@@ -1053,16 +1099,16 @@ export class XTiledLayer extends UIRenderer {
         // record max rect, when viewPort is bigger than layer, can make it smaller
         if (rightTop.row < cullingRow) {
             rightTop.row = cullingRow;
-            if (layerOrientation === bmap.Orientation.Isometric) {
+            // if (layerOrientation === bmap.Orientation.Isometric) {
                 rightTop.row += 1;
-            }
+            // }
         }
 
         if (rightTop.col < cullingCol) {
             rightTop.col = cullingCol;
-            if (layerOrientation === bmap.Orientation.Isometric) {
+            // if (layerOrientation === bmap.Orientation.Isometric) {
                 rightTop.col += 1;
-            }
+            // }
         }
 
         // _offset is whole layer offset
@@ -1072,11 +1118,11 @@ export class XTiledLayer extends UIRenderer {
         left += this._offset!.x + tileOffset.x + grid.offsetX;
         bottom += this._offset!.y - tileOffset.y - grid.offsetY;
 
-        topBorder = -tileOffset.y + grid.tileset._tileSize.height - mapth;
+        topBorder = -tileOffset.y + grid.tileset._tileSize.height - XTiledLayer.mapth;
         topBorder = topBorder < 0 ? 0 : topBorder;
         downBorder = tileOffset.y < 0 ? 0 : tileOffset.y;
         leftBorder = -tileOffset.x < 0 ? 0 : -tileOffset.x;
-        rightBorder = tileOffset.x + grid.tileset._tileSize.width - maptw;
+        rightBorder = tileOffset.x + grid.tileset._tileSize.width - XTiledLayer.maptw;
         rightBorder = rightBorder < 0 ? 0 : rightBorder;
 
         if (this._rightOffset < leftBorder) {
@@ -1103,6 +1149,7 @@ export class XTiledLayer extends UIRenderer {
         this._cullingDirty = true;
     }
 
+    // 仅在初始化或设置tileset信息时调用
     protected _updateVertices (): void {
         const vertices = this.vertices;
         vertices.length = 0;
@@ -1153,6 +1200,7 @@ export class XTiledLayer extends UIRenderer {
       * cc.log(tile);
       */
     public getTiledTileAt (x: number, y: number, forceCreate?: boolean): XTiledTile | null {
+        console.log("tiledTiles:" + JSON.stringify(this.tiledTiles));
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.getTiledTileAt: invalid position');
         }
@@ -1264,9 +1312,9 @@ export class XTiledLayer extends UIRenderer {
       * let size = tiledLayer.getLayerSize();
       * cc.log("layer size: " + size);
       */
-    // public getLayerSize (): Size {
-    //     return this._layerSize!;
-    // }
+    public getLayerSize (): Size {
+        return this._layerSize!;
+    }
 
     /**
       * @en Size of the map's tile (could be different from the tile's size).
@@ -1346,15 +1394,14 @@ export class XTiledLayer extends UIRenderer {
         this._cullingDirty = true;
         this._layerInfo = layerInfo;
         this._mapInfo = mapInfo;
-        // this._bMap = bm;
 
-        const size = layerInfo.layerSize!;
+        // const size = layerInfo.layerSize!;
 
         // layerInfo
         this._layerName = layerInfo.name;
         this.tiles = layerInfo.tiles as unknown as any;
         this._properties = layerInfo.properties;
-        this._layerSize = size;
+        this._layerSize = layerInfo.layerSize!;
         this._minGID = layerInfo.minGID;
         this._maxGID = layerInfo.maxGID;
         this._opacity = layerInfo.opacity;
@@ -1379,41 +1426,55 @@ export class XTiledLayer extends UIRenderer {
 
         // mapInfo
         this._layerOrientation = mapInfo.orientation;//this._bMap.orientation;//
-        this._mapTileSize = mapInfo.getTileSize();
+        // this._mapTileSize = mapInfo.getTileSize();
 
-        const maptw = this._mapTileSize!.width;
-        const mapth = this._mapTileSize!.height;
-        const layerW = this._layerSize.width;
-        const layerH = this._layerSize.height;
+        if (!XTiledLayer.hasInit) {
+            this._needCalcViewport = true;
+            XTiledLayer. maptw = XTMXMapInfo.tileSize!.width;
+            XTiledLayer. mapth = XTMXMapInfo.tileSize!.height;
+            XTiledLayer. maptw2 = XTiledLayer.maptw * 0.5;
+            XTiledLayer. mapth2 = XTiledLayer.mapth * 0.5;
+            XTiledLayer. cols = this._layerSize.width;
+            XTiledLayer. rows = this._layerSize.height;
+            XTiledLayer.hasInit = true;
+            this._isFirstLayer = true;
+
+            Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+        }
 
         // if (this._layerOrientation === bmap.Orientation.Hexagonal) {
         //     let width = 0;
         //     let height = 0;
-        //     const tileWidth = maptw & ~1;
-        //     const tileHeight = mapth & ~1;
+        //     const tileWidth = XTiledLayer.maptw & ~1;
+        //     const tileHeight = XTiledLayer.mapth & ~1;
 
         //     this._odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
         //     if (this._staggerAxis === bmap.StaggerAxis.StaggerX) {
         //         this._diffX1 = (tileWidth - this._hexSideLength!) / 2;
         //         this._diffY1 = 0;
-        //         width = (this._diffX1 + this._hexSideLength!) * layerW + this._diffX1;
-        //         height = (tileHeight * layerH) + tileHeight / 2;
+        //         width = (this._diffX1 + this._hexSideLength!) * XTiledLayer.cols + this._diffX1;
+        //         height = (tileHeight * XTiledLayer.rows) + tileHeight / 2;
         //     } else {
         //         this._diffX1 = 0;
         //         this._diffY1 = (tileHeight - this._hexSideLength!) / 2;
-        //         width = (tileWidth * layerW) + tileWidth / 2;
-        //         height = (this._diffY1 + this._hexSideLength!) * layerH + this._diffY1;
+        //         width = (tileWidth * XTiledLayer.cols) + tileWidth / 2;
+        //         height = (this._diffY1 + this._hexSideLength!) * XTiledLayer.rows + this._diffY1;
         //     }
         //     this.node._uiProps.uiTransformComp!.setContentSize(width, height);
         // } else if (this._layerOrientation === bmap.Orientation.Isometric) {
-            const wh = layerW + layerH;
-            this.node._uiProps.uiTransformComp!.setContentSize(maptw * 0.5 * wh, mapth * 0.5 * wh);
+            const wh = XTiledLayer.cols + XTiledLayer.rows;
+            this.node._uiProps.uiTransformComp!.setContentSize(XTiledLayer.maptw2 * wh, XTiledLayer.mapth2 * wh);
         // } else {
-        //     this.node._uiProps.uiTransformComp!.setContentSize(layerW * maptw, layerH * mapth);
+        //     this.node._uiProps.uiTransformComp!.setContentSize(XTiledLayer.cols * XTiledLayer.maptw, XTiledLayer.rows * XTiledLayer.mapth);
         // }
 
         // offset (after layer orientation is set);
         this._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);
+        // 我们对offset为0的进行viewport计算复用
+        this._offsetKey = this._offset.x + this._offset.y;
+        if (this._offset.x != 0 || this._offset.y != 0) {
+            this._needCalcViewport = true;
+        }
         this._useAutomaticVertexZ = false;
         this._vertexZvalue = 0;
         this._syncAnchorPoint();
@@ -1425,6 +1486,7 @@ export class XTiledLayer extends UIRenderer {
         this._updateAllUserNode();
     }
 
+    // packRenderData<-updateRenderData
     public requestTiledRenderData (): XTiledRenderData {
         const arr = this._tiledDataArray as any[];
         while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
@@ -1508,6 +1570,7 @@ export class XTiledLayer extends UIRenderer {
     }
 
     private fillIndicesBuffer (renderData: RenderData, drawInfo: RenderDrawInfo): void {
+        console.log("fillIndicesBuffer");
         const iBuf = renderData.chunk.meshBuffer.iData;
 
         let indexOffset = renderData.chunk.meshBuffer.indexOffset;
@@ -1528,6 +1591,7 @@ export class XTiledLayer extends UIRenderer {
         drawInfo.setIBCount(quadCount * 6);
     }
 
+    // <- assembler.updateRenderData(JSB)
     public prepareDrawData (): void {
         this._drawInfoList.length = 0;
         const entity = this.renderEntity;

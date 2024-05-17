@@ -72,7 +72,7 @@ export const simple: IAssembler = {
     ensureAccessor () {
         if (!_accessor) {
             const device = director.root!.device;
-            const batcher = director.root!.batcher2D;
+            // const batcher = director.root!.batcher2D;
             _accessor = new StaticVBAccessor(device, vfmtPosUvColor, this.vCount);
             //batcher.registerBufferAccessor(Number.parseInt('TILED-MAP', 36), _accessor);
             director.on(Director.EVENT_BEFORE_DRAW, () => {
@@ -83,6 +83,7 @@ export const simple: IAssembler = {
 
     createData (layer: XTiledLayer) {
         if (JSB) {
+            console.log("createData in tileassembler");
             this.ensureAccessor();
         }
     },
@@ -135,25 +136,25 @@ export const simple: IAssembler = {
                 rightTop = comp.rightTop;
             }
 
-            switch (comp.renderOrder) {
+            // switch (comp.renderOrder) {
             // left top to right down, col add, row sub,
-            case bmap.RenderOrder.RightDown:
+            // case bmap.RenderOrder.RightDown:
                 traverseGrids(leftDown, rightTop, -1, 1, comp);
-                break;
+                // break;
                 // right top to left down, col sub, row sub
-            case bmap.RenderOrder.LeftDown:
-                traverseGrids(leftDown, rightTop, -1, -1, comp);
-                break;
-                // left down to right up, col add, row add
-            case bmap.RenderOrder.RightUp:
-                traverseGrids(leftDown, rightTop, 1, 1, comp);
-                break;
-                // right down to left up, col sub, row add
-            case bmap.RenderOrder.LeftUp:
-            default:
-                traverseGrids(leftDown, rightTop, 1, -1, comp);
-                break;
-            }
+            // case bmap.RenderOrder.LeftDown:
+            //     traverseGrids(leftDown, rightTop, -1, -1, comp);
+            //     break;
+            //     // left down to right up, col add, row add
+            // case bmap.RenderOrder.RightUp:
+            //     traverseGrids(leftDown, rightTop, 1, 1, comp);
+            //     break;
+            //     // right down to left up, col sub, row add
+            // case bmap.RenderOrder.LeftUp:
+            // default:
+            //     traverseGrids(leftDown, rightTop, 1, -1, comp);
+            //     break;
+            // }
             comp.setCullingDirty(false);
             comp.setUserNodeDirty(false);
         }

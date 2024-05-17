@@ -184,30 +184,30 @@ export class XTiledObjectGroup extends Component {
         this.aniObjects = [];
         this._hasAniObj = false;
 
-        const mapSize = mapInfo.mapSize;
-        const tileSize = mapInfo.tileSize;
+        const mapSize = XTMXMapInfo.mapSize;
+        const tileSize = XTMXMapInfo.tileSize;
         let width = 0;
         let height = 0;
         const colorVal = new Color();
 
-        const iso = bmap.Orientation.Isometric === mapInfo.orientation; //this._bMap.orientation;//
+        // const iso = bmap.Orientation.Isometric === mapInfo.orientation; //this._bMap.orientation;//
 
-        if (mapInfo.orientation === bmap.Orientation.Hexagonal) {
-            if (mapInfo.getStaggerAxis() === bmap.StaggerAxis.StaggerY) {
-                height = tileSize.height * (mapSize.height + 0.5);
-                width = (tileSize.width + mapInfo.getHexSideLength()) * Math.floor(mapSize.width / 2) + tileSize.width * (mapSize.width % 2);
-            } else {
-                width = tileSize.width * (mapSize.width + 0.5);
-                height = (tileSize.height + mapInfo.getHexSideLength()) * Math.floor(mapSize.height / 2) + tileSize.height * (mapSize.height % 2);
-            }
-        } else if (iso) {
+        // if (mapInfo.orientation === bmap.Orientation.Hexagonal) {
+        //     if (mapInfo.getStaggerAxis() === bmap.StaggerAxis.StaggerY) {
+        //         height = tileSize.height * (mapSize.height + 0.5);
+        //         width = (tileSize.width + mapInfo.getHexSideLength()) * Math.floor(mapSize.width / 2) + tileSize.width * (mapSize.width % 2);
+        //     } else {
+        //         width = tileSize.width * (mapSize.width + 0.5);
+        //         height = (tileSize.height + mapInfo.getHexSideLength()) * Math.floor(mapSize.height / 2) + tileSize.height * (mapSize.height % 2);
+        //     }
+        // } else if (iso) {
             const wh = mapSize.width + mapSize.height;
             width = tileSize.width * 0.5 * wh;
             height = tileSize.height * 0.5 * wh;
-        } else {
-            width = mapSize.width * tileSize.width;
-            height = mapSize.height * tileSize.height;
-        }
+        // } else {
+        //     width = mapSize.width * tileSize.width;
+        //     height = mapSize.height * tileSize.height;
+        // }
 
         const transComp = this.node._uiProps.uiTransformComp!;
         transComp.setContentSize(width, height);
@@ -229,14 +229,14 @@ export class XTiledObjectGroup extends Component {
                 }
             }
 
-            if (iso) {
+            // if (iso) {
                 const posIdxX = object.x / tileSize.height;
                 const posIdxY = object.y / tileSize.height;
                 object.x = tileSize.width * 0.5 * (mapSize.height + posIdxX - posIdxY);
                 object.y = tileSize.height * 0.5 * (mapSize.width + mapSize.height - posIdxX - posIdxY);
-            } else {
-                object.y = height - object.y;
-            }
+            // } else {
+            //     object.y = height - object.y;
+            // }
 
             if (objType === TMXObjectType.TEXT) {
                 const textName = `text${object.id}`;
@@ -331,13 +331,13 @@ export class XTiledObjectGroup extends Component {
                 }
 
                 const imgTrans = imgNode._uiProps.uiTransformComp!;
-                if (iso) {
+                // if (iso) {
                     imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
                     imgTrans.anchorY = tileOffsetY / object.height;
-                } else {
-                    imgTrans.anchorX = tileOffsetX / object.width;
-                    imgTrans.anchorY = tileOffsetY / object.height;
-                }
+                // } else {
+                //     imgTrans.anchorX = tileOffsetX / object.width;
+                //     imgTrans.anchorY = tileOffsetY / object.height;
+                // }
 
                 if (this._tintColor) {
                     colorVal.set(this._tintColor);
@@ -402,7 +402,7 @@ export class XTiledObjectGroup extends Component {
 
         const aniObjects = this.aniObjects!;
         const _texGrids = this._texGrids!;
-        const iso = bmap.Orientation.Isometric ===  this._mapInfo!.orientation;//this._bMap.orientation;//
+        // const iso = bmap.Orientation.Isometric ===  this._mapInfo!.orientation;//this._bMap.orientation;//
 
         for (let i = 0, len = aniObjects.length; i < len; i++) {
             const aniObj = aniObjects[i];
@@ -419,13 +419,13 @@ export class XTiledObjectGroup extends Component {
             const tileOffsetX = tileset.tileOffset.x;
             const tileOffsetY = tileset.tileOffset.y;
             const imgTrans = imgNode._uiProps.uiTransformComp!;
-            if (iso) {
+            // if (iso) {
                 imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
                 imgTrans.anchorY = tileOffsetY / object.height;
-            } else {
-                imgTrans.anchorX = tileOffsetX / object.width;
-                imgTrans.anchorY = tileOffsetY / object.height;
-            }
+            // } else {
+            //     imgTrans.anchorX = tileOffsetX / object.width;
+            //     imgTrans.anchorY = tileOffsetY / object.height;
+            // }
 
             const sp = imgNode.getComponent(Sprite)!;
             const spf = sp.spriteFrame!;
