@@ -323,7 +323,7 @@ export class XTiledLayer extends UIRenderer {
     }
 
     // acording layer anchor point to calculate node layer pos
-    protected _nodeLocalPosToLayerPos (nodePos: IVec2Like, out: IVec2Like): void {
+    public _nodeLocalPosToLayerPos (nodePos: IVec2Like, out: IVec2Like): void {
         out.x = nodePos.x + this._leftDownToCenterX;
         out.y = nodePos.y + this._leftDownToCenterY;
     }
@@ -390,7 +390,7 @@ export class XTiledLayer extends UIRenderer {
         if (_tempRowCol.row === dataComp._row && _tempRowCol.col === dataComp._col) return;
         
         self._removeUserNodeFromGrid(dataComp);
-        console.log("_userNodePosChange " + _tempRowCol.row + " " + _tempRowCol.col);
+        console.log("_userNodePosChange pos:(" + _vec2_temp.x +" " + _vec2_temp.y +") rowcol:(" + _tempRowCol.row + " " + _tempRowCol.col + ")");
         self._addUserNodeToGrid(dataComp, _tempRowCol);
     }
 
@@ -432,7 +432,7 @@ export class XTiledLayer extends UIRenderer {
         const col = tempRowCol.col;
         const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
         const colData = rowData[col] = rowData[col] || { count: 0, list: [] };
-        console.log("userNodeGrid:" + JSON.stringify(this._userNodeGrid));//todo lxm 这个数据不停增长，看上去是bug？
+        // console.log("userNodeGrid:" + JSON.stringify(this._userNodeGrid));//todo lxm 这个数据不停增长，看上去是bug？
         dataComp._row = row;
         dataComp._col = col;
         dataComp._index = colData.list.length;
@@ -897,7 +897,7 @@ export class XTiledLayer extends UIRenderer {
     }
 
     // the result may not precise, but it dose't matter, it just uses to be got range
-    protected _positionToRowCol (x: number, y: number, result: { col: number, row: number }): { col: number, row: number } {
+    public _positionToRowCol (x: number, y: number, result: { col: number, row: number }): { col: number, row: number } {
         // const maptw = XTMXMapInfo.tileSize!.width;
         // const mapth = XTMXMapInfo.tileSize!.height;
         // const maptw2 = maptw * 0.5;
