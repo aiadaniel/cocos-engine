@@ -184,8 +184,8 @@ export class XTiledObjectGroup extends Component {
         this.aniObjects = [];
         this._hasAniObj = false;
 
-        const mapSize = XTMXMapInfo.mapSize;
-        const tileSize = XTMXMapInfo.tileSize;
+        const mapSize = mapInfo.mapSize;
+        const tileSize = mapInfo.tileSize;
         let width = 0;
         let height = 0;
         const colorVal = new Color();

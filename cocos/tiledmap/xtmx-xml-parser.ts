@@ -187,10 +187,10 @@ export class XTMXMapInfo {
     // protected _supportVersion = [1, 4, 0];
     protected _objectGroups: TMXObjectGroupInfo[] = [];
     protected _allChildren: (TMXLayerInfo | TMXImageLayerInfo | TMXObjectGroupInfo)[] = [];
-    static readonly mapSize = new Size(0, 0);
-    // get mapSize (): Size { return XTMXMapInfo._mapSize; }
-    static readonly tileSize = new Size(0, 0);
-    // get tileSize (): Size { return XTMXMapInfo._tileSize; }
+    protected _mapSize = new Size(0, 0);
+    get mapSize (): Size { return this._mapSize; }
+    protected _tileSize = new Size(0, 0);
+    get tileSize (): Size { return this._tileSize; }
     protected _layers: TMXLayerInfo[] = [];
     protected _tilesets: TMXTilesetInfo[] = [];
     protected _imageLayers: TMXImageLayerInfo[] = [];
@@ -273,9 +273,9 @@ export class XTMXMapInfo {
      * Tiles width & height
      * @return {Size}
      */
-    // getTileSize (): Size {
-    //     return new Size(this._tileSize.width, this._tileSize.height);
-    // }
+    getTileSize (): Size {
+        return new Size(this._tileSize.width, this._tileSize.height);
+    }
 
     // get tileWidth (): number {
     //     return this._tileSize.width;
@@ -482,11 +482,11 @@ export class XTMXMapInfo {
         this.orientation = this._bm.orientation;
         this.renderOrder = this._bm.renderorder;
 
-        XTMXMapInfo.mapSize.width = this._bm.width;
-        XTMXMapInfo.mapSize.height = this._bm.height;
+        this._mapSize.width = this._bm.width;
+        this._mapSize.height = this._bm.height;
 
-        XTMXMapInfo.tileSize.width = this._bm.tilewidth;
-        XTMXMapInfo.tileSize.height = this._bm.tileheight;
+        this._tileSize.width = this._bm.tilewidth;
+        this._tileSize.height = this._bm.tileheight;
 
         // The parent element is the map
         this.properties = {} //getPropertyList(map);
@@ -720,7 +720,7 @@ export class XTMXMapInfo {
         // const layerSize = new Size(0, 0);
         // layerSize.width = selLayer.width;//parseFloat(selLayer.getAttribute('width')!);
         // layerSize.height = selLayer.height;//parseFloat(selLayer.getAttribute('height')!);
-        layer.layerSize = XTMXMapInfo.mapSize;//layerSize;
+        layer.layerSize = this.mapSize;//layerSize;
 
         const visible = selLayer.visible;//.getAttribute('visible');
         layer.visible = (visible !== 0);

@@ -82,13 +82,26 @@ export class XTiledMap extends Component {
 
     _mapOrientation = bmap.Orientation.Orthogonal;
 
-    static Orientation = bmap.Orientation;
-    static Property = Property;
-    static TileFlag = TileFlag;
-    static StaggerAxis = bmap.StaggerAxis;
-    static StaggerIndex = bmap.StaggerIndex;
-    static TMXObjectType = TMXObjectType;
-    static RenderOrder = bmap.RenderOrder;
+    // 我们以offset.x+offset.y为key来存储复用结果 计算culling时使用
+    _sharedCullingRect: Map<number, {
+        cullingDirty: boolean;
+        leftDown: {
+            row: number;
+            col: number;
+        };
+        rightTop: {
+            row: number;
+            col: number;
+        };
+    } > = new Map();
+
+    // static Orientation = bmap.Orientation;
+    // static Property = Property;
+    // static TileFlag = TileFlag;
+    // static StaggerAxis = bmap.StaggerAxis;
+    // static StaggerIndex = bmap.StaggerIndex;
+    // static TMXObjectType = TMXObjectType;
+    // static RenderOrder = bmap.RenderOrder;
 
     private _isApplied = false;
 
@@ -527,7 +540,7 @@ export class XTiledMap extends Component {
                         layer = child.addComponent(XTiledLayer);
                     }
 
-                    layer.init(layerInfo, mapInfo, tilesets, textures, texGrids);
+                    layer.init(layerInfo, mapInfo, tilesets, textures, texGrids, this._sharedCullingRect);
                     layer.enableCulling = this._enableCulling;
 
                     // tell the layerinfo to release the ownership of the tiles map.
