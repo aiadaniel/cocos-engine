@@ -281,6 +281,7 @@ export class XTiledLayer extends UIRenderer {
         this._nodeLocalPosToLayerPos(node.getPosition(), _vec2_temp);
         this._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
         this._addUserNodeToGrid(dataComp, _tempRowCol);
+        console.log("_addUserNodeToGrid " + _tempRowCol.row + " " + _tempRowCol.col);
         this._updateCullingOffsetByUserNode(node);
         node.on(NodeEventType.TRANSFORM_CHANGED, this._userNodePosChange, dataComp);
         node.on(NodeEventType.SIZE_CHANGED, this._userNodeSizeChange, dataComp);
