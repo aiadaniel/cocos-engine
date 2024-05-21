@@ -151,6 +151,7 @@ export class XTiledLayer extends UIRenderer {
     // store the layer tiles, index is caculated by 'x + width * y', format likes '[0]=gid0,[1]=gid1, ...'
     public tiles: MixedGID[] = [];
 
+    // 装备器根据cullingRect的左下右上 或者 直接 0，0和右上 的索引，从顶点数组拿出纹理网格的索引，再从texGrid拿纹理设置给renderData，同时设置其顶点数组
     // vertex array
     public vertices: SafeArray<{ minCol: number, maxCol: number } & SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
     // vertices dirty
@@ -995,24 +996,20 @@ export class XTiledLayer extends UIRenderer {
 
     protected _updateVertex (col: number, row: number): void {
         const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
-
-        const vertices = this.vertices;
-
+        // const vertices = this.vertices;
         // const layerOrientation = this._layerOrientation;
-        const tiles = this.tiles;
-
-        if (!tiles) {
-            return;
-        }
-
-        const rightTop = this._rightTop;
+        // const tiles = this.tiles;
+        // if (!this.tiles) {
+        //     return;
+        // }
+        // const rightTop = this._rightTop;
         // const maptw = this._mapTileSize!.width;
         // const mapth = this._mapTileSize!.height;
         // const maptw2 = maptw * 0.5;
         // const mapth2 = mapth * 0.5;
         // const rows = this._layerSize!.height;
         // const cols = this._layerSize!.width;
-        const grids = this.texGrids!;
+        // const grids = this.texGrids!;
 
         let left = 0;
         let bottom = 0;
@@ -1039,9 +1036,9 @@ export class XTiledLayer extends UIRenderer {
         let leftBorder = 0;
         let rightBorder = 0;
         const index = row * this.cols + col;
-        const gid = tiles[index];
+        const gid = this.tiles[index];
         gridGID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as unknown as GID;
-        const grid = grids.get(gridGID)!;
+        const grid = this.texGrids!.get(gridGID)!;
         if (!grid) {
             return;
         }
@@ -1050,7 +1047,7 @@ export class XTiledLayer extends UIRenderer {
         if (this._animations!.get(gridGID)) {
             this._hasAniGrid = this._hasAniGrid || true;
         }
-
+        // 以屏幕左下角为原点。 为viewport计算顶点this.vertices (left，bottom，_rightTop) 和 四个纹理offset
         // switch (layerOrientation) {
         // // left top to right dowm
         // case bmap.Orientation.Orthogonal:
@@ -1086,7 +1083,7 @@ export class XTiledLayer extends UIRenderer {
         //     break;
         // }
 
-        const rowData = vertices[cullingRow] = vertices[cullingRow] || { minCol: 0, maxCol: 0 };
+        const rowData = this.vertices[cullingRow] = this.vertices[cullingRow] || { minCol: 0, maxCol: 0 };
         const colData = rowData[cullingCol] = rowData[cullingCol] || { left: 0, bottom: 0, index: 0 };
 
         // record each row range, it will faster when culling grid
@@ -1099,17 +1096,17 @@ export class XTiledLayer extends UIRenderer {
         }
 
         // record max rect, when viewPort is bigger than layer, can make it smaller
-        if (rightTop.row < cullingRow) {
-            rightTop.row = cullingRow;
+        if (this._rightTop.row < cullingRow) {
+            this._rightTop.row = cullingRow;
             // if (layerOrientation === bmap.Orientation.Isometric) {
-                rightTop.row += 1;
+                this._rightTop.row += 1;
             // }
         }
 
-        if (rightTop.col < cullingCol) {
-            rightTop.col = cullingCol;
+        if (this._rightTop.col < cullingCol) {
+            this._rightTop.col = cullingCol;
             // if (layerOrientation === bmap.Orientation.Isometric) {
-                rightTop.col += 1;
+                this._rightTop.col += 1;
             // }
         }
 
@@ -1145,7 +1142,7 @@ export class XTiledLayer extends UIRenderer {
         }
         // unit: _downOffset = 141 ?
         // console.log("4offset:" + this._layerName + " " + this._leftOffset + " " + this._rightOffset + " " + this._topOffset + " " + this._downOffset);
-
+        
         colData.left = left;
         colData.bottom = bottom;
         // this index is tiledmap grid index
@@ -1156,17 +1153,17 @@ export class XTiledLayer extends UIRenderer {
 
     // 仅在初始化或设置tileset信息时调用
     protected _updateVertices (): void {
-        const vertices = this.vertices;
-        vertices.length = 0;
+        // const vertices = this.vertices;
+        this.vertices.length = 0;
 
-        const tiles = this.tiles;
-        if (!tiles) {
+        // const tiles = this.tiles;
+        if (!this.tiles) {
             return;
         }
 
-        const rightTop = this._rightTop;
-        rightTop.row = -1;
-        rightTop.col = -1;
+        // const rightTop = this._rightTop;
+        this._rightTop.row = -1;
+        this._rightTop.col = -1;
 
         // const rows = this._layerSize!.height;
         // const cols = this._layerSize!.width;
@@ -1241,6 +1238,7 @@ export class XTiledLayer extends UIRenderer {
       * @return {cc.TiledTile}
       */
     public setTiledTileAt (x: number, y: number, tiledTile: XTiledTile | null): XTiledTile | null {
+        console.log("setTiledTileAt " + x + " " + y);
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.setTiledTileAt: invalid position');
         }
@@ -1496,8 +1494,8 @@ export class XTiledLayer extends UIRenderer {
         }
         this._useAutomaticVertexZ = false;
         this._vertexZvalue = 0;
-        this._syncAnchorPoint();
         this._prepareToRender();
+        this._syncAnchorPoint();
     }
 
     protected _prepareToRender (): void {
@@ -1505,7 +1503,7 @@ export class XTiledLayer extends UIRenderer {
         this._updateAllUserNode();
     }
 
-    // packRenderData<-updateRenderData
+    // packRenderData <- traverseGrids <- updateRenderData
     public requestTiledRenderData (): XTiledRenderData {
         const arr = this._tiledDataArray as any[];
         while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
@@ -1522,6 +1520,7 @@ export class XTiledLayer extends UIRenderer {
         return (comb as XTiledRenderData);
     }
 
+    // <- traverseGrids <- updateRenderData
     public requestSubNodesData (): XTiledSubNodeData {
         const arr = this._tiledDataArray as any[];
         if (arr.length > 0) {

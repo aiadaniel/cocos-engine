@@ -319,10 +319,10 @@ function packRenderData (): void {
         tiledData.renderData = RenderData.add(vfmtPosUvColor);
     }
     tiledData.texture = _curTexture;
-    const rd = tiledData.renderData;
-    rd.resize(vbCount, ibCount);
-    const vb = rd.chunk.vb;
-    vb.set(_tempBuffers.subarray(0, vbCount * 9), 0);
+    // const rd = tiledData.renderData;
+    tiledData.renderData.resize(vbCount, ibCount);
+    // const vb = tiledData.renderData.chunk.vb;
+    tiledData.renderData.chunk.vb.set(_tempBuffers.subarray(0, vbCount * 9), 0);
 
     _fillCount = 0;
     _curTexture = null;
@@ -340,10 +340,10 @@ function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col:
     const matrix = comp.node.worldMatrix;
     _vfOffset = 0;
 
-    const tiledTiles = comp.tiledTiles;
+    // const tiledTiles = comp.tiledTiles;
 
-    const texGrids = comp.texGrids!;
-    const tiles = comp.tiles;
+    // const texGrids = comp.texGrids!;
+    // const tiles = comp.tiles;
 
     const vertStep = 9;
     const vertStep2 = vertStep * 2;
@@ -423,8 +423,8 @@ function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col:
                 continue;
             }
 
-            gid = tiles[colData.index];
-            grid = texGrids.get((((gid as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID);
+            gid = comp.tiles[colData.index];
+            grid = comp.texGrids!.get((((gid as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID);
             if (!grid) continue;
 
             // check init or new material
@@ -442,7 +442,7 @@ function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col:
             top = bottom + tileSize.height;
 
             // begin to fill vertex buffer
-            tiledNode = tiledTiles[colData.index];
+            tiledNode = comp.tiledTiles[colData.index];
 
             _vfOffset = _fillCount * 4 * 9;
 
