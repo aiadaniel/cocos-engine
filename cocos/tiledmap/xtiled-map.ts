@@ -145,6 +145,15 @@ export class XTiledMap extends Component {
     // get ab(): string { return this._ab; }
     // set ab(v) { this._ab = v; }
 
+    @serializable
+    @displayOrder(9)
+    tsxPath: string="";
+
+    @type([BufferAsset])
+    tsxs: BufferAsset[] = [];
+
+    _tsxMap: Map<string, BufferAsset> = new Map();
+
     _atlasMap: Map<string, SpriteAtlas> = new Map();
 
     // 使用指定图集（实测使用自动图集时，preload时还是空的）
@@ -370,6 +379,10 @@ export class XTiledMap extends Component {
         this._bMap = new bmap.BMap(buf);
 
         if (this._bMap) {
+            for (const tsx of this.tsxs!) {
+                this._tsxMap[tsx?.name] = tsx;
+            }
+
             for (const at of this.atlass) {
                 this._atlasMap[at.name] = at;//自动图集此时是空的！
             }
@@ -391,7 +404,7 @@ export class XTiledMap extends Component {
             //     imageLayerTextures[spfNames[i]] = texValues[i];
             // }
 
-            const cb = ()=> {
+            const cb = (mapInfo: XTMXMapInfo)=> {
                 const tilesets = mapInfo.getTilesets();
                 if (!tilesets || tilesets.length === 0) {
                     logID(7241);
@@ -400,7 +413,7 @@ export class XTiledMap extends Component {
                 this._buildWithMapInfo(mapInfo);
             }
 
-            const mapInfo = new XTMXMapInfo(this.ab, this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+            const mapInfo = new XTMXMapInfo(this.ab, this.tsxPath, this._tsxMap,  this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
 
         } else {
             this._releaseMapInfo();

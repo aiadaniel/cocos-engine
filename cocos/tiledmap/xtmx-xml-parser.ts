@@ -207,6 +207,8 @@ export class XTMXMapInfo {
     cb: Function | undefined
     _ab: string;
     _atlasMap: Map<string, SpriteAtlas> = new Map();
+    _tsxPath: string="";
+    _tsxMap: Map<string, BufferAsset> = new Map();
 
     // hex map values
     // protected _staggerAxis: bmap.StaggerAxis | null = null;
@@ -217,9 +219,11 @@ export class XTMXMapInfo {
 
     _bm: bmap.BMap;
 
-    constructor (ab: string, atlasmap: Map<string, SpriteAtlas>, bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
+    constructor (ab: string, res: string, tsxMap: Map<string, BufferAsset>, atlasmap: Map<string, SpriteAtlas>, bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
         textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
         this.cb = cb;
+        this._tsxPath = res;
+        this._tsxMap = tsxMap;
         this._ab = ab;
         this._atlasMap = atlasmap;
         // console.log(this._atlasMap[0]?.spriteFrames?.length); //自动图集此时的spriteFrames是空的哦
@@ -527,11 +531,14 @@ export class XTMXMapInfo {
             let firstGid = key;
             let source = value;
             console.log("ts source:" + source);
+            const self = this;
             if (!XTiledMap.tss[source]) {
-                assetManager.getBundle(this._ab)?.load(source, BufferAsset, (err, data)=>{
+                const data = this._tsxMap[source];
+                // assetManager.getBundle(this._ab)?.load(this._tsxPath+source, BufferAsset, (err, data)=>{
                     const arr: ArrayBuffer = data.buffer();
                     const bb = new ByteBuf(new Uint8Array(arr));
                     const curTileset = new bmap.TileSet(bb);
+                    // console.log("load ts " + JSON.stringify(curTileset));
                     XTiledMap.tss[source] = curTileset;
 
                     let images = curTileset.image;
@@ -555,7 +562,7 @@ export class XTMXMapInfo {
                         if (!tileset || tile.image/*|| collection*/) {
                             tileset = new TMXTilesetInfo();
                             tileset.name = curTileset.name;
-                            tileset.firstGid = curTileset.firstgid! & TileFlag.FLIPPED_MASK;
+                            tileset.firstGid = firstGid & TileFlag.FLIPPED_MASK;
                             tileset.tileOffset.x = curTileset.tileoffset?.x ?? 0;
                             tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
                             
@@ -575,7 +582,7 @@ export class XTMXMapInfo {
                             this.setTilesets(tileset);
                         }
     
-                        this.parentGID = (curTileset.firstgid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
+                        this.parentGID = (firstGid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
                         // if (tile.hasAttribute('x') && tile.hasAttribute('y')) {
                         //     tileset.imageOffset = new Vec2(parseFloat(tile.getAttribute('x')!) || 0, parseFloat(tile.getAttribute('y')!) || 0);
                         // }
@@ -624,7 +631,7 @@ export class XTMXMapInfo {
                             // const frames = animationProp.frames;
                             for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
                                 const frame = animations[frameIdx];// framesData[frameIdx];
-                                const tileid = curTileset.firstgid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
+                                const tileid = firstGid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
                                 const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
                                 animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
                             }
@@ -632,13 +639,13 @@ export class XTMXMapInfo {
                     }//tile
 
                     need ++;
-                    if(need == this._bm.tileset.size) this.cb?.()
-                });// resources.load
+                    if(need == this._bm.tileset.size) this.cb?.(self)
+                // });// resources.load
             }//if !tss[]
             else {
                 this.setTilesets(XTiledMap.tss[source]);
                 need ++;
-                if(need == this._bm.tileset.size) this.cb?.()
+                if(need == this._bm.tileset.size) this.cb?.(this)
             }
         }// for tileset
 
