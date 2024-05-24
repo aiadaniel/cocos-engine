@@ -87,6 +87,8 @@ interface XTiledSubNodeData {
   */
 @ccclass('XTiledLayer')
 export class XTiledLayer extends UIRenderer {
+    // 需要注意这个row和col并不是直接按照map的row和col来算，而是按照左下角为0，0开始，右上角最大rows+cols，包括viewport等都是这个算法；
+    // 而如果是按照layer的tiles，则是按照x + width * y  即getTileGIDAt等几个api需要的
     // [row][col] = {count: 0, nodesList: []};
     // & 符号是交叉类型
     protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (XTiledUserNodeData | null)[] } >> = {};
@@ -151,7 +153,9 @@ export class XTiledLayer extends UIRenderer {
     // store the layer tiles, index is caculated by 'x + width * y', format likes '[0]=gid0,[1]=gid1, ...'
     public tiles: MixedGID[] = [];
 
+    // 这个数据结构给渲染使用，iso类型瓦片会切成4个矩形（宽高一半）
     // 装备器根据cullingRect的左下右上 或者 直接 0，0和右上 的索引，从顶点数组拿出纹理网格的索引，再从texGrid拿纹理设置给renderData，同时设置其顶点数组
+    // 实测这个顶点数据结构中的SafeRecord会把bottom一样的放在一起，相当于水平上相同的放一起，按left从左到右排列； 其key是col索引，(isometric)值从rows-1到rows+cols-2
     // vertex array
     public vertices: SafeArray<{ minCol: number, maxCol: number } & SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
     // vertices dirty
@@ -393,7 +397,7 @@ export class XTiledLayer extends UIRenderer {
         if (_tempRowCol.row === dataComp._row && _tempRowCol.col === dataComp._col) return;
         
         self._removeUserNodeFromGrid(dataComp);
-        console.log("_userNodePosChange pos:(" + _vec2_temp.x +" " + _vec2_temp.y +") rowcol:(" + _tempRowCol.row + " " + _tempRowCol.col + ")");
+        // console.log("_userNodePosChange pos:(" + _vec2_temp.x +" " + _vec2_temp.y +") rowcol:(" + _tempRowCol.row + " " + _tempRowCol.col + ")");
         self._addUserNodeToGrid(dataComp, _tempRowCol);
     }
 
@@ -435,12 +439,12 @@ export class XTiledLayer extends UIRenderer {
         const col = tempRowCol.col;
         const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
         const colData = rowData[col] = rowData[col] || { count: 0, list: [] };
-        // console.log("userNodeGrid:" + JSON.stringify(this._userNodeGrid));//todo lxm 这个数据不停增长，看上去是bug？
         dataComp._row = row;
         dataComp._col = col;
         dataComp._index = colData.list.length;
         rowData.count++;
         colData.count++;
+        // console.log("userNodeGrid:" + JSON.stringify(this._userNodeGrid));
         colData.list.push(dataComp);
         this._userNodeDirty = true;
     }
@@ -823,6 +827,7 @@ export class XTiledLayer extends UIRenderer {
              && this._viewPort.y === y) {
             return;
         }
+        // console.log("viewport:" + x + " " + y + " " + width + " " + height);// w h 以750*1336为例，基本就是这俩值不变，目前精度有时候出现小数点后10+位，可以一开始固定
         this._viewPort.x = x;
         this._viewPort.y = y;
         this._viewPort.width = width;
@@ -861,6 +866,7 @@ export class XTiledLayer extends UIRenderer {
         // make range large
         _tempRowCol.row -= reserveLine;
         _tempRowCol.col -= reserveLine;
+        // console.log("_tempRC " + _tempRowCol.row + " " + _tempRowCol.col);
         // insure left down row col greater than 0
         _tempRowCol.row = _tempRowCol.row > 0 ? _tempRowCol.row : 0;
         _tempRowCol.col = _tempRowCol.col > 0 ? _tempRowCol.col : 0;
@@ -1062,6 +1068,27 @@ export class XTiledLayer extends UIRenderer {
             // if consider about col then left must add 'w/2 * col'
             // so left is 'w/2 * (rows - row - 1) + w/2 * col'
             // combine expression is 'w/2 * (rows - row + col -1)'
+            /** 来自文心:
+             * 首先，我们要明白TiledLayer是如何在屏幕上排列瓦片的。每个瓦片通常都有一个固定的宽度w和高度，并且它们按照行（row）和列（col）进行排列。
+             * 瓦片的左上角（通常是原点）的位置由它的行和列来确定。
+
+                上面注释中的公式是为了计算瓦片左上角的x坐标（即left），这个x坐标是相对于TiledLayer的原点来说的。
+
+                如果不考虑列（col）：
+                当只考虑行时，我们需要找到瓦片在其所在行的相对位置。因为瓦片是从左到右排列的，所以越往下的行，瓦片的x坐标会越大。(? 这里因为是45度，不考虑列，即每一斜行)
+                因此，对于某一行row，它上面的所有行（rows - row - 1行）都会贡献出瓦片的宽度，使其x坐标增加。
+                每个瓦片宽度为w/2（假设瓦片中心在网格点上），所以总的x坐标增加是w/2 * (rows - row - 1)。
+
+                如果考虑列（col）：
+                当同时考虑行和列时，除了上面行贡献的x坐标外，还需要加上当前列贡献的x坐标。
+                对于某一列col，它之前的所有列都会贡献出瓦片的宽度，使其x坐标增加。因此，需要加上w/2 * col。
+
+                综合表达式：
+                将上述两部分相加，得到瓦片左上角的x坐标的综合表达式：w/2 * (rows - row - 1) + w/2 * col。
+
+                这种计算方式确保了每个瓦片都能正确地根据其在网格中的位置来确定其顶点坐标，从而实现正确的渲染和裁剪。
+                注意，这里假设瓦片的中心位于网格点上，所以宽度和高度都被除以2来得到从网格点到瓦片边缘的距离。
+             */
             cullingCol = this.rows + col - row - 1;
             // if not consider about row, then bottom is 'h/2 * (cols - col -1)'
             // if consider about row then bottom must add 'h/2 * (rows - row - 1)'
@@ -1116,6 +1143,11 @@ export class XTiledLayer extends UIRenderer {
         const tileOffset = grid.tileset.tileOffset;
         left += this._offset!.x + tileOffset.x + grid.offsetX;
         bottom += this._offset!.y - tileOffset.y - grid.offsetY;
+                
+        colData.left = left;
+        colData.bottom = bottom;
+        // this index is tiledmap grid index
+        colData.index = index;
 
         topBorder = -tileOffset.y + grid.tileset._tileSize.height - this.mapth;
         topBorder = topBorder < 0 ? 0 : topBorder;
@@ -1142,11 +1174,6 @@ export class XTiledLayer extends UIRenderer {
         }
         // unit: _downOffset = 141 ?
         // console.log("4offset:" + this._layerName + " " + this._leftOffset + " " + this._rightOffset + " " + this._topOffset + " " + this._downOffset);
-        
-        colData.left = left;
-        colData.bottom = bottom;
-        // this index is tiledmap grid index
-        colData.index = index;
 
         this._cullingDirty = true;
     }
@@ -1179,6 +1206,7 @@ export class XTiledLayer extends UIRenderer {
                 this._updateVertex(col, row);
             }
         }
+        // console.log("vertices:" + JSON.stringify(this.vertices));
         this._verticesDirty = false;
     }
 
@@ -1328,9 +1356,9 @@ export class XTiledLayer extends UIRenderer {
       * let mapTileSize = tiledLayer.getMapTileSize();
       * cc.log("MapTile size: " + mapTileSize);
       */
-    // public getMapTileSize (): Size {
-    //     return this._mapTileSize!;
-    // }
+    public getMapTileSize (): Size {
+        return this._mapTileSize!;
+    }
 
     /**
       * @en Gets Tile set first information for the layer.
@@ -1454,9 +1482,10 @@ export class XTiledLayer extends UIRenderer {
             if (this._layerName == "ground") {
                 this._needCalcViewport = true;
                 this._isFirstLayer = true;
+                Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
             }
 
-            Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+            console.log("_mat4:" + _mat4_temp);
         // }
 
         // if (this._layerOrientation === bmap.Orientation.Hexagonal) {
