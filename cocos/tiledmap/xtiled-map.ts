@@ -80,6 +80,9 @@ export class XTiledMap extends Component {
     // _mapSize: Size = new Size(0, 0);
     // _tileSize: Size = new Size(0, 0);
 
+    // 图集支持跨图复用 filename,ts
+    static tss: Map<string, bmap.TileSet> = new Map();
+
     _mapOrientation = bmap.Orientation.Orthogonal;
 
     // 我们以offset.x+offset.y为key来存储复用结果 计算culling时使用
@@ -368,7 +371,7 @@ export class XTiledMap extends Component {
 
         if (this._bMap) {
             for (const at of this.atlass) {
-                this._atlasMap[at.name] = at;
+                this._atlasMap[at.name] = at;//自动图集此时是空的！
             }
 
             // let texValues = file.textures;
@@ -388,13 +391,17 @@ export class XTiledMap extends Component {
             //     imageLayerTextures[spfNames[i]] = texValues[i];
             // }
 
-            const mapInfo = new XTMXMapInfo(this.ab, this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures);
-            const tilesets = mapInfo.getTilesets();
-            if (!tilesets || tilesets.length === 0) {
-                logID(7241);
+            const cb = ()=> {
+                const tilesets = mapInfo.getTilesets();
+                if (!tilesets || tilesets.length === 0) {
+                    logID(7241);
+                }
+    
+                this._buildWithMapInfo(mapInfo);
             }
 
-            this._buildWithMapInfo(mapInfo);
+            const mapInfo = new XTMXMapInfo(this.ab, this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+
         } else {
             this._releaseMapInfo();
         }

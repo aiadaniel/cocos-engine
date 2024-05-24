@@ -8,7 +8,7 @@
 
 import { ByteBuf } from "../core/bright/ByteBuf"
 
-export namespace bmap {
+    export namespace bmap {
     export enum Orientation {
         Unknown = 0,
         Orthogonal = 1,
@@ -48,55 +48,9 @@ export namespace bmap {
     
     
     export namespace bmap {
-    export  class BMap  {
-    
-        constructor(_buf_: ByteBuf) {
-            this.orientation = _buf_.ReadInt()
-            this.renderorder = _buf_.ReadInt()
-            this.width = _buf_.ReadInt()
-            this.height = _buf_.ReadInt()
-            this.tilewidth = _buf_.ReadInt()
-            this.tileheight = _buf_.ReadInt()
-            this.infinite = _buf_.ReadInt()
-            if(_buf_.ReadBool()) { this.hexsidelength = _buf_.ReadInt() } else { this.hexsidelength = undefined }
-            if(_buf_.ReadBool()) { this.staggeraxis = _buf_.ReadInt() } else { this.staggeraxis = undefined }
-            if(_buf_.ReadBool()) { this.staggerindex = _buf_.ReadInt() } else { this.staggerindex = undefined }
-            { this.tileset = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.TileSet; _e = new bmap.TileSet(_buf_); this.tileset.push(_e) } }
-            { this.layer = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.Layer; _e = new bmap.Layer(_buf_); this.layer.push(_e) } }
-        }
-    
-        readonly orientation: bmap.Orientation
-        
-        readonly renderorder: bmap.RenderOrder
-        
-        readonly width: number
-        
-        readonly height: number
-        
-        readonly tilewidth: number
-        
-        readonly tileheight: number
-        
-        readonly infinite: number
-        
-        readonly hexsidelength: number|undefined
-        
-        readonly staggeraxis: bmap.StaggerAxis|undefined
-        
-        readonly staggerindex: bmap.StaggerIndex|undefined
-        
-        readonly tileset: bmap.TileSet[]
-        
-        readonly layer: bmap.Layer[]
-        
-    }
-    }
-    
-    export namespace bmap {
     export  class TileSet  {
     
         constructor(_buf_: ByteBuf) {
-            if(_buf_.ReadBool()) { this.firstgid = _buf_.ReadInt() } else { this.firstgid = undefined }
             this.name = _buf_.ReadString()
             this.tilewidth = _buf_.ReadInt()
             this.tileheight = _buf_.ReadInt()
@@ -110,8 +64,6 @@ export namespace bmap {
             { this.tiles = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.Tile; _e = new bmap.Tile(_buf_); this.tiles.push(_e) } }
         }
     
-        readonly firstgid: number|undefined
-        
         readonly name: string
         
         readonly tilewidth: number
@@ -277,6 +229,52 @@ export namespace bmap {
         }
     
         readonly anilist: bmap.Point[]
+        
+    }
+    }
+    
+    
+    export namespace bmap {
+    export  class BMap  {
+    
+        constructor(_buf_: ByteBuf) {
+            this.orientation = _buf_.ReadInt()
+            this.renderorder = _buf_.ReadInt()
+            this.width = _buf_.ReadInt()
+            this.height = _buf_.ReadInt()
+            this.tilewidth = _buf_.ReadInt()
+            this.tileheight = _buf_.ReadInt()
+            this.infinite = _buf_.ReadInt()
+            if(_buf_.ReadBool()) { this.hexsidelength = _buf_.ReadInt() } else { this.hexsidelength = undefined }
+            if(_buf_.ReadBool()) { this.staggeraxis = _buf_.ReadInt() } else { this.staggeraxis = undefined }
+            if(_buf_.ReadBool()) { this.staggerindex = _buf_.ReadInt() } else { this.staggerindex = undefined }
+            { this.tileset = new Map<number, string>(); for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _k:number; _k = _buf_.ReadInt(); let _v:string; _v = _buf_.ReadString(); this.tileset.set(_k, _v);  } }
+            { this.layer = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.Layer; _e = new bmap.Layer(_buf_); this.layer.push(_e) } }
+        }
+    
+        readonly orientation: bmap.Orientation
+        
+        readonly renderorder: bmap.RenderOrder
+        
+        readonly width: number
+        
+        readonly height: number
+        
+        readonly tilewidth: number
+        
+        readonly tileheight: number
+        
+        readonly infinite: number
+        
+        readonly hexsidelength: number|undefined
+        
+        readonly staggeraxis: bmap.StaggerAxis|undefined
+        
+        readonly staggerindex: bmap.StaggerIndex|undefined
+        
+        readonly tileset: Map<number, string>
+        
+        readonly layer: bmap.Layer[]
         
     }
     }

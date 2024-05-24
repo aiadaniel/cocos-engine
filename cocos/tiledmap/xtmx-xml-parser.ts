@@ -31,12 +31,14 @@ import {
     GID, MixedGID, PropertiesInfo, XTiledAnimation, TiledAnimationType,
     TileFlag, TMXImageLayerInfo, TMXLayerInfo, TMXObject, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo,
 } from './xtiled-types';
-import { Color, errorID, logID, Size, Vec2 } from '../core';
+import { ByteBuf, Color, errorID, logID, Size, Vec2 } from '../core';
 import { SpriteAtlas, SpriteFrame } from '../2d/assets';
 
 import { bmap } from './BTile';
 import Bundle from '../asset/asset-manager/bundle';
 import { assetManager } from '../asset/asset-manager';
+import { XTiledMap } from './xtiled-map';
+import { BufferAsset } from '../asset/assets';
 
 function uint8ArrayToUint32Array (uint8Arr: Uint8Array): null | Uint32Array | number[] {
     if (uint8Arr.length % 4 !== 0) return null;
@@ -202,6 +204,7 @@ export class XTMXMapInfo {
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
+    cb: Function | undefined
     _ab: string;
     _atlasMap: Map<string, SpriteAtlas> = new Map();
 
@@ -215,10 +218,11 @@ export class XTMXMapInfo {
     _bm: bmap.BMap;
 
     constructor (ab: string, atlasmap: Map<string, SpriteAtlas>, bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
-        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
+        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
+        this.cb = cb;
         this._ab = ab;
         this._atlasMap = atlasmap;
-        console.log(this._atlasMap[0]?.spriteFrames?.length); //自动图集此时的spriteFrames是空的哦
+        // console.log(this._atlasMap[0]?.spriteFrames?.length); //自动图集此时的spriteFrames是空的哦
         this._bm = bm;
         this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
     }
@@ -491,184 +495,158 @@ export class XTMXMapInfo {
         // The parent element is the map
         this.properties = {} //getPropertyList(map);
 
-        for (i = 0; i < this._bm.tileset.length; i++) {
-                const curTileset = this._bm.tileset[i];
-
-                let images = curTileset.image;//getElementsByTagName('image');
-                // const collection = images.length > 1;
-                // const firstImage = images[0];
-                // let firstImageName: string = firstImage.getAttribute('source')!;
-                // firstImageName = firstImageName.replace(/\\/g, '/');
-
-                const tiles = curTileset.tiles;//curTileset.getElementsByTagName('tile');
-                const tileCount = tiles?.length || 1;
-                // let tile: Element | null = null;
-
-                // const tilesetName = curTileset.getAttribute('name') || '';
-                // const tilesetSpacing = parseInt(curTileset.getAttribute('spacing')!) || 0;
-                // const tilesetMargin = parseInt(curTileset.getAttribute('margin')!) || 0;
-                // const fgid = tilesetFirstGid || (parseInt(curTileset.getAttribute('firstgid')!) || 0);
-
-                // const tilesetSize = new Size(0, 0);
-                // tilesetSize.width = parseFloat(curTileset.getAttribute('tilewidth')!);
-                // tilesetSize.height = parseFloat(curTileset.getAttribute('tileheight')!);
-
-                // // parse tile offset
-                // const curTileOffset = curTileset.getElementsByTagName('tileoffset')[0];
-                // let tileOffsetX = 0;
-                // let tileOffsetY = 0;
-                // if (curTileOffset) {
-                //     tileOffsetX = parseFloat(curTileOffset.getAttribute('x')!) || 0;
-                //     tileOffsetY = parseFloat(curTileOffset.getAttribute('y')!) || 0;
-                // }
-
-                let tileset: TMXTilesetInfo | null = null;
-                for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
-                    // parse tiles by tileIdx
-                    let tile = curTileset.tiles[tileIdx];// tiles && tiles[tileIdx];
-                    if (!tile) {
-                        continue;
-                    }
-
-                    const curImage = images ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;
-                    if (!curImage) continue;
-                    let curImageName: string = curImage.source;//getAttribute('source')!;
-                    // curImageName = curImageName.replace(/\\/g, '/');
-                    
-                    if (!tileset || tile.image/*|| collection*/) {
-                        tileset = new TMXTilesetInfo();
-                        tileset.name = curTileset.name;
-                        tileset.firstGid = curTileset.firstgid! & TileFlag.FLIPPED_MASK;
-                        tileset.tileOffset.x = curTileset.tileoffset?.x ?? 0;
-                        tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
-                        
-                        tileset.collection = ( tile.image != undefined );//collection;
-                        // console.log("tileset:" + tileset.name + " curImageName:" + curImageName + " collect:" + tileset.collection);
-                        if (!tileset.collection) {
-                            tileset.imageName = curImageName;
-                            tileset.imageSize.width = curImage.width;//parseFloat(curImage.getAttribute('width')!) || 0;
-                            tileset.imageSize.height = curImage.height;//parseFloat(curImage.getAttribute('height')!) || 0;
-                            tileset.sourceImage = this._spriteFrameMap![curImageName];
-                            // 我们在导出二进制直接把数据处理好，如去掉.png
-                            // if (!tileset.sourceImage) {
-                            //     const nameWithPostfix = TMXMapInfo.getNameWithPostfix(curImageName);
-                            //     tileset.imageName = nameWithPostfix;
-                            //     tileset.sourceImage = this._spriteFrameMap[nameWithPostfix];
-                            //     if (!tileset.sourceImage) {
-                            //         const shortName = TMXMapInfo.getShortName(curImageName);
-                            //         tileset.imageName = shortName;
-                            //         tileset.sourceImage = this._spriteFrameMap[shortName];
-                            //         if (!tileset.sourceImage) {
-                            //             console.error(`[error]: ${shortName} not find in [${Object.keys(this._spriteFrameMap).join(', ')}]`);
-                            //             errorID(7221, curImageName);
-                            //             console.warn(`Please try asset type of ${curImageName} to 'sprite-frame'`);
-                            //         }
-                            //     }
-                            // }
-                        }
-                        tileset.spacing = curTileset.spacing;//tilesetSpacing;
-                        tileset.margin = curTileset.margin;//tilesetMargin;
-                        tileset._tileSize.width = curTileset.tilewidth;//tilesetSize.width;
-                        tileset._tileSize.height = curTileset.tileheight;//tilesetSize.height;
-                        this.setTilesets(tileset);
-                    }
-
-                    this.parentGID = (curTileset.firstgid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
-                    // if (tile.hasAttribute('x') && tile.hasAttribute('y')) {
-                    //     tileset.imageOffset = new Vec2(parseFloat(tile.getAttribute('x')!) || 0, parseFloat(tile.getAttribute('y')!) || 0);
+                // PARSE <layer> & <objectgroup> in order
+                const childNodes = this._bm.layer;// map.childNodes;
+                for (i = 0; i < childNodes.length; i++) {
+                    const childNode = childNodes[i];
+                    // if (this._shouldIgnoreNode(childNode)) {
+                    //     continue;
                     // }
-                    // const hastilesize = tile.hasAttribute('width') && tile.hasAttribute('height');
-                    // if (hastilesize) {
-                    //     tileset._tileSize.width = parseFloat(tile.getAttribute('width')!) || 0;
-                    //     tileset._tileSize.height = parseFloat(tile.getAttribute('height')!) || 0;
+        
+                    // if (childNode.type === bmap.LayerType.ImageLayerType/*'imagelayer'*/) {
+                    //     const imageLayer = this._parseImageLayer(childNode as Element);
+                    //     if (imageLayer) {
+                    //         this.setImageLayers(imageLayer);
+                    //     }
                     // }
-                    const tileImages = tile.image;//tile.getElementsByTagName('image');
-                    if (tileImages /*&& tileImages.length > 0*/) {
-                        const image = tileImages;//[0];
-                        let imageName = image.source;//getAttribute('source')!;
-                        // imageName = imageName.replace(/\\/g, '/');
-
-                        tileset.imageName = imageName;
-                        tileset.imageSize.width = image.width;//parseFloat(image.getAttribute('width')!) || 0;
-                        tileset.imageSize.height = image.height;//parseFloat(image.getAttribute('height')!) || 0;
-
-                        // if (!hastilesize) {
-                        //     tileset._tileSize.width = tileset.imageSize.width;
-                        //     tileset._tileSize.height = tileset.imageSize.height;
-                        // }
-
-                        tileset.sourceImage = this._spriteFrameMap![imageName];
-                        // tileset.sourceImage = this._atlasMap[tileset.name]?.spriteFrames[imageName];
-                        // 从图集加载
-                        // const tts = tileset;
-                        // assetManager.getBundle(this._ab)?.load(tileset.name, SpriteAtlas, (err, atlas)=>{
-                        //     console.log("load atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
-                        //     tts.sourceImage = atlas?.getSpriteFrame(imageName) || undefined;
-                        // });
-
-                        // if (!tileset.sourceImage) {
-                        //     const nameWithPostfix = TMXMapInfo.getNameWithPostfix(imageName);
-                        //     tileset.imageName = nameWithPostfix;
-                        //     tileset.sourceImage = this._spriteFrameMap[nameWithPostfix];
-                        //     if (!tileset.sourceImage) {
-                        //         const shortName = TMXMapInfo.getShortName(imageName);
-                        //         tileset.imageName = shortName;
-                        //         tileset.sourceImage = this._spriteFrameMap[shortName];
-                        //         if (!tileset.sourceImage) {
-                        //             errorID(7221, imageName);
-                        //             console.warn(`Please try asset type of ${imageName} to 'sprite-frame'`);
-                        //         }
-                        //     }
-                        // }
-
-                        tileset.firstGid = this.parentGID & TileFlag.FLIPPED_MASK;
+        
+                    if (childNode.type === bmap.LayerType.TileLayerType /*'layer'*/) {
+                        const layer = this._parseLayer(childNode /*as Element*/);
+                        this.setLayers(layer!);
                     }
-                    const pid = ((TileFlag.FLIPPED_MASK & this.parentGID as unknown as number) >>> 0) as unknown as GID;
-                    // this._tileProperties.set(pid, getPropertyList(tile));
-                    const animations = tile.anis?.anilist;//tile.getElementsByTagName('animation');
-                    // console.log("parse anis " + animations?.length);
-                    if (animations && animations.length > 0) {
-                        // const animation = animations[0];
-                        // const framesData = animation.getElementsByTagName('frame');
-                        const animationProp: XTiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
-                        this._tileAnimations.set(pid, animationProp);
-                        // const frames = animationProp.frames;
-                        for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
-                            const frame = animations[frameIdx];// framesData[frameIdx];
-                            const tileid = curTileset.firstgid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
-                            const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
-                            animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
-                        }
+        
+                    if (childNode.type === bmap.LayerType.ObjectGroupType/*'objectgroup'*/) {
+                        const objectGroup = this._parseObjectGroup(childNode /*as Element*/);
+                        this.setObjectGroups(objectGroup);
                     }
                 }
-            
-        }
 
-        // PARSE <layer> & <objectgroup> in order
-        const childNodes = this._bm.layer;// map.childNodes;
-        for (i = 0; i < childNodes.length; i++) {
-            const childNode = childNodes[i];
-            // if (this._shouldIgnoreNode(childNode)) {
-            //     continue;
-            // }
+        // 使用独立独立瓦片集的情况，每个瓦片集的source就是对应的bin资源文件名，按需加载
+        let need = 0;
+        for (let [key, value] of this._bm.tileset) {
+            let firstGid = key;
+            let source = value;
+            console.log("ts source:" + source);
+            if (!XTiledMap.tss[source]) {
+                assetManager.getBundle(this._ab)?.load(source, BufferAsset, (err, data)=>{
+                    const arr: ArrayBuffer = data.buffer();
+                    const bb = new ByteBuf(new Uint8Array(arr));
+                    const curTileset = new bmap.TileSet(bb);
+                    XTiledMap.tss[source] = curTileset;
 
-            // if (childNode.type === bmap.LayerType.ImageLayerType/*'imagelayer'*/) {
-            //     const imageLayer = this._parseImageLayer(childNode as Element);
-            //     if (imageLayer) {
-            //         this.setImageLayers(imageLayer);
-            //     }
-            // }
+                    let images = curTileset.image;
+    
+                    const tiles = curTileset.tiles;
+                    const tileCount = tiles?.length || 1;
+    
+                    let tileset: TMXTilesetInfo | null = null;
+                    for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
+                        // parse tiles by tileIdx
+                        let tile = curTileset.tiles[tileIdx];// tiles && tiles[tileIdx];
+                        if (!tile) {
+                            continue;
+                        }
+    
+                        const curImage = images ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;
+                        if (!curImage) continue;
+                        let curImageName: string = curImage.source;//getAttribute('source')!;
+                        // curImageName = curImageName.replace(/\\/g, '/');
+                        
+                        if (!tileset || tile.image/*|| collection*/) {
+                            tileset = new TMXTilesetInfo();
+                            tileset.name = curTileset.name;
+                            tileset.firstGid = curTileset.firstgid! & TileFlag.FLIPPED_MASK;
+                            tileset.tileOffset.x = curTileset.tileoffset?.x ?? 0;
+                            tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
+                            
+                            tileset.collection = ( tile.image != undefined );//collection;
+                            // console.log("tileset:" + tileset.name + " curImageName:" + curImageName + " collect:" + tileset.collection);
+                            if (!tileset.collection) {
+                                tileset.imageName = curImageName;
+                                tileset.imageSize.width = curImage.width;//parseFloat(curImage.getAttribute('width')!) || 0;
+                                tileset.imageSize.height = curImage.height;//parseFloat(curImage.getAttribute('height')!) || 0;
+                                tileset.sourceImage = this._spriteFrameMap![curImageName];
+                                // 我们在导出二进制直接把数据处理好，如去掉.png
+                            }
+                            tileset.spacing = curTileset.spacing;//tilesetSpacing;
+                            tileset.margin = curTileset.margin;//tilesetMargin;
+                            tileset._tileSize.width = curTileset.tilewidth;//tilesetSize.width;
+                            tileset._tileSize.height = curTileset.tileheight;//tilesetSize.height;
+                            this.setTilesets(tileset);
+                        }
+    
+                        this.parentGID = (curTileset.firstgid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
+                        // if (tile.hasAttribute('x') && tile.hasAttribute('y')) {
+                        //     tileset.imageOffset = new Vec2(parseFloat(tile.getAttribute('x')!) || 0, parseFloat(tile.getAttribute('y')!) || 0);
+                        // }
+                        // const hastilesize = tile.hasAttribute('width') && tile.hasAttribute('height');
+                        // if (hastilesize) {
+                        //     tileset._tileSize.width = parseFloat(tile.getAttribute('width')!) || 0;
+                        //     tileset._tileSize.height = parseFloat(tile.getAttribute('height')!) || 0;
+                        // }
+                        const tileImages = tile.image;//tile.getElementsByTagName('image');
+                        if (tileImages /*&& tileImages.length > 0*/) {
+                            const image = tileImages;//[0];
+                            let imageName = image.source;//getAttribute('source')!;
+                            // imageName = imageName.replace(/\\/g, '/');
+    
+                            tileset.imageName = imageName;
+                            tileset.imageSize.width = image.width;//parseFloat(image.getAttribute('width')!) || 0;
+                            tileset.imageSize.height = image.height;//parseFloat(image.getAttribute('height')!) || 0;
+    
+                            // if (!hastilesize) {
+                            //     tileset._tileSize.width = tileset.imageSize.width;
+                            //     tileset._tileSize.height = tileset.imageSize.height;
+                            // }
+    
+                            tileset.sourceImage = this._spriteFrameMap![imageName];
+                            // tileset.sourceImage = this._atlasMap[tileset.name]?.spriteFrames[imageName];
+                            // 从图集加载
+                            // const tts = tileset;
+                            // assetManager.getBundle(this._ab)?.load(tileset.name, SpriteAtlas, (err, atlas)=>{
+                            //     console.log("load atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
+                            //     tts.sourceImage = atlas?.getSpriteFrame(imageName) || undefined;
+                            // });
+    
+                            // 我们在导出二进制直接把数据处理好，如去掉.png
 
-            if (childNode.type === bmap.LayerType.TileLayerType /*'layer'*/) {
-                const layer = this._parseLayer(childNode /*as Element*/);
-                this.setLayers(layer!);
+                            tileset.firstGid = this.parentGID & TileFlag.FLIPPED_MASK;
+                        }
+                        const pid = ((TileFlag.FLIPPED_MASK & this.parentGID as unknown as number) >>> 0) as unknown as GID;
+                        // this._tileProperties.set(pid, getPropertyList(tile));
+                        const animations = tile.anis?.anilist;//tile.getElementsByTagName('animation');
+                        // console.log("parse anis " + animations?.length);
+                        if (animations && animations.length > 0) {
+                            // const animation = animations[0];
+                            // const framesData = animation.getElementsByTagName('frame');
+                            const animationProp: XTiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
+                            this._tileAnimations.set(pid, animationProp);
+                            // const frames = animationProp.frames;
+                            for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
+                                const frame = animations[frameIdx];// framesData[frameIdx];
+                                const tileid = curTileset.firstgid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
+                                const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
+                                animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
+                            }
+                        }
+                    }//tile
+
+                    need ++;
+                    if(need == this._bm.tileset.size) this.cb?.()
+                });// resources.load
+            }//if !tss[]
+            else {
+                this.setTilesets(XTiledMap.tss[source]);
+                need ++;
+                if(need == this._bm.tileset.size) this.cb?.()
             }
+        }// for tileset
 
-            if (childNode.type === bmap.LayerType.ObjectGroupType/*'objectgroup'*/) {
-                const objectGroup = this._parseObjectGroup(childNode /*as Element*/);
-                this.setObjectGroups(objectGroup);
-            }
-        }
+        // for (i = 0; i < this._bm.tileset.length; i++) {
+        //         const curTileset = this._bm.tileset[i];
+        // }
+
+
 
         // return map;
     }
