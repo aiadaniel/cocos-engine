@@ -532,15 +532,20 @@ export class XTMXMapInfo {
             let source = value;
             console.log("ts source:" + source);
             const self = this;
-            if (!XTiledMap.tss[source]) {
+            let curTileset: bmap.TileSet = XTiledMap.tss[source];
+            if (!curTileset) {
                 const data = this._tsxMap[source];
                 // assetManager.getBundle(this._ab)?.load(this._tsxPath+source, BufferAsset, (err, data)=>{
                     const arr: ArrayBuffer = data.buffer();
                     const bb = new ByteBuf(new Uint8Array(arr));
-                    const curTileset = new bmap.TileSet(bb);
+                    curTileset = new bmap.TileSet(bb);
                     // console.log("load ts " + JSON.stringify(curTileset));
                     XTiledMap.tss[source] = curTileset;
+            }
+            // if (!curTileset) {
 
+            // }
+            
                     let images = curTileset.image;
     
                     const tiles = curTileset.tiles;
@@ -641,12 +646,7 @@ export class XTMXMapInfo {
                     need ++;
                     if(need == this._bm.tileset.size) this.cb?.(self)
                 // });// resources.load
-            }//if !tss[]
-            else {
-                this.setTilesets(XTiledMap.tss[source]);
-                need ++;
-                if(need == this._bm.tileset.size) this.cb?.(this)
-            }
+            
         }// for tileset
 
         // for (i = 0; i < this._bm.tileset.length; i++) {
