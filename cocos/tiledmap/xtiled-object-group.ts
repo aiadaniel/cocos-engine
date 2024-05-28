@@ -384,9 +384,11 @@ export class XTiledObjectGroup extends Component {
                 sprite.markForUpdateRenderData();
 
                 // 添加物理碰撞？
-                const coll = imgNode.addComponent(BoxCollider2D);
-                coll.group = PhysicsGroup.DEFAULT;//default
-                coll.size = imgTrans.contentSize;
+                if (object.name) { // 有交互需要
+                    const coll = imgNode.addComponent(BoxCollider2D);
+                    coll.group = PhysicsGroup.DEFAULT;//default
+                    coll.size = imgTrans.contentSize;
+                }
             }
         }
         this._objects = objects;
