@@ -72,7 +72,7 @@ export class XTiledMap extends Component {
     _imageLayers: TMXImageLayerInfo[] = [];
     _layers: XTiledLayer[] = [];
     _groups: XTiledObjectGroup[] = [];
-    _images: ImageExtendedNode[] = [];
+    // _images: ImageExtendedNode[] = [];
     _properties: PropertiesInfo = {} as any;
     _tileProperties: Map<GID, PropertiesInfo> = new Map();
 
@@ -438,12 +438,12 @@ export class XTiledMap extends Component {
         }
         groups.length = 0;
 
-        const images = this._images;
-        for (let i = 0, l = images.length; i < l; i++) {
-            images[i].removeFromParent();
-            images[i].destroy();
-        }
-        images.length = 0;
+        // const images = this._images;
+        // for (let i = 0, l = images.length; i < l; i++) {
+        //     images[i].removeFromParent();
+        //     images[i].destroy();
+        // }
+        // images.length = 0;
     }
 
     _syncAnchorPoint (): void {
@@ -472,14 +472,14 @@ export class XTiledMap extends Component {
             groupInfo.node.setPosition(x, y);
         }
 
-        for (i = 0, l = this._images.length; i < l; i++) {
-            const image = this._images[i]._uiProps.uiTransformComp!;
-            image.anchorX = 0.5;
-            image.anchorY = 0.5;
-            const x = this._images[i]._offset.x - leftTopX + image.width * image.anchorX;
-            const y = this._images[i]._offset.y + leftTopY - image.height * image.anchorY;
-            this._images[i].setPosition(x, y);
-        }
+        // for (i = 0, l = this._images.length; i < l; i++) {
+        //     const image = this._images[i]._uiProps.uiTransformComp!;
+        //     image.anchorX = 0.5;
+        //     image.anchorY = 0.5;
+        //     const x = this._images[i]._offset.x - leftTopX + image.width * image.anchorX;
+        //     const y = this._images[i]._offset.y + leftTopY - image.height * image.anchorY;
+        //     this._images[i].setPosition(x, y);
+        // }
     }
 
     _fillAniGrids (texGrids: TiledTextureGrids, animations: TiledAnimationType): void {
@@ -513,7 +513,7 @@ export class XTiledMap extends Component {
 
         let layers = this._layers;
         let groups = this._groups;
-        let images = this._images;
+        // let images = this._images;
         const oldNodeNames: { [key: string]: boolean } = {};
         for (let i = 0, n = layers.length; i < n; i++) {
             oldNodeNames[layers[i].node.name] = true;
@@ -521,13 +521,13 @@ export class XTiledMap extends Component {
         for (let i = 0, n = groups.length; i < n; i++) {
             oldNodeNames[groups[i].node.name] = true;
         }
-        for (let i = 0, n = images.length; i < n; i++) {
-            oldNodeNames[images[i].name] = true;
-        }
+        // for (let i = 0, n = images.length; i < n; i++) {
+        //     oldNodeNames[images[i].name] = true;
+        // }
 
         layers = this._layers = [];
         groups = this._groups = [];
-        images = this._images = [];
+        // images = this._images = [];
 
         const mapInfo = this._mapInfo!;
         const node = this.node;
@@ -573,31 +573,32 @@ export class XTiledMap extends Component {
                     }
                     group._init(layerInfo, mapInfo, texGrids);
                     groups.push(group);
-                } else if (layerInfo instanceof TMXImageLayerInfo) {
-                    const spriteFrame = layerInfo.sourceImage;
+                } 
+                // else if (layerInfo instanceof TMXImageLayerInfo) {
+                //     const spriteFrame = layerInfo.sourceImage;
 
-                    child.layerInfo = layerInfo;
-                    child._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);
+                //     child.layerInfo = layerInfo;
+                //     child._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);
 
-                    let image = child.getComponent(Sprite);
-                    if (!image) {
-                        image = child.addComponent(Sprite);
-                    }
+                //     let image = child.getComponent(Sprite);
+                //     if (!image) {
+                //         image = child.addComponent(Sprite);
+                //     }
 
-                    const color = image.color as Color;
-                    color.a *= layerInfo.opacity;
+                //     const color = image.color as Color;
+                //     color.a *= layerInfo.opacity;
 
-                    image.spriteFrame = spriteFrame!;
-                    let width = spriteFrame!.width;
-                    let height = spriteFrame!.height;
-                    if (spriteFrame!.original) {
-                        width = spriteFrame!.originalSize.width;
-                        height = spriteFrame!.originalSize.height;
-                    }
+                //     image.spriteFrame = spriteFrame!;
+                //     let width = spriteFrame!.width;
+                //     let height = spriteFrame!.height;
+                //     if (spriteFrame!.original) {
+                //         width = spriteFrame!.originalSize.width;
+                //         height = spriteFrame!.originalSize.height;
+                //     }
 
-                    child._uiProps.uiTransformComp!.setContentSize(width, height);
-                    images.push(child);
-                }
+                //     child._uiProps.uiTransformComp!.setContentSize(width, height);
+                //     images.push(child);
+                // }
 
                 maxWidth = Math.max(maxWidth, child._uiProps.uiTransformComp!.width);
                 maxHeight = Math.max(maxHeight, child._uiProps.uiTransformComp!.height);

@@ -34,7 +34,9 @@ import { TiledTextureGrids, GID, TileFlag, TMXObjectType, PropertiesInfo, TiledA
 import { UITransform } from '../2d/framework/ui-transform';
 import { CCBoolean, Vec2, Color, CCObject } from '../core';
 import { SpriteFrame } from '../2d/assets';
-import { Node } from '../scene-graph/node';import { bmap } from './BTile';
+import { Node } from '../scene-graph/node';
+import { BoxCollider2D, Collider2D } from '../physics-2d/framework';
+import { PhysicsGroup } from '../physics/framework';
 
 
 /**
@@ -47,8 +49,6 @@ import { Node } from '../scene-graph/node';import { bmap } from './BTile';
 @help('i18n:cc.TiledObjectGroup')
 @requireComponent(UITransform)
 export class XTiledObjectGroup extends Component {
-
-    // _bMap: bmap.BMap = null;
 
     protected _premultiplyAlpha = false;
 
@@ -238,50 +238,52 @@ export class XTiledObjectGroup extends Component {
             //     object.y = height - object.y;
             // }
 
-            if (objType === TMXObjectType.TEXT) {
-                const textName = `text${object.id}`;
-                aliveNodes[textName] = true;
+            // 放到应用层去做：1是合批不被打断，2是i18n需要
+            // if (objType === TMXObjectType.TEXT) {
+            //     const textName = `text${object.id}`;
+            //     aliveNodes[textName] = true;
 
-                let textNode = this.node.getChildByName(textName);
-                if (!textNode) {
-                    textNode = new Node();
-                }
+            //     let textNode = this.node.getChildByName(textName);
+            //     if (!textNode) {
+            //         textNode = new Node();
+            //     }
 
-                textNode.setRotationFromEuler(0, 0, -object.rotation);
-                textNode.setPosition(object.x - leftTopX, object.y - leftTopY);
-                textNode.name = textName;
-                textNode.parent = this.node;
-                textNode.setSiblingIndex(i);
-                textNode.layer = this.node.layer;
+            //     textNode.setRotationFromEuler(0, 0, -object.rotation);
+            //     textNode.setPosition(object.x - leftTopX, object.y - leftTopY);
+            //     textNode.name = textName;
+            //     textNode.parent = this.node;
+            //     textNode.setSiblingIndex(i);
+            //     textNode.layer = this.node.layer;
 
-                let label = textNode.getComponent(Label);
-                if (!label) {
-                    label = textNode.addComponent(Label);
-                }
+            //     let label = textNode.getComponent(Label);
+            //     if (!label) {
+            //         label = textNode.addComponent(Label);
+            //     }
 
-                const textTransComp = textNode._uiProps.uiTransformComp!;
-                textNode.active = object.visible;
-                textTransComp.anchorX = 0;
-                textTransComp.anchorY = 1;
+            //     const textTransComp = textNode._uiProps.uiTransformComp!;
+            //     textNode.active = object.visible;
+            //     textTransComp.anchorX = 0;
+            //     textTransComp.anchorY = 1;
 
-                if (this._tintColor) {
-                    colorVal.set(this._tintColor);
-                    colorVal.a *= this._opacity / 255;
-                    label.color.set(colorVal);
-                } else {
-                    const c = label.color as Color;
-                    c.a *= this._opacity / 255;
-                }
+            //     if (this._tintColor) {
+            //         colorVal.set(this._tintColor);
+            //         colorVal.a *= this._opacity / 255;
+            //         label.color.set(colorVal);
+            //     } else {
+            //         const c = label.color as Color;
+            //         c.a *= this._opacity / 255;
+            //     }
 
-                label.overflow = Label.Overflow.SHRINK;
-                label.lineHeight = object.height;
-                label.string = object.text;
-                label.horizontalAlign = object.halign;
-                label.verticalAlign = object.valign;
-                label.fontSize = object.pixelsize;
+            //     label.overflow = Label.Overflow.SHRINK;
+            //     label.lineHeight = object.height;
+            //     label.string = object.text;
+            //     label.horizontalAlign = object.halign;
+            //     label.verticalAlign = object.valign;
+            //     label.fontSize = object.pixelsize;
 
-                textTransComp.setContentSize(object.width, object.height);
-            } else if (objType === TMXObjectType.IMAGE) {
+            //     textTransComp.setContentSize(object.width, object.height);
+            // } else 
+            if (objType === TMXObjectType.IMAGE) {
                 const gid = object.gid;
                 const gridGID: GID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as any;
                 const grid = texGrids.get(gridGID);
@@ -380,6 +382,11 @@ export class XTiledObjectGroup extends Component {
                 imgTrans.setContentSize(object.width, object.height);
 
                 sprite.markForUpdateRenderData();
+
+                // 添加物理碰撞？
+                const coll = imgNode.addComponent(BoxCollider2D);
+                coll.group = PhysicsGroup.DEFAULT;//default
+                coll.size = imgTrans.contentSize;
             }
         }
         this._objects = objects;

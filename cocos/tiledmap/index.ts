@@ -22,6 +22,7 @@
  THE SOFTWARE.
 */
 
+export * from './xtiled-types';
 export * from './xtiled-map';
 export * from './tiled-map-asset';
 export * from './xtiled-layer';

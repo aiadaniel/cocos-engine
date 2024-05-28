@@ -8,7 +8,7 @@
 
 import { ByteBuf } from "../core/bright/ByteBuf"
 
-    export namespace bmap {
+export namespace bmap {
     export enum Orientation {
         Unknown = 0,
         Orthogonal = 1,
@@ -178,18 +178,16 @@ import { ByteBuf } from "../core/bright/ByteBuf"
     
         constructor(_buf_: ByteBuf) {
             this.id = _buf_.ReadInt()
-            if(_buf_.ReadBool()) { this.gid = _buf_.ReadInt() } else { this.gid = undefined }
             this.x = _buf_.ReadInt()
             this.y = _buf_.ReadInt()
             if(_buf_.ReadBool()) { this.width = _buf_.ReadInt() } else { this.width = undefined }
             if(_buf_.ReadBool()) { this.height = _buf_.ReadInt() } else { this.height = undefined }
+            if(_buf_.ReadBool()) { this.name = _buf_.ReadString() } else { this.name = undefined }
+            if(_buf_.ReadBool()) { this.gid = _buf_.ReadInt() } else { this.gid = undefined }
             { this.polygon = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.Point; _e = new bmap.Point(_buf_); this.polygon.push(_e) } }
-            { this.polyline = []; for(let i = 0, n = _buf_.ReadSize() ; i < n ; i++) { let _e :bmap.Point; _e = new bmap.Point(_buf_); this.polyline.push(_e) } }
         }
     
         readonly id: number
-        
-        readonly gid: number|undefined
         
         readonly x: number
         
@@ -199,9 +197,11 @@ import { ByteBuf } from "../core/bright/ByteBuf"
         
         readonly height: number|undefined
         
-        readonly polygon: bmap.Point[]
+        readonly name: string|undefined
         
-        readonly polyline: bmap.Point[]
+        readonly gid: number|undefined
+        
+        readonly polygon: bmap.Point[]
         
     }
     }

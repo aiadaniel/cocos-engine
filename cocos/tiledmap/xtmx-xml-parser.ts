@@ -808,11 +808,11 @@ export class XTMXMapInfo {
                 objectProp.id = selObj.id;//.getAttribute('id') || j;
 
                 // Set the name of the object to the value for "name"
-                // objectProp.name = selObj.getAttribute('name') || '';
+                objectProp.name = selObj.name || '';//selObj.getAttribute('name') || '';
 
                 // Assign all the attributes as key/name pairs in the properties dictionary
-                objectProp.width = selObj.width!;//parseFloat(selObj.getAttribute('width')!) || 0;
-                objectProp.height = selObj.height!;//parseFloat(selObj.getAttribute('height')!) || 0;
+                objectProp.width = selObj.width || 0;//parseFloat(selObj.getAttribute('width')!) || 0;
+                objectProp.height = selObj.height || 0;//parseFloat(selObj.getAttribute('height')!) || 0;
 
                 objectProp.x = selObj.x;//parseFloat(selObj.getAttribute('x')!) || 0;
                 objectProp.y = selObj.y;//parseFloat(selObj.getAttribute('y')!) || 0;
@@ -825,21 +825,24 @@ export class XTMXMapInfo {
                 // const visibleAttr = selObj.getAttribute('visible');
                 objectProp.visible = true;//!(visibleAttr && parseInt(visibleAttr) === 0);
 
-                // text
-                // const texts = selObj.getElementsByTagName('text');
-                // if (texts && texts.length > 0) {
-                //     const text = texts[0];
-                //     objectProp.type = TMXObjectType.TEXT;
-                //     objectProp.wrap = text.getAttribute('wrap') === '1';
-                //     objectProp.color = strToColor(text.getAttribute('color')!);
-                //     objectProp.halign = strToHAlign(text.getAttribute('halign'));
-                //     objectProp.valign = strToVAlign(text.getAttribute('valign'));
-                //     objectProp.pixelsize = parseInt(text.getAttribute('pixelsize')!) || 16;
-                //     objectProp.text = text.childNodes[0].nodeValue!;
-                // }
+                const gid = selObj.gid;//.getAttribute('gid');
+
+                // text 目前共用name字段，所以img type也会先进这里，然后下面gid才改回去
+                const texts = selObj.name;//getElementsByTagName('text');
+                if (!gid && texts && texts.length > 0) {
+                    // const text = texts[0];
+                    console.log("text obj:" + texts);
+                    objectProp.type = TMXObjectType.TEXT;
+                    objectProp.wrap = true;//text.getAttribute('wrap') === '1';
+                    objectProp.color = new Color("#ffffff");//strToColor(text.getAttribute('color')!);
+                    objectProp.halign = Label.HorizontalAlign.LEFT;//strToHAlign(text.getAttribute('halign'));
+                    objectProp.valign = Label.VerticalAlign.TOP;//strToVAlign(text.getAttribute('valign'));
+                    objectProp.pixelsize = 16;//parseInt(text.getAttribute('pixelsize')!) || 16;
+                    objectProp.text = texts;//text.childNodes[0].nodeValue!;
+                }
 
                 // image
-                const gid = selObj.gid;//.getAttribute('gid');
+                
                 if (gid) {
                     objectProp.gid = (gid) as any;
                     objectProp.type = TMXObjectType.IMAGE;
@@ -861,13 +864,13 @@ export class XTMXMapInfo {
                 }
 
                 // polyline
-                const polylineProps = selObj.polyline;//.getElementsByTagName('polyline');
-                if (polylineProps?.length > 0) {
-                    objectProp.type = TMXObjectType.POLYLINE;
-                    // const selPlPointStr = polylineProps[0].getAttribute('points');
-                    // if (selPlPointStr) objectProp.polylinePoints = this._parsePointsString(selPlPointStr)!;
-                    objectProp.points = selObj.polyline;
-                }
+                // const polylineProps = selObj.polyline;//.getElementsByTagName('polyline');
+                // if (polylineProps?.length > 0) {
+                //     objectProp.type = TMXObjectType.POLYLINE;
+                //     // const selPlPointStr = polylineProps[0].getAttribute('points');
+                //     // if (selPlPointStr) objectProp.polylinePoints = this._parsePointsString(selPlPointStr)!;
+                //     objectProp.points = selObj.polyline;
+                // }
 
                 if (!objectProp.type) {
                     objectProp.type = TMXObjectType.RECT;
