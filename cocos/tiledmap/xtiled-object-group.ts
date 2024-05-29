@@ -117,14 +117,15 @@ export class XTiledObjectGroup extends Component {
      * let object = tMXObjectGroup.getObject("Group");
      */
     public getObject (objectName: string): TMXObject | null {
-        for (let i = 0, len = this._objects.length; i < len; i++) {
-            const obj = this._objects[i];
-            if (obj && obj.name === objectName) {
-                return obj;
-            }
-        }
-        // object not found
-        return null;
+        return this._objects[objectName];
+        // for (let i = 0, len = this._objects.length; i < len; i++) {
+        //     const obj = this._objects[i];
+        //     if (obj && obj.name === objectName) {
+        //         return obj;
+        //     }
+        // }
+        // // object not found
+        // return null;
     }
 
     /**
@@ -135,7 +136,7 @@ export class XTiledObjectGroup extends Component {
      * @example
      * let objects = tMXObjectGroup.getObjects();
      */
-    public getObjects (): TMXObject[] {
+    public getObjects (): Record<number, TMXObject> {
         return this._objects;
     }
 
@@ -156,7 +157,7 @@ export class XTiledObjectGroup extends Component {
         imgNode: Node,
         gridGID: GID
     }[];
-    protected _objects: TMXObject[] = [];
+    protected _objects: Record<number, TMXObject> = {};
 
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
@@ -289,7 +290,7 @@ export class XTiledObjectGroup extends Component {
                 const grid = texGrids.get(gridGID);
                 if (!grid) continue;
                 const tileset = grid.tileset;
-                const imgName = `img${object.id}`;
+                const imgName = `${object.id}`;//img
                 aliveNodes[imgName] = true;
                 let imgNode = this.node.getChildByName(imgName);
                 object.width = object.width || grid.width;
@@ -385,13 +386,20 @@ export class XTiledObjectGroup extends Component {
 
                 // 添加物理碰撞？
                 if (object.name) { // 有交互需要
-                    const coll = imgNode.addComponent(BoxCollider2D);
-                    coll.group = PhysicsGroup.DEFAULT;//default
-                    coll.size = imgTrans.contentSize;
+                    console.log("add coll:" + object.name);
+                    let coll = imgNode.getComponent(BoxCollider2D); 
+                    if (coll == null) {
+                        coll = imgNode.addComponent(BoxCollider2D);
+                    }
+                    coll!.group = PhysicsGroup.DEFAULT;//default
+                    coll!.sensor = true;
+                    coll!.size = imgTrans.contentSize;
                 }
             }
+
+            this._objects[object.id] = object;
         }
-        this._objects = objects;
+        // this._objects = objects;
 
         // destroy useless node
         const children = this.node.children;

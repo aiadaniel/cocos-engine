@@ -831,7 +831,7 @@ export class XTMXMapInfo {
                 const texts = selObj.name;//getElementsByTagName('text');
                 if (!gid && texts && texts.length > 0) {
                     // const text = texts[0];
-                    console.log("text obj:" + texts);
+                    console.log(selGroup.name + " =>text obj:" + texts);
                     objectProp.type = TMXObjectType.TEXT;
                     objectProp.wrap = true;//text.getAttribute('wrap') === '1';
                     objectProp.color = new Color("#ffffff");//strToColor(text.getAttribute('color')!);

@@ -734,7 +734,7 @@ export class XTiledLayer extends UIRenderer {
         this._updateTileForGID(((ugid | flags) >>> 0) as unknown as MixedGID, x, y);
     }
 
-    protected _updateTileForGID (gidAndFlags: MixedGID, x: number, y: number): void {
+    public _updateTileForGID (gidAndFlags: MixedGID, x: number, y: number): void {
         const idx = 0 | (x + y * this._layerSize!.width);
         if (idx >= this.tiles.length) return;
 
@@ -749,6 +749,7 @@ export class XTiledLayer extends UIRenderer {
             this._updateVertex(x, y);
         } else {
             this.tiles[idx] = 0 as unknown as MixedGID;
+            console.log("_updateTileForGID " + idx + " from " + oldGIDAndFlags + " to 0");
         }
         this._cullingDirty = true;
     }
