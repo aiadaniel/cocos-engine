@@ -508,7 +508,7 @@ export class XTiledLayer extends UIRenderer {
         const scale = node.getScale();
         this._leftDownToCenterX = trans.width * trans.anchorX * scale.x;
         this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
-        console.log("leftDownToCenter " + this._leftDownToCenterX + " " + this._leftDownToCenterY);
+        console.log(this._layerName +" leftDownToCenter " + this._leftDownToCenterX + " " + this._leftDownToCenterY);
         this._cullingDirty = true;
         this.markForUpdateRenderData();
     }
@@ -835,6 +835,9 @@ export class XTiledLayer extends UIRenderer {
         this._viewPort.height = height;
 
         if (!this._needCalcViewport) {
+            // if (!!this._sharedCullingRect!.get(this._offsetKey)) {
+                // console.log(this._layerName + " not shared culling of " + this._offsetKey + " " + JSON.stringify(this._sharedCullingRect) + " " + JSON.stringify(this._cullingRect));
+            // }
             this._cullingRect.leftDown = this._sharedCullingRect!.get(this._offsetKey)!.leftDown;
             this._cullingRect.rightTop = this._sharedCullingRect!.get(this._offsetKey)!.rightTop;
             this._cullingDirty = this._sharedCullingRect!.get(this._offsetKey)!.cullingDirty;
@@ -947,7 +950,7 @@ export class XTiledLayer extends UIRenderer {
         result.col = col;
         return result;
     }
-
+    // assembler->updateRenderData
     public updateCulling (): void {
         if (EDITOR_NOT_IN_PREVIEW) {
             this.enableCulling = false;

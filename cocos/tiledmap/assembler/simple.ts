@@ -88,7 +88,7 @@ export const simple: IAssembler = {
         }
     },
 
-    // batch2d commit component <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk)
+    //02 batch2d.ts(commitComp->assembler.fillBiffers) <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk) <== root.ts(framemove)
     fillBuffers (layer: XTiledLayer, renderer: IBatcher) {
         if (!layer || layer.tiledDataArray.length === 0) return;
 
@@ -115,7 +115,7 @@ export const simple: IAssembler = {
         renderData.chunk.meshBuffer.indexOffset = indexOffset;
     },
 
-    // ui-renderer.ts updateRenderer <= ui-renderer-manager.ts
+    //01 ui-renderer.ts updateRenderer <= ui-renderer-manager.ts
     updateRenderData (comp: XTiledLayer) {
         comp.updateCulling();
         _moveX = comp.leftDownToCenterX;

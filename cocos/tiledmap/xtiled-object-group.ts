@@ -386,7 +386,7 @@ export class XTiledObjectGroup extends Component {
 
                 // 添加物理碰撞？
                 if (object.name) { // 有交互需要
-                    console.log("add coll:" + object.name);
+                    console.log(this._groupName + " add coll:" + object.name);
                     let coll = imgNode.getComponent(BoxCollider2D); 
                     if (coll == null) {
                         coll = imgNode.addComponent(BoxCollider2D);
