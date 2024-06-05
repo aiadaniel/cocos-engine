@@ -827,11 +827,11 @@ export class XTMXMapInfo {
 
                 const gid = selObj.gid;//.getAttribute('gid');
 
-                // text 目前共用name字段，所以img type也会先进这里，然后下面gid才改回去
+                // text 目前共用name字段，所以img type也会先进这里，然后下面gid才改回去 todo 优化这个，不共用？
                 const texts = selObj.name;//getElementsByTagName('text');
                 if (!gid && texts && texts.length > 0) {
                     // const text = texts[0];
-                    console.log(selGroup.name + " =>text obj:" + texts);
+                    // console.log(selGroup.name + " =>text obj:" + texts);
                     objectProp.type = TMXObjectType.TEXT;
                     objectProp.wrap = true;//text.getAttribute('wrap') === '1';
                     objectProp.color = new Color("#ffffff");//strToColor(text.getAttribute('color')!);

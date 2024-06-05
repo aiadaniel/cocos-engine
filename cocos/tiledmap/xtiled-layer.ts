@@ -749,7 +749,7 @@ export class XTiledLayer extends UIRenderer {
             this._updateVertex(x, y);
         } else {
             this.tiles[idx] = 0 as unknown as MixedGID;
-            console.log("_updateTileForGID " + idx + " from " + oldGIDAndFlags + " to 0");
+            // console.log("_updateTileForGID " + idx + " from " + oldGIDAndFlags + " to 0");
         }
         this._cullingDirty = true;
     }

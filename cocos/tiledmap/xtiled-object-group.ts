@@ -159,6 +159,15 @@ export class XTiledObjectGroup extends Component {
     }[];
     protected _objects: Record<number, TMXObject> = {};
 
+    tagMap = {
+        "staticObj":1,
+        "blockObj":2,
+        "otherObj":3,
+        "matObj":4,
+        "monsterObj":5,
+        "questObj":6,
+    }
+
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
      */
@@ -386,7 +395,7 @@ export class XTiledObjectGroup extends Component {
 
                 // 添加物理碰撞？
                 if (object.name) { // 有交互需要
-                    console.log(this._groupName + " add coll:" + object.name);
+                    // console.log(this._groupName + " add coll:" + object.name);
                     let coll = imgNode.getComponent(BoxCollider2D); 
                     if (coll == null) {
                         coll = imgNode.addComponent(BoxCollider2D);
@@ -394,6 +403,7 @@ export class XTiledObjectGroup extends Component {
                     coll!.group = PhysicsGroup.DEFAULT;//default
                     coll!.sensor = true;
                     coll!.size = imgTrans.contentSize;
+                    coll!.tag = this.tagMap[this._groupName];
                 }
             }
 
