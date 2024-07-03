@@ -26,7 +26,7 @@ import { JSB } from 'internal:constants';
 import { Mat4, Size, Vec3 } from '../../core/math';
 import { IAssembler } from '../../2d/renderer/base';
 import { IBatcher } from '../../2d/renderer/i-batcher';
-import { XTiledLayer, XTiledRenderData, XTiledTile } from '..';
+import { TiledLayer, XTiledRenderData, TiledTile } from '..';
 import { GID, MixedGID, TiledGrid, TileFlag } from '../xtiled-types';
 import { director, Director } from '../../game';
 import { StaticVBAccessor } from '../../2d/renderer/static-vb-accessor';
@@ -35,7 +35,6 @@ import { RenderData } from '../../2d/renderer/render-data';
 import { RenderDrawInfoType } from '../../2d/renderer/render-draw-info';
 import { Texture2D } from '../../asset/assets';
 import { Node } from '../../scene-graph';
-import { bmap } from '../BTile';
 
 const MaxGridsLimit = Math.ceil(65535 / 6);
 
@@ -59,7 +58,7 @@ let _moveY = 0;
 let _fillCount = 0;
 let _curTexture : Texture2D | null = null;
 let _tempBuffers : Float32Array;
-let _curLayer: XTiledLayer;
+let _curLayer: TiledLayer;
 
 let flipTexture: (grid: TiledGrid, gid: MixedGID) => void;
 
@@ -81,7 +80,7 @@ export const simple: IAssembler = {
         }
     },
 
-    createData (layer: XTiledLayer) {
+    createData (layer: TiledLayer) {
         if (JSB) {
             console.log("createData in tileassembler");
             this.ensureAccessor();
@@ -89,7 +88,7 @@ export const simple: IAssembler = {
     },
 
     //02 batch2d.ts(commitComp->assembler.fillBiffers) <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk) <== root.ts(framemove)
-    fillBuffers (layer: XTiledLayer, renderer: IBatcher) {
+    fillBuffers (layer: TiledLayer, renderer: IBatcher) {
         if (!layer || layer.tiledDataArray.length === 0) return;
 
         const dataArray = layer.tiledDataArray;
@@ -116,7 +115,7 @@ export const simple: IAssembler = {
     },
 
     //01 ui-renderer.ts updateRenderer <= ui-renderer-manager.ts
-    updateRenderData (comp: XTiledLayer) {
+    updateRenderData (comp: TiledLayer) {
         comp.updateCulling();
         _moveX = comp.leftDownToCenterX;
         _moveY = comp.leftDownToCenterY;
@@ -164,7 +163,7 @@ export const simple: IAssembler = {
     },
 
     // ui-renderer.ts _updateColor <= setColor
-    updateColor (tiled: XTiledLayer) {
+    updateColor (tiled: TiledLayer) {
         const color = tiled.color;
         const colorV = new Float32Array(4);
         colorV[0] = color.r / 255;
@@ -331,7 +330,7 @@ function packRenderData (): void {
 // rowMoveDir is -1 or 1, -1 means decrease, 1 means increase
 // colMoveDir is -1 or 1, -1 means decrease, 1 means increase
 function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col: number, row: number },
-    rowMoveDir: number, colMoveDir: number, comp: XTiledLayer): void {
+    rowMoveDir: number, colMoveDir: number, comp: TiledLayer): void {
     // show nothing
     if (rightTop.row < 0 || rightTop.col < 0) return;
 
@@ -363,7 +362,7 @@ function traverseGrids (leftDown: { col: number, row: number }, rightTop: { col:
     let bottom = 0;
     let right = 0;
     let top = 0; // x, y
-    let tiledNode: XTiledTile | null;
+    let tiledNode: TiledTile | null;
     let colNodesCount = 0;
     let isCheckColRange = true;
 

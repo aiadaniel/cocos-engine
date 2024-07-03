@@ -32,7 +32,7 @@ import { SpriteFrame } from '../2d/assets/sprite-frame';
 import { Component, Node } from '../scene-graph';
 import { XTMXMapInfo } from './xtmx-xml-parser';
 import { Color, IVec2Like, Mat4, Size, Vec2, Vec3, warn, logID } from '../core';
-import { XTiledTile } from './xtiled-tile';
+import { TiledTile } from './xtiled-tile';
 import { RenderData } from '../2d/renderer/render-data';
 import { IBatcher } from '../2d/renderer/i-batcher';
 import {
@@ -62,7 +62,7 @@ export class XTiledUserNodeData extends Component {
     _index = -1;
     _row = -1;
     _col = -1;
-    _tiledLayer: XTiledLayer | null = null;
+    _tiledLayer: TiledLayer | null = null;
     constructor () {
         super();
     }
@@ -85,8 +85,8 @@ interface XTiledSubNodeData {
   * @class TiledLayer
   * @extends Component
   */
-@ccclass('XTiledLayer')
-export class XTiledLayer extends UIRenderer {
+@ccclass('cc.TiledLayer')
+export class TiledLayer extends UIRenderer {
     // 需要注意这个row和col并不是直接按照map的row和col来算，而是按照左下角为0，0开始，右上角最大rows+cols，包括viewport等都是这个算法；
     // 而如果是按照layer的tiles，则是按照x + width * y  即getTileGIDAt等几个api需要的
     // [row][col] = {count: 0, nodesList: []};
@@ -96,7 +96,7 @@ export class XTiledLayer extends UIRenderer {
     protected _userNodeDirty = false;
 
     // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
-    public tiledTiles: (XTiledTile | null)[] = [];
+    public tiledTiles: (TiledTile | null)[] = [];
 
     // // store the layer tilesets index array
     // _tilesetIndexArr: number[] = [];
@@ -1233,7 +1233,7 @@ export class XTiledLayer extends UIRenderer {
       * let tile = tiledLayer.getTiledTileAt(100, 100, true);
       * cc.log(tile);
       */
-    public getTiledTileAt (x: number, y: number, forceCreate?: boolean): XTiledTile | null {
+    public getTiledTileAt (x: number, y: number, forceCreate?: boolean): TiledTile | null {
         console.log("tiledTiles:" + JSON.stringify(this.tiledTiles));
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.getTiledTileAt: invalid position');
@@ -1247,7 +1247,7 @@ export class XTiledLayer extends UIRenderer {
         let tile = this.tiledTiles[index];
         if (!tile && forceCreate) {
             const node = new Node();
-            tile = node.addComponent(XTiledTile);
+            tile = node.addComponent(TiledTile);
             tile._x = x;
             tile._y = y;
             tile._layer = this;
@@ -1269,7 +1269,7 @@ export class XTiledLayer extends UIRenderer {
       * @param {cc.TiledTile} tiledTile
       * @return {cc.TiledTile}
       */
-    public setTiledTileAt (x: number, y: number, tiledTile: XTiledTile | null): XTiledTile | null {
+    public setTiledTileAt (x: number, y: number, tiledTile: TiledTile | null): TiledTile | null {
         console.log("setTiledTileAt " + x + " " + y);
         if (this.isInvalidPosition(x, y)) {
             throw new Error('TiledLayer.setTiledTileAt: invalid position');
@@ -1577,7 +1577,7 @@ export class XTiledLayer extends UIRenderer {
     }
 
     protected _flushAssembler (): void {
-        const assembler = XTiledLayer.Assembler.getAssembler(this);
+        const assembler = TiledLayer.Assembler.getAssembler(this);
         if (this._assembler !== assembler) {
             this._assembler = assembler;
             this._assembler.createData(this);

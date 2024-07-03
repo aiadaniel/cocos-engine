@@ -28,9 +28,9 @@ import { HorizontalTextAlignment, VerticalTextAlignment } from '../2d/components
 import { Texture2D } from '../asset/assets';
 
 export type PropertiesInfo = { [key: string]: number | string };
-export type TiledAnimationType = Map<GID, XTiledAnimation>;
+export type TiledAnimationType = Map<GID, TiledAnimation>;
 
-export interface XTiledAnimation {
+export interface TiledAnimation {
     frames: { grid: TiledGrid | null, tileid: GID, duration: number }[];
     dt: number;
     frameIdx: number;

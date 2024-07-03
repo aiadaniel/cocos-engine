@@ -23,7 +23,7 @@
 */
 
 import { IAssemblerManager } from '../../2d/renderer/base';
-import { XTiledLayer } from '../xtiled-layer';
+import { TiledLayer } from '../xtiled-layer';
 import { simple } from './simple';
 
 // Inline all type switch to avoid jit deoptimization during inlined function change
@@ -34,7 +34,7 @@ const xtiledLayerAssembler: IAssemblerManager = {
     },
 };
 
-XTiledLayer.Assembler = xtiledLayerAssembler;
+TiledLayer.Assembler = xtiledLayerAssembler;
 
 export {
     xtiledLayerAssembler,

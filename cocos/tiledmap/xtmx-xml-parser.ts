@@ -28,16 +28,13 @@ import codec from '../../external/compression/ZipUtils.js';
 import zlib from '../../external/compression/zlib.min.js';
 // import { SAXParser } from '../asset/asset-manager/plist-parser';
 import {
-    GID, MixedGID, PropertiesInfo, XTiledAnimation, TiledAnimationType,
+    GID, MixedGID, PropertiesInfo, TiledAnimation, TiledAnimationType,
     TileFlag, TMXImageLayerInfo, TMXLayerInfo, TMXObject, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo,
 } from './xtiled-types';
 import { ByteBuf, Color, errorID, logID, Size, Vec2 } from '../core';
-import { SpriteAtlas, SpriteFrame } from '../2d/assets';
+import { SpriteFrame } from '../2d/assets';
 
 import { bmap } from './BTile';
-import Bundle from '../asset/asset-manager/bundle';
-import { assetManager } from '../asset/asset-manager';
-import { XTiledMap } from './xtiled-map';
 import { BufferAsset } from '../asset/assets';
 
 function uint8ArrayToUint32Array (uint8Arr: Uint8Array): null | Uint32Array | number[] {
@@ -198,17 +195,17 @@ export class XTMXMapInfo {
     protected _imageLayers: TMXImageLayerInfo[] = [];
     protected _tileProperties: Map<GID, PropertiesInfo> = new Map();
     protected _tileAnimations: TiledAnimationType = {} as any;
-    // protected _tsxContentMap: { [key: string]: string } | null = null;
+    protected _tsxContentMap: { [key: string]: BufferAsset } | null = null;
 
     // map of textures indexed by name
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
     cb: Function | undefined
-    _ab: string;
-    _atlasMap: Map<string, SpriteAtlas> = new Map();
-    _tsxPath: string="";
-    _tsxMap: Map<string, BufferAsset> = new Map();
+    // _ab: string;
+    // _atlasMap: Map<string, SpriteAtlas> = new Map();
+    // _tsxPath: string="";
+    // _tsxBins: {[key:string]: BufferAsset} = {};
 
     // hex map values
     // protected _staggerAxis: bmap.StaggerAxis | null = null;
@@ -218,16 +215,21 @@ export class XTMXMapInfo {
     protected _imageLayerSPF: { [key: string]: SpriteFrame } | null = null;
 
     _bm: bmap.BMap;
+    _tss: Map<string, bmap.TileSet> | undefined ;
 
-    constructor (ab: string, res: string, tsxMap: Map<string, BufferAsset>, atlasmap: Map<string, SpriteAtlas>, bm: bmap.BMap, spfTexturesMap: { [key: string]: SpriteFrame },
+    constructor (bin: BufferAsset, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
         textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
         this.cb = cb;
-        this._tsxPath = res;
-        this._tsxMap = tsxMap;
-        this._ab = ab;
-        this._atlasMap = atlasmap;
-        // console.log(this._atlasMap[0]?.spriteFrames?.length); //自动图集此时的spriteFrames是空的哦
-        this._bm = bm;
+        const bb = new ByteBuf(new Uint8Array(bin.buffer()));
+        this._bm = new bmap.BMap(bb);
+        // this._tsxBins = tsxBins;
+        this._tss = tss;
+
+        this._tsxContentMap = tsxBins;
+        this._spriteFrameMap = spfTexturesMap;
+        this._imageLayerSPF = imageLayerTextures;
+        this._spfSizeMap = textureSizes;
+
         this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
     }
 
@@ -532,15 +534,15 @@ export class XTMXMapInfo {
             let source = value;
             console.log("ts source:" + source);
             const self = this;
-            let curTileset: bmap.TileSet = XTiledMap.tss[source];
+            let curTileset: bmap.TileSet = this._tss![source];
             if (!curTileset) {
-                const data = this._tsxMap[source];
+                const data = this._tsxContentMap![source];
                 // assetManager.getBundle(this._ab)?.load(this._tsxPath+source, BufferAsset, (err, data)=>{
                     const arr: ArrayBuffer = data.buffer();
                     const bb = new ByteBuf(new Uint8Array(arr));
                     curTileset = new bmap.TileSet(bb);
                     // console.log("load ts " + JSON.stringify(curTileset));
-                    XTiledMap.tss[source] = curTileset;
+                    this._tss![source] = curTileset;
             }
             // if (!curTileset) {
 
@@ -631,7 +633,7 @@ export class XTMXMapInfo {
                         if (animations && animations.length > 0) {
                             // const animation = animations[0];
                             // const framesData = animation.getElementsByTagName('frame');
-                            const animationProp: XTiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
+                            const animationProp: TiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
                             this._tileAnimations.set(pid, animationProp);
                             // const frames = animationProp.frames;
                             for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {

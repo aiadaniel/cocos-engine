@@ -45,10 +45,10 @@ import { PhysicsGroup } from '../physics/framework';
  * @class TiledObjectGroup
  * @extends Component
  */
-@ccclass('XTiledObjectGroup')
+@ccclass('cc.TiledObjectGroup')
 @help('i18n:cc.TiledObjectGroup')
 @requireComponent(UITransform)
-export class XTiledObjectGroup extends Component {
+export class TiledObjectGroup extends Component {
 
     protected _premultiplyAlpha = false;
 

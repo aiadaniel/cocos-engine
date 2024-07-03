@@ -958,6 +958,7 @@ export function deserialize (data: IDeserializeInput | string | any, details?: D
             details,
             options,
         );
+        console.log("initializeDeserializationContext " + data);
 
         const runtimeData = data as IRuntimeFileData;
 

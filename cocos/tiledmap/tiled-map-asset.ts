@@ -27,7 +27,7 @@ import { ccclass, type, serializable } from 'cc.decorator';
 import { Asset } from '../asset/assets/asset';
 import { CCString, Size } from '../core';
 import { SpriteFrame } from '../2d/assets';
-import { TextAsset } from '../asset/assets';
+import { BufferAsset, TextAsset } from '../asset/assets';
 
 /**
  * @en
@@ -41,11 +41,13 @@ import { TextAsset } from '../asset/assets';
 @ccclass('cc.TiledMapAsset')
 export class TiledMapAsset extends Asset {
     @serializable
-    tmxXmlStr = '';
+    // tmxXmlStr = '';
+    @type(BufferAsset)
+    tmxBin: BufferAsset | undefined;
 
     @serializable
-    @type([TextAsset])
-    tsxFiles: TextAsset[] = [];
+    @type([BufferAsset])
+    tsxFiles: BufferAsset[] = [];
 
     @serializable
     @type([CCString])

@@ -30,20 +30,16 @@ import { UITransform } from '../2d/framework';
 import { GID, PropertiesInfo, Property, TiledAnimationType, TiledTextureGrids, TileFlag,
     TMXImageLayerInfo, TMXLayerInfo, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo } from './xtiled-types';
 import { XTMXMapInfo } from './xtmx-xml-parser';
-import { XTiledLayer } from './xtiled-layer';
-import { XTiledObjectGroup } from './xtiled-object-group';
-// import { TiledMapAsset } from './tiled-map-asset';
-import { Sprite } from '../2d/components/sprite';
+import { TiledLayer } from './xtiled-layer';
+import { TiledObjectGroup } from './xtiled-object-group';
+import { TiledMapAsset } from './tiled-map-asset';
 import { fillTextureGrids } from './xtiled-utils';
 import { Size, Vec2, logID, Color, sys } from '../core';
-import { SpriteAtlas, SpriteFrame } from '../2d/assets';
+import { SpriteFrame } from '../2d/assets';
 import { NodeEventType } from '../scene-graph/node-event';
 import { Node } from '../scene-graph';
 import { bmap } from './BTile';
 import { BufferAsset } from '../asset/assets';
-import { ByteBuf } from '../core/bright/ByteBuf';
-import { assetManager } from '../asset/asset-manager';
-import Bundle from '../asset/asset-manager/bundle';
 
 interface ImageExtendedNode extends Node {
     layerInfo: TMXImageLayerInfo;
@@ -56,12 +52,12 @@ interface ImageExtendedNode extends Node {
  * @class TiledMap
  * @extends Component
  */
-@ccclass('XTiledMap')
+@ccclass('cc.TiledMap')
 @help('i18n:cc.TiledMap')
-@menu('XTiledMap/XTiledMap')
+@menu('TiledMap/TiledMap')
 @requireComponent(UITransform)
 @executeInEditMode
-export class XTiledMap extends Component {
+export class TiledMap extends Component {
     // store all layer gid corresponding texture info, index is gid, format likes '[gid0]=tex-info,[gid1]=tex-info, ...'
     _texGrids: TiledTextureGrids = new Map();
     // store all tileset texture, index is tileset index, format likes '[0]=texture0, [1]=texture1, ...'
@@ -70,8 +66,8 @@ export class XTiledMap extends Component {
 
     _animations: TiledAnimationType = new Map();
     _imageLayers: TMXImageLayerInfo[] = [];
-    _layers: XTiledLayer[] = [];
-    _groups: XTiledObjectGroup[] = [];
+    _layers: TiledLayer[] = [];
+    _groups: TiledObjectGroup[] = [];
     // _images: ImageExtendedNode[] = [];
     _properties: PropertiesInfo = {} as any;
     _tileProperties: Map<GID, PropertiesInfo> = new Map();
@@ -81,7 +77,7 @@ export class XTiledMap extends Component {
     // _tileSize: Size = new Size(0, 0);
 
     // 图集支持跨图复用 filename,ts
-    static tss: Map<string, bmap.TileSet> = new Map();
+    static readonly tss: Map<string, bmap.TileSet> = new Map();
 
     _mapOrientation = bmap.Orientation.Orthogonal;
 
@@ -105,15 +101,14 @@ export class XTiledMap extends Component {
     // static StaggerIndex = bmap.StaggerIndex;
     // static TMXObjectType = TMXObjectType;
     // static RenderOrder = bmap.RenderOrder;
+    
+    // _bMap: bmap.BMap | undefined;
 
     private _isApplied = false;
 
-    _bMap: bmap.BMap | undefined;
     
     @serializable
-    _btile: BufferAsset | null = null;
-    // @serializable
-    // _tmxFile: XTiledMapAsset | null = null;
+    _tmxFile: TiledMapAsset | null = null;
     
     /**
      * @en The TiledMap Asset.
@@ -121,44 +116,59 @@ export class XTiledMap extends Component {
      * @property {TiledMapAsset} tmxAsset
      * @default ""
      */
-
-    @type(BufferAsset)
+    @type(TiledMapAsset)
     @displayOrder(7)
-    get btileAsset (): BufferAsset {
-        return this._btile!;
+    get tmxAsset (): TiledMapAsset {
+        return this._tmxFile!;
     }
 
-    set btileAsset (value: BufferAsset) {
-        if (this._btile !== value || EDITOR) {
-            this._btile = value;
+    set tmxAsset (value: TiledMapAsset) {
+        if (this._tmxFile !== value || EDITOR) {
+            this._tmxFile = value;
             this._applyFile();
             this._isApplied = true;
         }
     }
 
-    @type([SpriteFrame])
-    sfs: SpriteFrame[] = []
+    // @serializable
+    // _btile: BufferAsset | null = null;
+    // @type(BufferAsset)
+    // @displayOrder(7)
+    // get btileAsset (): BufferAsset {
+    //     return this._btile!;
+    // }
 
-    @serializable
-    @displayOrder(8)
-    ab: string="resources";
+    // set btileAsset (value: BufferAsset) {
+    //     if (this._btile !== value || EDITOR) {
+    //         this._btile = value;
+    //         this._applyFile();
+    //         this._isApplied = true;
+    //     }
+    // }
+
+    // @type([SpriteFrame])
+    // sfs: SpriteFrame[] = []
+
+    // @serializable
+    // @displayOrder(8)
+    // ab: string="resources";
     // get ab(): string { return this._ab; }
     // set ab(v) { this._ab = v; }
 
-    @serializable
-    @displayOrder(9)
-    tsxPath: string="";
+    // @serializable
+    // @displayOrder(9)
+    // tsxPath: string="";
 
-    @type([BufferAsset])
-    tsxs: BufferAsset[] = [];
+    // @type([BufferAsset])
+    // tsxs: BufferAsset[] = [];
 
-    _tsxMap: Map<string, BufferAsset> = new Map();
+    // _tsxMap: Map<string, BufferAsset> = new Map();
 
-    _atlasMap: Map<string, SpriteAtlas> = new Map();
+    // _atlasMap: Map<string, SpriteAtlas> = new Map();
 
     // 使用指定图集（实测使用自动图集时，preload时还是空的）
-    @type([SpriteAtlas])
-    atlass: SpriteAtlas[] = [];
+    // @type([SpriteAtlas])
+    // atlass: SpriteAtlas[] = [];
 
     /**
      * @en
@@ -228,14 +238,14 @@ export class XTiledMap extends Component {
      * @en object groups.
      * @zh 获取所有的对象层。
      * @method getObjectGroups
-     * @return {XTiledObjectGroup[]}
+     * @return {TiledObjectGroup[]}
      * @example
      * let objGroups = titledMap.getObjectGroups();
      * for (let i = 0; i < objGroups.length; ++i) {
      *     cc.log("obj: " + objGroups[i]);
      * }
      */
-    getObjectGroups (): XTiledObjectGroup[] {
+    getObjectGroups (): TiledObjectGroup[] {
         return this._groups;
     }
 
@@ -244,12 +254,12 @@ export class XTiledMap extends Component {
      * @zh 获取指定的 TMXObjectGroup。
      * @method getObjectGroup
      * @param {String} groupName
-     * @return {XTiledObjectGroup}
+     * @return {TiledObjectGroup}
      * @example
      * let group = titledMap.getObjectGroup("Players");
      * cc.log("ObjectGroup: " + group);
      */
-    getObjectGroup (groupName: string): XTiledObjectGroup | null {
+    getObjectGroup (groupName: string): TiledObjectGroup | null {
         const groups = this._groups;
         for (let i = 0, l = groups.length; i < l; i++) {
             const group = groups[i];
@@ -280,14 +290,14 @@ export class XTiledMap extends Component {
      * @en Return All layers array.
      * @zh 返回包含所有 layer 的数组。
      * @method getLayers
-     * @returns {XTiledLayer[]}
+     * @returns {TiledLayer[]}
      * @example
      * let layers = titledMap.getLayers();
      * for (let i = 0; i < layers.length; ++i) {
      *     cc.log("Layers: " + layers[i]);
      * }
      */
-    getLayers (): XTiledLayer[] {
+    getLayers (): TiledLayer[] {
         return this._layers;
     }
 
@@ -296,12 +306,12 @@ export class XTiledMap extends Component {
      * @zh 获取指定名称的 layer。
      * @method getLayer
      * @param {String} layerName
-     * @return {XTiledLayer}
+     * @return {TiledLayer}
      * @example
      * let layer = titledMap.getLayer("Player");
      * cc.log(layer);
      */
-    getLayer (layerName): XTiledLayer | null {
+    getLayer (layerName): TiledLayer | null {
         const layers = this._layers;
         for (let i = 0, l = layers.length; i < l; i++) {
             const layer = layers[i];
@@ -353,7 +363,7 @@ export class XTiledMap extends Component {
 
     __preload (): void {
         console.log("__preload xtilemap");
-        if (!this._btile) {
+        if (!this._tmxFile) {
             return;
         }
         if (this._isApplied === false) {
@@ -371,38 +381,47 @@ export class XTiledMap extends Component {
     }
 
     _applyFile (): void {
-        // const spriteFramesCache = {};
+        const spriteFrames: SpriteFrame[] = [];
+        const spriteFramesCache = {};
 
-        // const file = this._btile;
-        const arr: ArrayBuffer = this._btile!.buffer();
-        const buf = new ByteBuf(new Uint8Array(arr));
-        this._bMap = new bmap.BMap(buf);
+        const file = this._tmxFile;
 
-        if (this._bMap) {
-            for (const tsx of this.tsxs!) {
-                this._tsxMap[tsx?.name] = tsx;
-            }
-
-            for (const at of this.atlass) {
-                this._atlasMap[at.name] = at;//自动图集此时是空的！
-            }
-
+        if (file) {
             // let texValues = file.textures;
+            let spfNames: string[] = file.spriteFrameNames;
+            const spfSizes: Size[] = file.spriteFrameSizes;
+            const fSpriteFrames: SpriteFrame[] = file.spriteFrames;
             const spfTexturesMap: { [key: string]: SpriteFrame } = {};
             const spfTextureSizeMap: { [key: string]: Size } = {};
-            for (const sf of this.sfs) {
-                // spfNames.push( sf.name );
-                // spfSizes.push(new Size(sf.originalSize.x, sf.originalSize.y));
-                spfTextureSizeMap[sf.name] = new Size(sf.originalSize.x, sf.originalSize.y);//spfSizes[i];
-                spfTexturesMap[sf.name] = sf;
+
+            for (let i = 0; i < spfNames.length; ++i) {
+                const texName = spfNames[i];
+                // textures[texName] = texValues[i];
+                spfTextureSizeMap[texName] = spfSizes[i];
+                spriteFrames[i] = fSpriteFrames[i];
+                const frame = spriteFrames[i];
+                if (frame) {
+                    spriteFramesCache[frame.name] = frame;
+                    spfTexturesMap[texName] = frame;
+                }
             }
 
             const imageLayerTextures: { [key: string]: SpriteFrame } = {};
-            // const texValues = file.imageLayerSpriteFrame;
-            // spfNames = file.imageLayerSpriteFrameNames;
-            // for (let i = 0; i < texValues.length; ++i) {
-            //     imageLayerTextures[spfNames[i]] = texValues[i];
-            // }
+            const texValues = file.imageLayerSpriteFrame;
+            spfNames = file.imageLayerSpriteFrameNames;
+            for (let i = 0; i < texValues.length; ++i) {
+                imageLayerTextures[spfNames[i]] = texValues[i];
+            }
+
+            const tsxFileNames = file.tsxFileNames;
+            const tsxFiles = file.tsxFiles;
+            const tsxContentMap: { [key: string]: BufferAsset } = {};
+            for (let i = 0; i < tsxFileNames.length; ++i) {
+                if (tsxFileNames[i].length > 0) {
+                    tsxContentMap[tsxFileNames[i]] = tsxFiles[i];
+                }
+            }
+
 
             const cb = (mapInfo: XTMXMapInfo)=> {
                 const tilesets = mapInfo.getTilesets();
@@ -413,7 +432,7 @@ export class XTiledMap extends Component {
                 this._buildWithMapInfo(mapInfo);
             }
 
-            const mapInfo = new XTMXMapInfo(this.ab, this.tsxPath, this._tsxMap,  this._atlasMap, this._bMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+            const mapInfo = new XTMXMapInfo(file.tmxBin!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
 
         } else {
             this._releaseMapInfo();
@@ -555,9 +574,9 @@ export class XTiledMap extends Component {
                 child.active = layerInfo.visible;
 
                 if (layerInfo instanceof TMXLayerInfo) {
-                    let layer = child.getComponent(XTiledLayer);
+                    let layer = child.getComponent(TiledLayer);
                     if (!layer) {
-                        layer = child.addComponent(XTiledLayer);
+                        layer = child.addComponent(TiledLayer);
                     }
 
                     layer.init(layerInfo, mapInfo, tilesets, textures, texGrids, this._sharedCullingRect);
@@ -567,9 +586,9 @@ export class XTiledMap extends Component {
                     layerInfo.ownTiles = false;
                     layers.push(layer);
                 } else if (layerInfo instanceof TMXObjectGroupInfo) {
-                    let group = child.getComponent(XTiledObjectGroup);
+                    let group = child.getComponent(TiledObjectGroup);
                     if (!group) {
-                        group = child.addComponent(XTiledObjectGroup);
+                        group = child.addComponent(TiledObjectGroup);
                     }
                     group._init(layerInfo, mapInfo, texGrids);
                     groups.push(group);
@@ -619,24 +638,24 @@ export class XTiledMap extends Component {
 
     // 随着资源加载，渐进式构建图层
     public _stepBuildMapInfo() {
-        const tilesets = this._tilesets;
-        const texGrids = this._texGrids;
+        // const tilesets = this._tilesets;
+        // const texGrids = this._texGrids;
         // const animations = this._animations;
         // texGrids.clear();
 
-        for (let i = 0, l = tilesets.length; i < l; ++i) {
-            const tilesetInfo = tilesets[i];
-            if (!tilesetInfo) continue;
-            if (!tilesetInfo.sourceImage) {
-                const tts = tilesetInfo;
-                assetManager.getBundle(this.ab)?.load(tilesetInfo.name, SpriteAtlas, (err, atlas)=>{
-                    console.log("stepload atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
-                    tts.sourceImage = atlas?.getSpriteFrame(tts.imageName!) || undefined;
-                    if (!tts.sourceImage) return;
-                    fillTextureGrids(tilesetInfo, texGrids, tilesetInfo.sourceImage);
-                });
-            }
-        }
+        // for (let i = 0, l = tilesets.length; i < l; ++i) {
+        //     const tilesetInfo = tilesets[i];
+        //     if (!tilesetInfo) continue;
+        //     if (!tilesetInfo.sourceImage) {
+        //         const tts = tilesetInfo;
+        //         assetManager.getBundle(this.ab)?.load(tilesetInfo.name, SpriteAtlas, (err, atlas)=>{
+        //             console.log("stepload atlas:" + tts.name + " sfs:" + atlas);//?.spriteFrames?.length);
+        //             tts.sourceImage = atlas?.getSpriteFrame(tts.imageName!) || undefined;
+        //             if (!tts.sourceImage) return;
+        //             fillTextureGrids(tilesetInfo, texGrids, tilesetInfo.sourceImage);
+        //         });
+        //     }
+        // }
     }
 
     protected _buildWithMapInfo (mapInfo: XTMXMapInfo): void {
