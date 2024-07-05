@@ -40,10 +40,10 @@ import { BufferAsset, TextAsset } from '../asset/assets';
  */
 @ccclass('cc.TiledMapAsset')
 export class TiledMapAsset extends Asset {
-    @serializable
+    // @serializable
     // tmxXmlStr = '';
-    @type(BufferAsset)
-    tmxBin: BufferAsset | undefined;
+    // @type(BufferAsset)
+    _data: Uint8Array|null = null;
 
     @serializable
     @type([BufferAsset])
@@ -106,4 +106,19 @@ export class TiledMapAsset extends Asset {
     @serializable
     @type([Size])
     spriteFrameSizes: Size[] = [];
+
+    get _nativeAsset (): ArrayBuffer {
+        console.log("22222 " + this._data);
+        return this._data!.buffer;
+    }
+    set _nativeAsset (value: ArrayBuffer) {
+        console.log("11111 " + value);
+        if (this._data && this._data.byteLength === value.byteLength) {
+            this._data.set(new Uint8Array(value));
+        } else {
+            this._data = new Uint8Array(value);
+        }
+
+        // this._loadNativeData(this._data);
+    }
 }

@@ -147,6 +147,7 @@ export class Factory {
     }
 
     public create (id: string, data: any, type: string, options: Record<string, any>, onComplete: ((err: Error | null, data?: Asset | Bundle | null) => void)): void {
+        console.log("factory create: [ " + id + " ] type:[ " + type + " ]");
         const handler = this._producers[type] || this._producers.default;
         const asset = assets.get(id);
         if (!options.reloadAsset && asset) {

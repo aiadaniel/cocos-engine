@@ -217,10 +217,11 @@ export class XTMXMapInfo {
     _bm: bmap.BMap;
     _tss: Map<string, bmap.TileSet> | undefined ;
 
-    constructor (bin: BufferAsset, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
+    constructor (bin: Uint8Array, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
         textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
+        console.log("bin:" + bin);
         this.cb = cb;
-        const bb = new ByteBuf(new Uint8Array(bin.buffer()));
+        const bb = new ByteBuf(bin);
         this._bm = new bmap.BMap(bb);
         // this._tsxBins = tsxBins;
         this._tss = tss;

@@ -123,7 +123,9 @@ export class TiledMap extends Component {
     }
 
     set tmxAsset (value: TiledMapAsset) {
+        console.log("33333* ");
         if (this._tmxFile !== value || EDITOR) {
+            console.log("33333 " + value);
             this._tmxFile = value;
             this._applyFile();
             this._isApplied = true;
@@ -361,16 +363,16 @@ export class TiledMap extends Component {
         return this._tileProperties.get(gid);
     }
 
-    __preload (): void {
-        console.log("__preload xtilemap");
-        if (!this._tmxFile) {
-            return;
-        }
-        if (this._isApplied === false) {
-            this._applyFile();
-            this._isApplied = true;
-        }
-    }
+    // __preload (): void {
+    //     console.log("__preload xtilemap");
+    //     if (!this._tmxFile) {
+    //         return;
+    //     }
+    //     if (this._isApplied === false) {
+    //         this._applyFile();
+    //         this._isApplied = true;
+    //     }
+    // }
 
     onEnable (): void {
         this.node.on(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
@@ -432,7 +434,7 @@ export class TiledMap extends Component {
                 this._buildWithMapInfo(mapInfo);
             }
 
-            const mapInfo = new XTMXMapInfo(file.tmxBin!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+            const mapInfo = new XTMXMapInfo(file._data!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
 
         } else {
             this._releaseMapInfo();
