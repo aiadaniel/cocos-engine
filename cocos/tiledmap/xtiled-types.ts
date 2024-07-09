@@ -27,6 +27,14 @@ import { ccenum } from '../core/value-types/enum';
 import { HorizontalTextAlignment, VerticalTextAlignment } from '../2d/components/label';
 import { Texture2D } from '../asset/assets';
 
+/**
+ * 复用tileset解析结果
+ */
+// export class ReuseTileset {
+//     tss: Map<string, TMXTilesetInfo[]> = new Map();
+//     tAT: Map<string, TiledAnimation[]> = new Map();
+// }
+
 export type PropertiesInfo = { [key: string]: number | string };
 export type TiledAnimationType = Map<GID, TiledAnimation>;
 

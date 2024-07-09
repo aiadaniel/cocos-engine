@@ -508,7 +508,7 @@ export class TiledLayer extends UIRenderer {
         const scale = node.getScale();
         this._leftDownToCenterX = trans.width * trans.anchorX * scale.x;
         this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
-        console.log(this._layerName +" leftDownToCenter " + this._leftDownToCenterX + " " + this._leftDownToCenterY);
+        // console.log(this._layerName +" leftDownToCenter " + this._leftDownToCenterX + " " + this._leftDownToCenterY);
         this._cullingDirty = true;
         this.markForUpdateRenderData();
     }
@@ -1487,9 +1487,9 @@ export class TiledLayer extends UIRenderer {
                 this._needCalcViewport = true;
                 this._isFirstLayer = true;
                 Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+                // console.log("_mat4:" + _mat4_temp);
             }
 
-            console.log("_mat4:" + _mat4_temp);
         // }
 
         // if (this._layerOrientation === bmap.Orientation.Hexagonal) {

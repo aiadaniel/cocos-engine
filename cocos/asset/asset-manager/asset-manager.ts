@@ -642,6 +642,7 @@ export class AssetManager {
 
         opts.__isNative__ = true;
         opts.preset = opts.preset || 'remote';
+        console.log("--loadRemote " + url);
         this.loadAny({ url }, opts, null, (err, data): void => {
             if (err) {
                 error(err.message, err.stack);
@@ -703,6 +704,7 @@ export class AssetManager {
         opts.preset = opts.preset || 'bundle';
         opts.ext = 'bundle';
         opts.__isNative__ = true;
+        console.log("--loadBundle " + nameOrUrl);
         this.loadAny({ url: nameOrUrl }, opts, null, (err, data): void => {
             if (err) {
                 error(err.message, err.stack);

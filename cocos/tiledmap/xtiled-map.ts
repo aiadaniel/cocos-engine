@@ -363,16 +363,16 @@ export class TiledMap extends Component {
         return this._tileProperties.get(gid);
     }
 
-    // __preload (): void {
-    //     console.log("__preload xtilemap");
-    //     if (!this._tmxFile) {
-    //         return;
-    //     }
-    //     if (this._isApplied === false) {
-    //         this._applyFile();
-    //         this._isApplied = true;
-    //     }
-    // }
+    __preload (): void {
+        console.log("__preload xtilemap");
+        if (!this._tmxFile) {
+            return;
+        }
+        if (this._isApplied === false) {
+            this._applyFile();
+            this._isApplied = true;
+        }
+    }
 
     onEnable (): void {
         this.node.on(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
@@ -398,6 +398,7 @@ export class TiledMap extends Component {
 
             for (let i = 0; i < spfNames.length; ++i) {
                 const texName = spfNames[i];
+                // console.log("--" + texName); 
                 // textures[texName] = texValues[i];
                 spfTextureSizeMap[texName] = spfSizes[i];
                 spriteFrames[i] = fSpriteFrames[i];
@@ -421,6 +422,7 @@ export class TiledMap extends Component {
             for (let i = 0; i < tsxFileNames.length; ++i) {
                 if (tsxFileNames[i].length > 0) {
                     tsxContentMap[tsxFileNames[i]] = tsxFiles[i];
+                    // console.log("--" + tsxFileNames[i] + "---" + tsxFiles[i]); 
                 }
             }
 
@@ -434,7 +436,7 @@ export class TiledMap extends Component {
                 this._buildWithMapInfo(mapInfo);
             }
 
-            const mapInfo = new XTMXMapInfo(file._data!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+            const mapInfo = new XTMXMapInfo(file._bm!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
 
         } else {
             this._releaseMapInfo();
