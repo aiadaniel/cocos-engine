@@ -34,37 +34,44 @@ export default function downloadScript (
     options: Record<string, any>,
     onComplete: ((err: Error | null, data?: any | null) => void),
 ): HTMLScriptElement | null {
-    // no need to load script again
-    if (downloaded[url]) {
-        if (onComplete) { onComplete(null); }
-        return null;
-    }
 
-    const script = ccdocument.createElement('script');
+    onComplete(null);
+    return null;
 
-    if (ccwindow.location.protocol !== 'file:') {
-        script.crossOrigin = 'anonymous';
-    }
+    // // no need to load script again
+    // if (downloaded[url]) {
+    //     if (onComplete) { onComplete(null); }
+    //     return null;
+    // }
 
-    script.async = options.scriptAsyncLoading || false;
-    script.src = url;
-    function loadHandler (): void {
-        script.parentNode!.removeChild(script);
-        script.removeEventListener('load', loadHandler, false);
-        script.removeEventListener('error', errorHandler, false);
-        downloaded[url] = true;
-        if (onComplete) { onComplete(null); }
-    }
+    // const script = ccdocument.createElement('script');
+    // console.log("[download-script] element:" + script);
 
-    function errorHandler (): void {
-        script.parentNode!.removeChild(script);
-        script.removeEventListener('load', loadHandler, false);
-        script.removeEventListener('error', errorHandler, false);
-        if (onComplete) { onComplete(new Error(getError(4928, url))); }
-    }
+    // if (ccwindow.location.protocol !== 'file:') {
+    //     script.crossOrigin = 'anonymous';
+    // }
 
-    script.addEventListener('load', loadHandler, false);
-    script.addEventListener('error', errorHandler, false);
-    ccdocument.body.appendChild(script);
-    return script;
+    // script.async = options.scriptAsyncLoading || false;
+    // script.src = url;
+    // function loadHandler (): void {
+    //     console.log("[download-script] onload ");
+    //     script.parentNode!.removeChild(script);
+    //     script.removeEventListener('load', loadHandler, false);
+    //     script.removeEventListener('error', errorHandler, false);
+    //     downloaded[url] = true;
+    //     if (onComplete) { onComplete(null); }
+    // }
+
+    // function errorHandler (): void {
+    //     console.log("[download-script] onerror ");
+    //     script.parentNode!.removeChild(script);
+    //     script.removeEventListener('load', loadHandler, false);
+    //     script.removeEventListener('error', errorHandler, false);
+    //     if (onComplete) { onComplete(new Error(getError(4928, url))); }
+    // }
+
+    // script.addEventListener('load', loadHandler, false);
+    // script.addEventListener('error', errorHandler, false);
+    // ccdocument.body.appendChild(script);
+    // return script;
 }

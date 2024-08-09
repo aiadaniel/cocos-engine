@@ -32,6 +32,7 @@ export default function downloadFile (
 ): XMLHttpRequest {
     const xhr = new XMLHttpRequest();
     const errInfo = `download failed: ${url}, status: `;
+    // url = "file:///E:/steamLibrary/steamapps/common/iles/resources/app.asar_unpack2024_07_29/web-res/web-mobile/" + url;//依旧无法跨域
 
     xhr.open('GET', url, true);
 

@@ -444,6 +444,7 @@ export class AssetManager {
         for (const key in assetsOverride) {
             this.assetsOverrideMap.set(key, assetsOverride[key] as string);
         }
+        console.log("[asset-manager] init " + importBase + " " + nativeBase + " " + this._projectBundles + " " + JSON.stringify(this.assetsOverrideMap));
     }
 
     /**
@@ -548,6 +549,7 @@ export class AssetManager {
         const { options: opts, onProgress: onProg, onComplete: onComp } = parseParameters(options, onProgress, onComplete);
         opts.preset = opts.preset || 'default';
         requests = Array.isArray(requests) ? requests.slice() : requests;
+        // console.log("77777 " + JSON.stringify(requests));
         const task = Task.create({ input: requests, onProgress: onProg, onComplete: asyncify(onComp), options: opts });
         pipeline.async(task);
     }
@@ -696,18 +698,22 @@ export class AssetManager {
         const bundleName = path.basename(nameOrUrl);
 
         if (this.bundles.has(bundleName)) {
+            console.log("33333");
             asyncify(onComp)(null, this.getBundle(bundleName));
             return;
         }
-
+        
         opts.preset = opts.preset || 'bundle';
         opts.ext = 'bundle';
         opts.__isNative__ = true;
+        console.log("44444");
         this.loadAny({ url: nameOrUrl }, opts, null, (err, data): void => {
             if (err) {
+                console.log("55555");
                 error(err.message, err.stack);
                 if (onComp) { onComp(err, data as Bundle); }
             } else {
+                console.log("66666 will create bundle " + nameOrUrl);
                 factory.create(nameOrUrl, data, 'bundle', opts, (p1, p2): void => {
                     if (onComp) { onComp(p1, p2 as Bundle); }
                 });

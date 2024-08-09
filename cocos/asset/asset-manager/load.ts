@@ -103,6 +103,7 @@ const loadOneAssetPipeline = new Pipeline('loadOneAsset', [
 
     function fetch (task, done): void {
         const item = task.output = task.input as RequestItem;
+        // console.log("[load] fetch " + JSON.stringify(item));
         const { options, isNative, uuid, file } = item;
         const { reloadAsset } = options;
 
@@ -122,6 +123,7 @@ const loadOneAssetPipeline = new Pipeline('loadOneAsset', [
         const progress: IProgress = task.progress;
         const exclude: Record<string, ILoadingRequest> = task.options!.__exclude__;
         const { id, file, options } = item;
+        // console.log("[load] parse " + JSON.stringify(item));// file：下载的文件内容 以bundle，id=resources@native
 
         if (item.isNative) {
             parser.parse(id, file, item.ext, options, (err, asset): void => {

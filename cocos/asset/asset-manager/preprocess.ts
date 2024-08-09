@@ -27,6 +27,7 @@ import Task from './task';
 
 export default function preprocess (task: Task, done: ((err?: Error | null) => void)): void {
     const options = task.options;
+    // console.log("[preprocess] opts:" + JSON.stringify(options));
     const subOptions = Object.create(null);
     const leftOptions = Object.create(null);
 

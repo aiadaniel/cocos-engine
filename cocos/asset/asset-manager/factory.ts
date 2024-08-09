@@ -87,9 +87,10 @@ function createBundle (id: string, data: IConfigOption, options: Record<string, 
     }
     //HACK: Can not import scripts in GameView due to the difference of Scripting System between the GameView and Preview
     if (!EDITOR) {
-        import(`virtual:///prerequisite-imports/${bundle.name}`).then((): void => {
+        console.log("createBundle in !Editor");
+        // import(`virtual:///prerequisite-imports/${bundle.name}`).then((): void => {
             onComplete(null, bundle);
-        }).catch(onComplete);
+        // }).catch(onComplete);
     } else {
         onComplete(null, bundle);
     }

@@ -22,7 +22,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  ****************************************************************************/
-const fs = my.getFileSystemManager ? my.getFileSystemManager() : null;
+const fs = require('fs-extra');//my.getFileSystemManager ? my.getFileSystemManager() : null;
 const outOfStorageRegExp = /the maximum size of the file storage/;  // not exactly right
 
 const fsUtils = {
@@ -162,6 +162,7 @@ const fsUtils = {
     },
 
     readJson (filePath, onComplete) {
+        console.log("===== fsUtils now is taobao platform =====");
         fsUtils.readFile(filePath, 'utf8', (err, text) => {
             let out = null;
             if (!err) {

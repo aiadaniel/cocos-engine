@@ -174,6 +174,7 @@ const fsUtils = {
     },
 
     readJson (filePath, onComplete) {
+        console.log("===== fsUtils now is common platform =====");
         fsUtils.readFile(filePath, 'utf8', (err, text) => {
             let out = null;
             if (!err) {

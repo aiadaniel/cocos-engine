@@ -98,6 +98,7 @@ export class Settings {
                             reject(err);
                             return;
                         }
+                        console.log("22222 taobao");
                         this._settings = result;
                         resolve();
                     });
@@ -183,7 +184,7 @@ export class Settings {
         return null;
     }
 
-    private _settings: Record<string, any> = {};
+    public _settings: Record<string, any> = {};
     private _override: Record<string, any> = {};
 }
 

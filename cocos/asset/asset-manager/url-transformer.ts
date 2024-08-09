@@ -52,6 +52,7 @@ export function parse (task: Task): null {
             if (item.preset) {
                 js.addon(item, presets[item.preset]);
             }
+            // console.log("[urltrans] parse " + JSON.stringify(item));
             for (const key in item) {
                 switch (key) {
                 case RequestType.UUID: {
@@ -219,6 +220,7 @@ export function combine (task: Task): any {
         } else {
             url = `${base}/${uuid.slice(0, 2)}/${uuid}${ver}${item.ext}`;
         }
+        // console.log("[urltrans] combine " + JSON.stringify(item));
 
         item.url = url;
     }

@@ -220,6 +220,7 @@ export class PackManager {
     public load (item: RequestItem, options: Record<string, any> | null, onComplete: ((err: Error | null, data?: any) => void)): void {
         // if not in any package, download as uausl
         if (item.isNative || !item.info || !item.info.packs) {
+            // console.log("[pack-manager] will download " + item.url);
             downloader.download(item.id, item.url, item.ext, item.options, onComplete);
             return;
         }

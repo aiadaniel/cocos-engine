@@ -25,12 +25,13 @@ export const DEV = tryDefineGlobal('CC_DEV', true); // (CC_EDITOR && !CC_BUILD) 
 export const DEBUG = tryDefineGlobal('CC_DEBUG', true); // CC_DEV || Debug Build
 export const JSB = tryDefineGlobal('CC_JSB', defined('jsb'));
 export const NATIVE = JSB;
-export const HTML5 = !(EDITOR && NATIVE);
+export const HTML5 = false;//!(EDITOR && NATIVE);
 // @ts-expect-error: 'wx' is wechat namespace.
 export const WECHAT = tryDefineGlobal('CC_WECHAT', !!(defined('wx') && (wx.getSystemInfoSync || wx.getSharedCanvas)));
 export const MINIGAME = tryDefineGlobal('CC_MINIGAME', false);
 export const RUNTIME_BASED = tryDefineGlobal('CC_RUNTIME_BASED', false);
 export const ALIPAY = tryDefineGlobal('CC_ALIPAY', false);
+// export const TAOBAO = tryDefineGlobal('CC_TAOBAO', false);
 export const XIAOMI = tryDefineGlobal('CC_XIAOMI', false);
 export const BYTEDANCE = tryDefineGlobal('CC_BYTEDANCE', false);
 export const BAIDU = tryDefineGlobal('CC_BAIDU', false);

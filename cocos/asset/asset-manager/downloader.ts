@@ -119,7 +119,7 @@ const downloadBundle = (nameOrUrl: string, options: Record<string, any>, onCompl
         if (downloader.remoteBundles.indexOf(bundleName) !== -1) {
             url = `${downloader.remoteServerAddress}remote/${bundleName}`;
         } else {
-            url = `assets/${bundleName}`;
+            url = `${downloader.remoteServerAddress}assets/${bundleName}`;
         }
     }
     const version = options.version || downloader.bundleVers[bundleName];
@@ -130,6 +130,7 @@ const downloadBundle = (nameOrUrl: string, options: Record<string, any>, onCompl
     downloadJson(config, options, (err, response): void => {
         error = err || error;
         out = response as IConfigOption;
+        console.log("[downloader] json ok " + out);
         if (out) { out.base = `${url}/`; }
         if (++count === 2) {
             onComplete(error, out);
@@ -139,10 +140,12 @@ const downloadBundle = (nameOrUrl: string, options: Record<string, any>, onCompl
     const jspath = `${url}/index.${version ? `${version}.` : ''}js`;
     downloadScript(jspath, options, (err): void => {
         error = err || error;
+        console.log("[downloader] script ok " + error);
         if (++count === 2) {
             onComplete(error, out);
         }
     });
+    console.log("[downloader] bundle " + config + " &js " + jspath);
 };
 
 /**

@@ -129,7 +129,7 @@ jest.mock('serialization-test-helper/run-test', () => {
 import '../exports/base';
 import { DebugMode } from "../cocos/core/platform/debug";
 import { EffectAsset, Game, game, IGameConfig } from '../exports/base';
-import './asset-manager/init';
+// import './asset-manager/init';
 import '../cocos/gfx/empty/empty-device';
 import '../cocos/3d/skeletal-animation/data-pool-manager';
 import '../cocos/animation';
@@ -143,6 +143,7 @@ const canvas = document.createElement('canvas');
 const div = document.createElement('div');
 const config: IGameConfig = {
     debugMode: DebugMode.INFO,
+    // settingsPath: "E:/steamLibrary/steamapps/common/iles/resources/app.asar_unpack2024_07_29/web-res/web-mobile/src/settings.91536.json",
     overrideSettings: {
         rendering: {
             renderMode: 3, // Headless Mode
@@ -168,7 +169,7 @@ async function bootstrap() {
 
     initBuiltinPhysicsMaterial();
     await game.init(config);
-    await game.run();
+    // await game.run();
 }
 
 module.exports = bootstrap;

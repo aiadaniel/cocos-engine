@@ -25,7 +25,7 @@
     "clear:platform": "node ./native/utils/clear-platform.js && node ./scripts/clear-file.js",
     "fetch-ral": "node ./scripts/fetch-ral.js",
     "generate:doc-info": "node ./scripts/generate-doc-info",
-    "test": "tsc --noEmit && jest",
+    "test": "tsc --noEmit && jest --verbose",
     "update:engine-version": "node ./scripts/checkout-engine-version.js",
     "update:native-external": "node ./native/utils/update-external.js",
     "verify:engine-version": "node ./scripts/verify-engine-version.js"
