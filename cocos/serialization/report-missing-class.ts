@@ -34,6 +34,6 @@ export function reportMissingClass (id: string): void {
         id = EditorExtends.UuidUtils.decompressUuid(id);
         errorID(5301, id);
     } else {
-        errorID(5302, id);
+        // errorID(5302, id);
     }
 }

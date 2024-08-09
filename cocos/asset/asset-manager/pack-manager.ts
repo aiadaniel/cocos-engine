@@ -253,7 +253,7 @@ export class PackManager {
         downloader.download(pack.uuid, url, pack.ext, item.options, (err, data): void => {
             files.remove(pack.uuid);
             if (err) {
-                error(err.message, err.stack);
+                // error(err.message, err.stack);
             }
             // unpack package
             this.unpack(pack.packedUuids, data, pack.ext, item.options, (err2, result): void => {
