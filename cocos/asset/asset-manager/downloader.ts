@@ -145,6 +145,8 @@ const downloadBundle = (nameOrUrl: string, options: Record<string, any>, onCompl
             onComplete(error, out);
         }
     });
+    // 注意： bundle内的脚本就在此时加载index.c0ea8.js，中间是版本号！！！
+    //[downloader] bundle http://127.0.0.1:8000/assets/resources/config.c0ea8.json &js http://127.0.0.1:8000/assets/resources/index.c0ea8.js
     console.log("[downloader] bundle " + config + " &js " + jspath);
 };
 
