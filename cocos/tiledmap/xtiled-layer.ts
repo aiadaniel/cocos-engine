@@ -57,15 +57,181 @@ const _vec3_temp = new Vec3();
 const _vec3_temp2 = new Vec3();
 const _tempRowCol = { row: 0, col: 0 };
 
+let arr = new Array(300);
+let arrIdx = 0;
+
+let renders = new Array(300);
+let renIdx = 0;
+
+function fTr (t, i, n=300) { 
+    for (var r = new Array(i + n), s = 0; s < i; ++s) 
+        r[s] = t[s]; 
+    return r; 
+}
+
 @ccclass('cc.XTiledUserNodeData')
 export class XTiledUserNodeData extends Component {
-    _index = -1;
+    _isNode = !0;
+    _prev: XTiledUserNodeData|null = null;
+    _next: XTiledUserNodeData|null = null;
+    x = 0;
+    y = 0;
     _row = -1;
-    _col = -1;
-    _tiledLayer: TiledLayer | null = null;
+    _left = 0;
+    _right = 0;
+    _up = 0;
+    _down = 0;
+    isActive = !0;
+    isTiledNodeShow = !1;
+    isFloor = !1;
+
+    unit = null;
+    _tiledLayer: TiledLayer|null;
+    isStaticUnit = !1;
+    renderData: RenderData|null;
+    loadRes = null;
+    onShow = null;
+    onHide = null;
+    onReset = null;
+
+    // _index = -1;
+    // _row = -1;
+    // _col = -1;
+    // _tiledLayer: TiledLayer | null = null;
     constructor () {
         super();
+        // this.node = null;
+        this.unit = null;
+        this._tiledLayer = null;
+        this.isStaticUnit = !1;
+        this.renderData = null;
+        this.loadRes = null;
+        this.onShow = null;
+        this.onHide = null;
+        this.onReset = null;
     }
+    setLog(t) {}
+    
+    static create() {
+        if (arrIdx > 0) {
+            const temp = arr[--arrIdx];
+            arr[arrIdx] = null;
+            return temp;
+        }
+        return new XTiledUserNodeData();
+    }
+    
+    getRender() {
+        var t = this.renderData!;
+        return (
+            t ||
+                (0 < renIdx
+                    ? ((t = renders[--renIdx]),
+                      (renders[renIdx] = null),
+                      (t.atlasIndex = 0),
+                      (t.meshBufferOffset = -1),
+                      (t.meshFinishOffset = -1))
+                    : (t =
+                          this._tiledLayer!.getRenderData()),
+                (this.renderData = t)),
+            t
+        );
+    }
+    removeRender() {
+        this.renderData &&
+            (renders.length == renIdx &&
+                (renders = fTr(renders, renIdx)),
+            (this.renderData.frame = null),
+            (renders[renIdx++] = this.renderData),
+            (this.renderData = null));
+    }
+    remove() {
+        this._next &&
+            ((this._next._prev = this._prev),
+            (this._prev!._next = this._next),
+            (this._prev = null),
+            (this._next = null));
+    }
+    destroy(): boolean {
+        this.remove(),
+            this.removeRender(),
+            (this.loadRes = null),
+            (this.onShow = null),
+            (this.onHide = null),
+            (this.onReset = null),
+            // (this.node = null),
+            (this.unit = null),
+            (this._isNode = !0),
+            (this.x = 0),
+            (this.y = 0),
+            (this._row = -1),
+            (this._tiledLayer = null),
+            (this.isTiledNodeShow = !1),
+            (this.isActive = !0),
+            (this.isFloor = !1),
+            (this.isStaticUnit = !1),
+            (this._left = 0),
+            (this._right = 0),
+            (this._up = 0),
+            (this._down = 0),
+            ((arr =
+                arr.length == arrIdx
+                    ? fTr(arr, arrIdx)
+                    : arr)[arrIdx++] = this);
+            return true;
+    }
+    setSpriteRect(t, i, n, r) {
+        (r /= 2),
+            (this._right = t + (n /= 2)),
+            (this._left = n - t),
+            (this._up = i + r),
+            (this._down = r - i);
+    }
+    _userNodePosChange() {
+        this._tiledLayer!._userNodePosChange();
+    }
+    chain() {
+        var i = XTiledUserNodeData.create();
+        return (
+            (i._isNode = !1),
+            ((i._next = i)._prev = i)
+        );
+    }
+    first() {
+        var t = this._next!;
+        return t._isNode ? t : null;
+    }
+    append(t) {
+        return (
+            t._next &&
+                ((t._next._prev = t._prev),
+                (t._prev._next = t._next)),
+            ((this._next!._prev = t)._next =
+                this._next),
+            ((t._prev = this)._next = t),
+            this
+        );
+    }
+    down() {
+        for (
+            var t = this._next!;
+            t._isNode && !(t.y <= this.y);
+
+        )
+            t = t._next!;
+        (t = t._prev!) != this &&
+            t.append(this);
+    }
+    up() {
+        for (
+            var t = this._prev!;
+            t._isNode && !(t.y >= this.y);
+
+        )
+            t = t._prev!;
+        t != this._prev && t.append(this);
+    }
+
 }
 
 export interface XTiledRenderData {
@@ -91,12 +257,18 @@ export class TiledLayer extends UIRenderer {
     // 而如果是按照layer的tiles，则是按照x + width * y  即getTileGIDAt等几个api需要的
     // [row][col] = {count: 0, nodesList: []};
     // & 符号是交叉类型
-    protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (XTiledUserNodeData | null)[] } >> = {};
+    // protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (XTiledUserNodeData | null)[] } >> = {};
+    (i.topNodeHead = null),
+    (i.topNodeMap = {}),
     protected _userNodeMap: { [key: string]: XTiledUserNodeData } = {};// [id] = node;
     protected _userNodeDirty = false;
-
+    (i.tiledMapCurr = {}),
+    (i.tiledMapPool = {}),
+    (i.worldPosition = null),
+    (i.updateLayers = null),
+    (i.currRenderData = null),
     // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
-    public tiledTiles: (TiledTile | null)[] = [];
+    // public tiledTiles: (TiledTile | null)[] = [];
 
     // // store the layer tilesets index array
     // _tilesetIndexArr: number[] = [];
@@ -104,19 +276,20 @@ export class TiledLayer extends UIRenderer {
     // _tilesetIndexToArrIndex: { [key: number]: number } = {};
 
     protected _viewPort = { x: -1, y: -1, width: -1, height: -1 };
+    
     // 我们以offset.x+offset.y为key来存储复用结果 计算culling时使用
-    _offsetKey: number = 0;
-    _sharedCullingRect: Map<number, {
-        cullingDirty: boolean;
-        leftDown: {
-            row: number;
-            col: number;
-        };
-        rightTop: {
-            row: number;
-            col: number;
-        };
-    }> | undefined;
+    // _offsetKey: number = 0;
+    // _sharedCullingRect: Map<number, {
+    //     cullingDirty: boolean;
+    //     leftDown: {
+    //         row: number;
+    //         col: number;
+    //     };
+    //     rightTop: {
+    //         row: number;
+    //         col: number;
+    //     };
+    // }> | undefined;
 
     protected _cullingRect = {
         leftDown: { row: -1, col: -1 },
@@ -133,22 +306,29 @@ export class TiledLayer extends UIRenderer {
         };
     } { return this._cullingRect; }
 
-    protected _cullingDirty = true;
-    protected _rightTop = { row: -1, col: -1 };
-    get rightTop (): {
-        row: number;
-        col: number;
-    } { return this._rightTop; }
+    (i.showRect = new URr()),
+
+    // protected _cullingDirty = true;
+    // protected _rightTop = { row: -1, col: -1 };
+    // get rightTop (): {
+    //     row: number;
+    //     col: number;
+    // } { return this._rightTop; }
 
     protected _layerInfo: TMXLayerInfo | null = null;
     protected _mapInfo: XTMXMapInfo | null = null;
 
     // record max or min tile texture offset,
     // it will make culling rect more large, which insure culling rect correct.
-    protected _topOffset = 0;
-    protected _downOffset = 0;
-    protected _leftOffset = 0;
-    protected _rightOffset = 0;
+    // protected _topOffset = 0;
+    // protected _downOffset = 0;
+    // protected _leftOffset = 0;
+    // protected _rightOffset = 0;
+    (i.nodeUpRow = 0),
+    (i.nodeDownRow = 0),
+    (i.hasUserNode = !1),
+    (i.isGroundLayer = !1),
+    (i.downRow = 1),
 
     // store the layer tiles, index is caculated by 'x + width * y', format likes '[0]=gid0,[1]=gid1, ...'
     public tiles: MixedGID[] = [];
@@ -159,92 +339,104 @@ export class TiledLayer extends UIRenderer {
     // vertex array
     public vertices: SafeArray<{ minCol: number, maxCol: number } & SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
     // vertices dirty
-    protected _verticesDirty = true;
+    // protected _verticesDirty = true;
 
     protected _layerName = '';
     protected _layerSize?: Size;// equal to mapsize
 
-    _isFirstLayer = false;
+    (i._layerSizeWidth = 0),
+    (i._layerSizeHeight = 0),
 
-    // hasInit = false;
-    maptw = 0;
-    mapth = 0 ;
-    maptw2 = 0;
-    mapth2 = 0;
-    rows = 0;
-    cols = 0;
+    // _isFirstLayer = false;
 
-    _needCalcViewport = false;// 更新viewport是否复用
+    // // hasInit = false;
+    // maptw = 0;
+    // mapth = 0 ;
+    // maptw2 = 0;
+    // mapth2 = 0;
+    // rows = 0;
+    // cols = 0;
+
+    // _needCalcViewport = false;// 更新viewport是否复用
 
     get layerSize (): Size { return this._layerSize!; }
 
-    protected _minGID?: GID;
-    protected _maxGID?: GID;
-    protected _layerOrientation: null | bmap.Orientation = null;
+    // protected _minGID?: GID;
+    // protected _maxGID?: GID;
+    // protected _layerOrientation: null | bmap.Orientation = null;
 
-    protected _opacity?: number;
-    protected _tintColor?: Color;
+    // protected _opacity?: number;
+    // protected _tintColor?: Color;
 
     // store all layer gid corresponding texture info, index is gid, format likes '[gid0]=tex-info,[gid1]=tex-info, ...'
     public texGrids: TiledTextureGrids | null = null;
     // store all tileset texture, index is tileset index, format likes '[0]=texture0, [1]=texture1, ...'
-    protected _textures: SpriteFrame[] = [];
+    // protected _textures: SpriteFrame[] = [];
     protected _tilesets: TMXTilesetInfo[] = [];
 
     protected _leftDownToCenterX = 0;
     protected _leftDownToCenterY = 0;
 
-    protected _hasTiledNodeGrid = false;
-    protected _hasAniGrid = false;
-    protected _animations: TiledAnimationType | null = null;
+    // protected _hasTiledNodeGrid = false;
+    // protected _hasAniGrid = false;
+    // protected _animations: TiledAnimationType | null = null;
 
     // switch of culling
     protected _enableCulling?: boolean;
 
-    public colorChanged = false;
+    // public colorChanged = false;
 
     protected _properties?: PropertiesInfo;
     public renderOrder?: bmap.RenderOrder;
-    protected _staggerAxis?: bmap.StaggerAxis;
-    protected _staggerIndex?: bmap.StaggerIndex;
-    protected _hexSideLength?: number;
+    // protected _staggerAxis?: bmap.StaggerAxis;
+    // protected _staggerIndex?: bmap.StaggerIndex;
+    // protected _hexSideLength?: number;
 
     protected _mapTileSize?: Size;
-    protected _odd_even?: number;
-    protected _diffX1?: number;
-    protected _diffY1?: number;
-    protected _useAutomaticVertexZ?: boolean;
-    protected _vertexZvalue?: number;
+    protected _mapTileSizeWidth = 0;
+    protected _mapTileSizeHeight = 0;
+
+    // protected _odd_even?: number;
+    // protected _diffX1?: number;
+    // protected _diffY1?: number;
+    // protected _useAutomaticVertexZ?: boolean;
+    // protected _vertexZvalue?: number;
     protected _offset?: Vec2;
 
     protected _tiledDataArray: TiledDataArray = [];
+    (i._tiledDataLen = 0),
+    (i._tiledDataPool = null),
+    (i._tiledDataPoolLen = 0),
+    (i._drawNodePool = new Array()),
+    (i._drawNodePoolLen = 0),
+    (i.ratio = 0),
 
-    protected _cameraNode?: Node;
+    // protected _cameraNode?: Node;
 
     get tiledDataArray (): TiledDataArray { return this._tiledDataArray; }
     get leftDownToCenterX (): number { return this._leftDownToCenterX; }
     get leftDownToCenterY (): number { return this._leftDownToCenterY; }
 
-    private _drawInfoList: RenderDrawInfo[] = [];
-    private requestDrawInfo (idx: number): RenderDrawInfo {
-        if (!this._drawInfoList[idx]) {
-            this._drawInfoList[idx] = new RenderDrawInfo();
-            this._drawInfoList[idx].setDrawInfoType(RenderDrawInfoType.MIDDLEWARE);
-        }
-        return this._drawInfoList[idx];
-    }
+    // private _drawInfoList: RenderDrawInfo[] = [];
+    // private requestDrawInfo (idx: number): RenderDrawInfo {
+    //     if (!this._drawInfoList[idx]) {
+    //         this._drawInfoList[idx] = new RenderDrawInfo();
+    //         this._drawInfoList[idx].setDrawInfoType(RenderDrawInfoType.MIDDLEWARE);
+    //     }
+    //     return this._drawInfoList[idx];
+    // }
 
     constructor () {
         super();
     }
 
-    public hasTiledNode (): boolean {
-        return this._hasTiledNodeGrid;
-    }
+    // public hasTiledNode (): boolean {
+    //     return this._hasTiledNodeGrid;
+    // }
 
-    public hasAnimation (): boolean {
-        return this._hasAniGrid;
-    }
+    // public hasAnimation (): boolean {
+    //     return this._hasAniGrid;
+    // }
 
     /**
       * @en enable or disable culling
@@ -255,11 +447,114 @@ export class TiledLayer extends UIRenderer {
     set enableCulling (value: boolean) {
         if (this._enableCulling !== value) {
             this._enableCulling = value;
-            this._cullingDirty = true;
-            this.markForUpdateRenderData();
+            // this._cullingDirty = true;
+            // this.markForUpdateRenderData();
+            this.setUserNodeDirty(true);
         }
     }
     get enableCulling (): boolean { return this._enableCulling!; }
+
+    onLoad () {
+        t.prototype.onLoad.call(this),
+            (this.topNodeHead = TiledUserNodeData.chain()),
+            (this._tiledDataArray = new Array()),
+            (this._tiledDataPool = new Array());
+    }
+    (n.onDestroy = function () {
+        (this.hasUserNode = !1), this.destroyRenderData();
+        for (
+            var t = this._tiledDataPoolLen - 1;
+            0 <= t;
+            t--
+        )
+            this._tiledDataPool[t].clear();
+    }),
+    (n.loadTileMapImage = function () {}),
+    (n.setTileMapImage = function (t, i, n) {
+        this.updateLayers &&
+            ((function (t, i, n) {
+                t.sourceImage = n;
+                var r,
+                    e,
+                    h = t.firstGid,
+                    o = t.imageSize.width,
+                    u = t.imageSize.height,
+                    a = t._tileSize.width,
+                    c = t._tileSize.height,
+                    f = t.spacing,
+                    l = t.margin,
+                    v = 1;
+                t.collection ||
+                    ((r = Math.floor( (o - s * l + f) / (a + f) )),
+                    (e = Math.floor( (u - s * l + f) / (c + f) )),
+                    (v = Math.max( 1, e * r )));
+                for ( var d = t.firstGid + v, _ = h; _ < d; ++_ ) {
+                    var p,
+                        w,
+                        A,
+                        m,
+                        E = i.get(_);
+                    E &&
+                        ((E.spriteFrame = n),
+                        (E._name = n.name),
+                        (p = n.width),
+                        (w = n.height),
+                        (A =  n.unbiasUV[0]),
+                        (m =  n.rotated
+                            ? n.unbiasUV[1]
+                            : n.unbiasUV[5]),
+                        (E.l = A + (E.x + 0.5) / p),
+                        (E.t = m + (E.y + 0.5) / w),
+                        (E.r = A + (E.x + E.width - 0.5) / p),
+                        (E.b = m + (E.y + E.height - 0.5) / w),
+                        (E._rect = new URr(E.x, E.y, E.width, E.height )));//Rect
+                }
+            })(t, i, n),
+            this.updateLayers());
+    }),
+    (n.getSorttedNodesByRow = function (t, i) {
+        void 0 === i && (i = !1);
+        var n = (this.userNodeMap[t] =
+                this.userNodeMap[t] || TiledUserNodeData.chain()),
+            r = n.first();
+        if (r)
+            for (
+                var s = this.showRect,
+                    e = s.x,
+                    h = s.y,
+                    o = s.width,
+                    u = s.height;
+                null != (a = r) && a._isNode;
+
+            ) {
+                var a,
+                    c,
+                    f,
+                    l,
+                    v,
+                    d = r._next;
+                r.x + r._right >= e &&
+                r.x - r._left <= o &&
+                r.y + r._up >= h &&
+                r.y - r._down <= u
+                    ? (r.isTiledNodeShow ||
+                          ((r.isTiledNodeShow = !0),
+                          r.loadRes && (r.loadRes(), (r.loadRes = null)),
+                          null == (c = (f = r).onShow)) || c.call(f),
+                      (i = !0))
+                    : r.isTiledNodeShow &&
+                      ((r.isTiledNodeShow = !1),
+                      null != (l = (v = r).onHide)) && l.call(v),
+                    r.loadRes &&
+                        r.x + r._right + aJn > e &&
+                        r.x - r._left - aJn < o &&
+                        r.y + r._up + aJn > h &&
+                        r.y - r._down - aJn < u &&
+                        (r.loadRes(), (r.loadRes = null)),
+                    (r = r._next || d);
+            }
+        return i ? n : null;
+    }),
 
     /**
       * @en Adds user's node into layer.

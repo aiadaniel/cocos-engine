@@ -49,6 +49,18 @@ export interface IRenderData {
     color: Color;
 }
 
+// lxm add
+const rdPool = new Pool(()=>{
+    return {
+        x: 0,
+        y: 0,
+        z: 0,
+        u: 0,
+        v: 0,
+        color: Color.WHITE.clone(),
+    }
+}, 128);
+
 const DEFAULT_STRIDE = getAttributeStride(vfmtPosUvColor) >> 2;
 
 /**
@@ -82,6 +94,11 @@ export class BaseRenderData {
     }
 
     public chunk: StaticVBChunk = null!;
+
+    // lxm add
+    atlasIndex = 0;
+    meshBufferOffset = -1;
+    meshFinishOffset = -1;
 
     // entity for native
     protected _renderDrawInfo: RenderDrawInfo = null!;
@@ -213,11 +230,12 @@ export class BaseRenderData {
 export class RenderData extends BaseRenderData {
     public static add (vertexFormat = vfmtPosUvColor, accessor?: StaticVBAccessor): RenderData {
         const rd = new RenderData(vertexFormat, accessor);
-        if (!accessor) {
-            const batcher = director.root!.batcher2D;
-            accessor = batcher.switchBufferAccessor(rd._vertexFormat);
-        }
-        rd._accessor = accessor;
+        // lxm add
+        // if (!accessor) {
+        //     const batcher = director.root!.batcher2D;
+        //     accessor = batcher.switchBufferAccessor(rd._vertexFormat);
+        // }
+        // rd._accessor = accessor;
         return rd;
     }
 
@@ -237,20 +255,31 @@ export class RenderData extends BaseRenderData {
     }
 
     set dataLength (length: number) {
-        const data: IRenderData[] = this._data;
-        if (data.length !== length) {
-            for (let i = data.length; i < length; i++) {
-                data.push({
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                    u: 0,
-                    v: 0,
-                    color: Color.WHITE.clone(),
-                });
-            }
+        // const data: IRenderData[] = this._data;
+        // if (data.length !== length) {
+        //     for (let i = data.length; i < length; i++) {
+        //         data.push({
+        //             x: 0,
+        //             y: 0,
+        //             z: 0,
+        //             u: 0,
+        //             v: 0,
+        //             color: Color.WHITE.clone(),
+        //         });
+        //     }
 
-            data.length = length;
+        //     data.length = length;
+        // }
+        // lxm add
+        var i = this._data;
+        if (i.length !== length) {
+            var n = i.length,
+                r = 0;
+            for (r = length; r < n; r++)
+                rdPool.free(i[r]);
+            for (r = n; r < length; r++)
+                i[r] = rdPool.alloc();
+            i.length = length;
         }
 
         this.syncRender2dBuffer();
@@ -266,9 +295,10 @@ export class RenderData extends BaseRenderData {
     }
     set vertDirty (val: boolean) {
         this._vertDirty = val;
-        if (this._renderDrawInfo && val) {
-            this._renderDrawInfo.setVertDirty(val);
-        }
+        // lxm add
+        // if (this._renderDrawInfo && val) {
+        //     this._renderDrawInfo.setVertDirty(val);
+        // }
     }
 
     protected _textureHash = 0;
@@ -283,15 +313,16 @@ export class RenderData extends BaseRenderData {
 
     public set frame (val: SpriteFrame | TextureBase | null) {
         this._frame = val;
-        if (this._renderDrawInfo) {
-            if (this._frame) {
-                this._renderDrawInfo.setTexture(this._frame.getGFXTexture());
-                this._renderDrawInfo.setSampler(this._frame.getGFXSampler());
-            } else {
-                this._renderDrawInfo.setTexture(null);
-                this._renderDrawInfo.setSampler(null);
-            }
-        }
+        // lxm add
+        // if (this._renderDrawInfo) {
+        //     if (this._frame) {
+        //         this._renderDrawInfo.setTexture(this._frame.getGFXTexture());
+        //         this._renderDrawInfo.setSampler(this._frame.getGFXSampler());
+        //     } else {
+        //         this._renderDrawInfo.setTexture(null);
+        //         this._renderDrawInfo.setSampler(null);
+        //     }
+        // }
     }
     public get frame (): SpriteFrame | TextureBase | null {
         return this._frame;
@@ -304,6 +335,13 @@ export class RenderData extends BaseRenderData {
     public hashDirty = true;
 
     private _data: IRenderData[] = [];
+
+    // lxm add
+    _pivotX = 0;
+    _pivotY = 0;
+    _width = 0;
+    _height = 0;
+
     private _frame: SpriteFrame | TextureBase | null = null;
     protected _accessor: StaticVBAccessor = null!;
     get accessor (): StaticVBAccessor { return this._accessor; }
@@ -319,6 +357,19 @@ export class RenderData extends BaseRenderData {
         this._accessor = accessor;
     }
 
+    // lxm add
+    public reuse (t) {
+        if (this.chunk) {
+            var i = this.chunk.vb.length / 36 - t;
+            if (0 <= i && i <= 12)
+                return (
+                    (this._vc = 4 * t),
+                    void (this._ic = 6 * t)
+                );
+        }
+        this.resize(4 * t, 6 * t);
+    }
+
     public resize (vertexCount: number, indexCount: number): void {
         if (vertexCount === this._vc && indexCount === this._ic && this.chunk) return;
         this._vc = vertexCount;
@@ -329,7 +380,8 @@ export class RenderData extends BaseRenderData {
         }
         // renderData always have chunk
         this.chunk = this._accessor.allocateChunk(vertexCount, indexCount)!;
-        this.updateHash();
+        // lxm add
+        //this.updateHash();
 
         if (JSB && this.multiOwner === false && this._renderDrawInfo) {
             // for sync vData and iData address to native
@@ -448,10 +500,10 @@ export class RenderData extends BaseRenderData {
             this.material = comp.getRenderMaterial(0)!;
             this.passDirty = false;
             this.hashDirty = true;
-
-            if (this._renderDrawInfo) {
-                this._renderDrawInfo.setMaterial(this.material);
-            }
+            // lxm add
+            // if (this._renderDrawInfo) {
+            //     this._renderDrawInfo.setMaterial(this.material);
+            // }
         }
         if (this.nodeDirty) {
             const renderScene = comp.node.scene ? comp._getRenderScene() : null;
@@ -467,18 +519,18 @@ export class RenderData extends BaseRenderData {
             this.textureHash = frame.getHash();
             this.textureDirty = false;
             this.hashDirty = true;
-
-            if (this._renderDrawInfo) {
-                this._renderDrawInfo.setTexture(this.frame ? this.frame.getGFXTexture() : null);
-                this._renderDrawInfo.setSampler(this.frame ? this.frame.getGFXSampler() : null);
-            }
+            // lxm add
+            // if (this._renderDrawInfo) {
+            //     this._renderDrawInfo.setTexture(this.frame ? this.frame.getGFXTexture() : null);
+            //     this._renderDrawInfo.setSampler(this.frame ? this.frame.getGFXSampler() : null);
+            // }
         }
         if (this.hashDirty) {
             this.updateHash();
-
-            if (this._renderDrawInfo) {
-                this._renderDrawInfo.setDataHash(this.dataHash);
-            }
+            // lxm add
+            // if (this._renderDrawInfo) {
+            //     this._renderDrawInfo.setDataHash(this.dataHash);
+            // }
         }
 
         // Hack Do not update pre frame
@@ -490,10 +542,28 @@ export class RenderData extends BaseRenderData {
             this._renderDrawInfo.fillRender2dBuffer(this._data);
         }
     }
+    // lxm add
+    public updateSizeNPivot (t, i, n, r) {
+        (t === this._width &&
+            i === this._height &&
+            n === this._pivotX &&
+            r === this._pivotY) ||
+            ((this._width = t),
+            (this._height = i),
+            (this._pivotX = n),
+            (this._pivotY = r),
+            (this.vertDirty = !0));
+    }
 
     public clear (): void {
         this.resize(0, 0);
         this._data.length = 0;
+        // lxm add
+        (this._pivotX = 0),
+        (this._pivotY = 0),
+        (this._width = 0),
+        (this._height = 0),
+
         this.indices = null;
         this.vertDirty = true;
         this.material = null;
@@ -507,6 +577,11 @@ export class RenderData extends BaseRenderData {
         this.frame = null;
         this.textureHash = 0;
         this.dataHash = 0;
+        // lxm add
+        (this.atlasIndex = 0),
+        (this.meshBufferOffset = -1),
+        (this.meshFinishOffset = -1);
+
         if (JSB && this._renderDrawInfo) {
             this._renderDrawInfo.clear();
         }

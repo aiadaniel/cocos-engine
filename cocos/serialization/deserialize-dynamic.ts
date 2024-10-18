@@ -705,6 +705,7 @@ class _Deserializer {
             const uuid = (serializedField as Partial<SerializedUUIDReference>).__uuid__;
             if (uuid) {
                 const expectedType = (serializedField as SerializedUUIDReference).__expectedType__;
+                console.log("[[[[[_deserializeAndAssignField]]]]] " + propName + " " + expectedType);
                 this.result.push(obj, propName, uuid, expectedType);
             } else if (EDITOR || TEST) {
                 obj[propName] = this._deserializeObject(serializedField as SerializedObject, -1, obj, propName);
