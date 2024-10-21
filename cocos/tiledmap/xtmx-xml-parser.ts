@@ -139,7 +139,7 @@ function getPropertyList (node: Element, map?: PropertiesInfo): PropertiesInfo {
  * @class TMXMapInfo
  */
 
-export class XTMXMapInfo {
+export class TMXMapInfo {
     /**
      * Properties of the map info.
      * @property {Array}    properties
@@ -280,9 +280,9 @@ export class XTMXMapInfo {
      * Map width & height
      * @return {Size}
      */
-    // getMapSize (): Size {
-    //     return new Size(this._mapSize.width, this._mapSize.height);
-    // }
+    getMapSize (): Size {
+        return new Size(this._mapSize.width, this._mapSize.height);
+    }
 
     // get mapWidth (): number {
     //     return this._mapSize.width;

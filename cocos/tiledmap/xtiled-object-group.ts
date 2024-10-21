@@ -29,7 +29,7 @@ import { Sprite } from '../2d/components/sprite';
 import { Label } from '../2d/components/label';
 import { BlendFactor } from '../gfx';
 
-import { XTMXMapInfo } from './xtmx-xml-parser';
+import { TMXMapInfo } from './xtmx-xml-parser';
 import { TiledTextureGrids, GID, TileFlag, TMXObjectType, PropertiesInfo, TiledAnimationType, TMXObject, TMXObjectGroupInfo } from './xtiled-types';
 import { UITransform } from '../2d/framework/ui-transform';
 import { CCBoolean, Vec2, Color, CCObject } from '../core';
@@ -142,7 +142,7 @@ export class TiledObjectGroup extends Component {
 
     protected _groupName?: string;
     protected _positionOffset?: Vec2;
-    protected _mapInfo?: XTMXMapInfo;
+    protected _mapInfo?: TMXMapInfo;
     protected _properties?: PropertiesInfo;
     protected _offset?: Vec2;
     get offset (): Vec2 { return this._offset!; }
@@ -171,7 +171,7 @@ export class TiledObjectGroup extends Component {
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
      */
-    public _init (groupInfo: TMXObjectGroupInfo, mapInfo: XTMXMapInfo, texGrids: TiledTextureGrids): void {
+    public _init (groupInfo: TMXObjectGroupInfo, mapInfo: TMXMapInfo, texGrids: TiledTextureGrids): void {
         const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
         const FLAG_HORIZONTAL = TileFlag.HORIZONTAL;
         const FLAG_VERTICAL = TileFlag.VERTICAL;
