@@ -27,7 +27,7 @@ import { ccclass, displayOrder, executeInEditMode, help, menu, requireComponent,
 import { EDITOR, JSB } from 'internal:constants';
 import { Component } from '../scene-graph/component';
 import { UITransform } from '../2d/framework';
-import { GID, PropertiesInfo, Property, TiledAnimationType, TiledTextureGrids, TileFlag,
+import { GID, PropertiesInfo, Property, TiledAnimationType, TiledGrid, TiledTextureGrids, TileFlag,
     TMXImageLayerInfo, TMXLayerInfo, TMXObjectGroupInfo, TMXObjectType, TMXTilesetInfo } from './xtiled-types';
 import { TMXMapInfo } from './xtmx-xml-parser';
 import { TiledLayer } from './xtiled-layer';
@@ -198,7 +198,7 @@ export class TiledMap extends Component {
     @serializable
     protected cleanupImageCache = true;
 
-    _gameCameraView = void 0;
+    _gameCameraView;
     ratio = 0;
     _isUpdateCulling = !1;
 
@@ -717,7 +717,8 @@ export class TiledMap extends Component {
             ++r
         ) {
             var h = i[r];
-            h && (function ( t, i, n ) {
+            // function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextureGrids, spFrame?: SpriteFrame): void
+            h && (function ( t: TMXTilesetInfo, i: TiledTextureGrids, n?: SpriteFrame ) {
                     var r,
                         e,
                         h,
@@ -753,7 +754,7 @@ export class TiledMap extends Component {
                                 !i.get( M ));
                         ++M
                     ) {
-                        var C;
+                        // var C;
                         T = {
                             tileset: t,
                             x: 0,
@@ -772,7 +773,7 @@ export class TiledMap extends Component {
                             gid: M,// gid as unknown as GID,
                             spriteFrame: o
                             // texture: tex,
-                        };
+                        };//TiledGrid
                         t.rectForGID( M, T );
                         !n || 1 < w
                                 ? (n

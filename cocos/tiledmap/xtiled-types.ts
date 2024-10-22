@@ -256,7 +256,7 @@ export class TMXTilesetInfo {
 
     imageName: string | null = null;
 
-    imageOffset: Vec2 | null = null;
+    // imageOffset: Vec2 | null = null;
 
     imageSize = new Size(0, 0);
 
@@ -273,14 +273,14 @@ export class TMXTilesetInfo {
         let gid = gid_ as unknown as number;
         gid &= TileFlag.FLIPPED_MASK;
         gid -= (this.firstGid as unknown as number);
-        if (this.imageOffset) {
-            rect.x = this.imageOffset.x;
-            rect.y = this.imageOffset.y;
-        } else {
+        // if (this.imageOffset) {
+        //     rect.x = this.imageOffset.x;
+        //     rect.y = this.imageOffset.y;
+        // } else {
             const max_x = Math.floor((this.imageSize.width - this.margin * 2 + this.spacing) / (this._tileSize.width + this.spacing));
             rect.x = Math.round((gid % max_x) * (this._tileSize.width + this.spacing) + this.margin);
             rect.y = Math.round(Math.floor(gid / max_x) * (this._tileSize.height + this.spacing) + this.margin);
-        }
+        // }
         return rect;
     }
 }
@@ -371,11 +371,11 @@ export class TMXLayerInfo {
     tiles: number[] | Uint32Array = [];
     visible = true;
     opacity = 0;
-    ownTiles = true;
-    minGID: GID = 100000 as unknown as GID;
-    maxGID: GID = 0 as unknown as GID;
+    // ownTiles = true;
+    // minGID: GID = 100000 as unknown as GID;
+    // maxGID: GID = 0 as unknown as GID;
     offset: Vec2 = new Vec2(0, 0);
-    tintColor: Color | null = null;
+    // tintColor: Color | null = null;
 
     /**
      * Gets the Properties.
@@ -468,7 +468,7 @@ export interface TiledGrid {
     rotated: boolean;
     gid: GID;
     spriteFrame: SpriteFrame;
-    texture: Texture2D;
+    // texture: Texture2D;
 
     _name?: string;
     _rect?: Rect;

@@ -63,9 +63,9 @@ export class TiledMapAsset extends Asset {
      * @zh
      * SpriteFrame 数组
      */
-    @serializable
-    @type([SpriteFrame])
-    spriteFrames: SpriteFrame[] = [];
+    // @serializable
+    // @type([SpriteFrame])
+    // spriteFrames: SpriteFrame[] = [];
 
     /**
      * @en
@@ -74,9 +74,9 @@ export class TiledMapAsset extends Asset {
      * ImageLayerSpriteFrame 数组
      * @property {SpriteFrame[]} imageLayerSpriteFrame
      */
-    @serializable
-    @type([SpriteFrame])
-    imageLayerSpriteFrame: SpriteFrame[] = []
+    // @serializable
+    // @type([SpriteFrame])
+    // imageLayerSpriteFrame: SpriteFrame[] = []
 
     /**
      * @en

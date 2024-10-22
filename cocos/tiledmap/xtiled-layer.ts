@@ -273,10 +273,10 @@ export class TiledLayer extends UIRenderer {
 
     userNodeMap = {};
     tiledMapCurr: TiledMap | undefined;
-    tiledMapPool = {};
+    tiledMapPool;
     worldPosition;
     updateLayers;
-    currRenderData = null;
+    currRenderData;
     
     // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
     // public tiledTiles: (TiledTile | null)[] = [];
@@ -407,7 +407,7 @@ export class TiledLayer extends UIRenderer {
     // protected _diffY1?: number;
     // protected _useAutomaticVertexZ?: boolean;
     // protected _vertexZvalue?: number;
-    protected _offset?: Vec2;
+    _offset?: Vec2;
 
     protected _tiledDataArray;
     _tiledDataLen = 0;
@@ -458,7 +458,7 @@ export class TiledLayer extends UIRenderer {
         )
             this._tiledDataPool[t].clear();
     }
-    loadTileMapImage () {}
+    loadTileMapImage (tileset, b, d) {}
     setTileMapImage (t, i, n) {
         this.updateLayers &&
             ((function (t, i, n) {
@@ -501,8 +501,8 @@ export class TiledLayer extends UIRenderer {
             })(t, i, n),
             this.updateLayers());
     }
-    getSorttedNodesByRow (t, i) {
-        void 0 === i && (i = !1);
+    getSorttedNodesByRow (t, i=false) {
+        // void 0 === i && (i = !1);
         var n = (this.userNodeMap[t] =
                 this.userNodeMap[t] || TiledUserNodeData.chain()),
             r = n.first();
@@ -1766,7 +1766,7 @@ export class TiledLayer extends UIRenderer {
     // }
 
     // packRenderData <- traverseGrids <- updateRenderData
-    public requestTiledRenderData (t): XTiledRenderData {
+    public requestTiledRenderData (t?): RenderData {
         // const arr = this._tiledDataArray as any[];
         // while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
         //     arr.pop();

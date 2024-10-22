@@ -140,6 +140,9 @@ function getPropertyList (node: Element, map?: PropertiesInfo): PropertiesInfo {
  */
 
 export class TMXMapInfo {
+
+    staticMap;
+
     /**
      * Properties of the map info.
      * @property {Array}    properties
@@ -150,13 +153,13 @@ export class TMXMapInfo {
      * Map orientation.
      * @property {Number}   orientation
      */
-    orientation: bmap.Orientation | null = null;
+    orientation: bmap.Orientation | null = null;//iso
 
     /**
      * Parent element.
      * @property {Object}   parentElement
      */
-    // parentElement: Record<string, unknown> | null = null;
+    parentElement: Record<string, unknown> | null = null;
 
     /**
      * Parent GID.
@@ -192,16 +195,16 @@ export class TMXMapInfo {
     get tileSize (): Size { return this._tileSize; }
     protected _layers: TMXLayerInfo[] = [];
     protected _tilesets: TMXTilesetInfo[] = [];
-    protected _imageLayers: TMXImageLayerInfo[] = [];
+    // protected _imageLayers: TMXImageLayerInfo[] = [];
     protected _tileProperties: Map<GID, PropertiesInfo> = new Map();
-    protected _tileAnimations: TiledAnimationType = {} as any;
+    // protected _tileAnimations: TiledAnimationType = {} as any;
     protected _tsxContentMap: { [key: string]: BufferAsset } | null = null;
 
     // map of textures indexed by name
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
-    cb: Function | undefined
+    // cb: Function | undefined
     // _ab: string;
     // _atlasMap: Map<string, SpriteAtlas> = new Map();
     // _tsxPath: string="";
@@ -214,74 +217,79 @@ export class TMXMapInfo {
 
     protected _imageLayerSPF: { [key: string]: SpriteFrame } | null = null;
 
-    _bm: bmap.BMap;
+    _bm: bmap.BMap | null = null;
     _tss: Map<string, bmap.TileSet> | undefined ;
 
-    constructor (bin: bmap.BMap, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
-        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
-        // console.log("bin:" + bin);
-        this.cb = cb;
-        // const bb = new ByteBuf(bin);
-        // this._bm = new bmap.BMap(bb);
-        this._bm = bin;
+    // constructor (bin: bmap.BMap, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
+    //     textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
+    //     // console.log("bin:" + bin);
+    //     // this.cb = cb;
+    //     // const bb = new ByteBuf(bin);
+    //     // this._bm = new bmap.BMap(bb);
+    //     this._bm = bin;
 
-        this._tss = tss;
+    //     this._tss = tss;
 
-        this._tsxContentMap = tsxBins;
-        this._spriteFrameMap = spfTexturesMap;
-        this._imageLayerSPF = imageLayerTextures;
-        this._spfSizeMap = textureSizes;
+    //     this._tsxContentMap = tsxBins;
+    //     this._spriteFrameMap = spfTexturesMap;
+    //     this._imageLayerSPF = imageLayerTextures;
+    //     this._spfSizeMap = textureSizes;
 
-        // this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
-        this._tilesets.length = 0;
-        this._layers.length = 0;
-        this._imageLayers.length = 0;
+    //     // this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
+    //     this._tilesets.length = 0;
+    //     this._layers.length = 0;
+    //     // this._imageLayers.length = 0;
 
-        this._objectGroups.length = 0;
-        this._allChildren.length = 0;
-        this.properties = {} as any;
-        this._tileProperties = new Map();
-        this._tileAnimations = new Map();
+    //     this._objectGroups.length = 0;
+    //     this._allChildren.length = 0;
+    //     this.properties = {} as any;
+    //     this._tileProperties = new Map();
+    //     // this._tileAnimations = new Map();
 
-        // tmp vars
-        this.currentString = '';
-        this.storingCharacters = false;
-        this.layerAttrs = TMXLayerInfo.ATTRIB_NONE;
-        // this.parentElement = null;
+    //     // tmp vars
+    //     this.currentString = '';
+    //     this.storingCharacters = false;
+    //     this.layerAttrs = TMXLayerInfo.ATTRIB_NONE;
+    //     // this.parentElement = null;
 
-        this.parseXMLString();
+    //     this.parseXMLString();
+    // }
+    constructor (tmxFile: string, tsxContentMap: { [key: string]: string }, spfTexturesMap: { [key: string]: SpriteFrame },
+        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
+        this.initWithXML(tmxFile, tsxContentMap, spfTexturesMap, textureSizes, imageLayerTextures);
     }
 
     /**
      * Gets the staggerAxis of map.
      * @return {TiledMap.StaggerAxis}
      */
-    getStaggerAxis (): bmap.StaggerAxis | null {
-        return this._bm.staggeraxis!;
-    }
+    // getStaggerAxis (): bmap.StaggerAxis | null {
+    //     return this._bm.staggeraxis!;
+    // }
 
     /**
      * Gets stagger index
      * @return {TiledMap.StaggerIndex}
      */
-    getStaggerIndex (): bmap.StaggerIndex | null {
-        return this._bm.staggerindex!;
-    }
+    // getStaggerIndex (): bmap.StaggerIndex | null {
+    //     return this._bm.staggerindex!;
+    // }
 
     /**
      * Gets Hex side length.
      * @return {Number}
      */
-    getHexSideLength (): number {
-        return this._bm.hexsidelength!;
-    }
+    // getHexSideLength (): number {
+    //     return this._bm.hexsidelength!;
+    // }
 
-    /**
-     * Map width & height
-     * @return {Size}
-     */
+
     getMapSize (): Size {
         return new Size(this._mapSize.width, this._mapSize.height);
+    }
+    setMapSize (t) {
+        (this._mapSize.width = t.width),
+            (this._mapSize.height = t.height);
     }
 
     // get mapWidth (): number {
@@ -290,7 +298,6 @@ export class TMXMapInfo {
     // set mapWidth (width: number) {
     //     this._mapSize.width = width;
     // }
-
     // get mapHeight (): number {
     //     return this._mapSize.height;
     // }
@@ -298,45 +305,33 @@ export class TMXMapInfo {
     //     this._mapSize.height = height;
     // }
 
-    /**
-     * Tiles width & height
-     * @return {Size}
-     */
+
     getTileSize (): Size {
         return new Size(this._tileSize.width, this._tileSize.height);
+    }
+    setTileSize (t) {
+        (this._tileSize.width = t.width),
+            (this._tileSize.height = t.height);
     }
 
     // get tileWidth (): number {
     //     return this._tileSize.width;
     // }
-
     // set tileWidth (width) {
     //     this._tileSize.width = width;
     // }
 
-    /**
-     * Height of a tile
-     */
     // get tileHeight (): number {
     //     return this._tileSize.height;
     // }
-
     // set tileHeight (height: number) {
     //     this._tileSize.height = height;
     // }
 
-    /**
-     * Layers
-     * @return {Array}
-     */
+
     getLayers (): TMXLayerInfo[] {
         return this._layers;
     }
-
-    /**
-     * Layers
-     * @param {cc.TMXLayerInfo} value
-     */
     setLayers (value: TMXLayerInfo): void {
         this._allChildren.push(value);
         this._layers.push(value);
@@ -346,47 +341,31 @@ export class TMXMapInfo {
      * ImageLayers
      * @return {Array}
      */
-    getImageLayers (): TMXImageLayerInfo[] {
-        return this._imageLayers;
-    }
+    // getImageLayers (): TMXImageLayerInfo[] {
+    //     return this._imageLayers;
+    // }
 
     /**
      * ImageLayers
      * @param {cc.TMXImageLayerInfo} value
      */
-    setImageLayers (value: TMXImageLayerInfo): void {
-        this._allChildren.push(value);
-        this._imageLayers.push(value);
-    }
+    // setImageLayers (value: TMXImageLayerInfo): void {
+    //     this._allChildren.push(value);
+    //     this._imageLayers.push(value);
+    // }
 
-    /**
-     * tilesets
-     * @return {Array}
-     */
+
     getTilesets (): TMXTilesetInfo[] {
         return this._tilesets;
     }
-
-    /**
-     * tilesets
-     * @param {cc.TMXTilesetInfo} value
-     */
     setTilesets (value: TMXTilesetInfo): void {
         this._tilesets.push(value);
     }
 
-    /**
-     * ObjectGroups
-     * @return {Array}
-     */
+
     getObjectGroups (): TMXObjectGroupInfo[] {
         return this._objectGroups;
     }
-
-    /**
-     * ObjectGroups
-     * @param {cc.TMXObjectGroup} value
-     */
     setObjectGroups (value: TMXObjectGroupInfo): void {
         this._allChildren.push(value);
         this._objectGroups.push(value);
@@ -396,66 +375,42 @@ export class TMXMapInfo {
         return this._allChildren;
     }
 
-    /**
-     * parent GID
-     * @return {Number}
-     */
-    // getParentGID (): number {
-    //     return this.parentGID;
-    // }
 
-    /**
-     * parent GID
-     * @param {Number} value
-     */
-    // setParentGID (value): void {
-    //     this.parentGID = value;
-    // }
+    getParentElement () {
+        return this.parentElement;
+    }
+    setParentElement (t) {
+        this.parentElement = t;
+    }
 
-    /**
-     * Layer attribute
-     * @return {Object}
-     */
+
+    getParentGID (): number {
+        return this.parentGID;
+    }
+    setParentGID (value): void {
+        this.parentGID = value;
+    }
+
+
     getLayerAttribs (): number {
         return this.layerAttrs;
     }
-
-    /**
-     * Layer attribute
-     * @param {Object} value
-     */
     setLayerAttribs (value): void {
         this.layerAttrs = value;
     }
 
-    /**
-     * Is reading storing characters stream
-     * @return {Boolean}
-     */
-    // getStoringCharacters (): boolean {
-    //     return this.storingCharacters;
-    // }
 
-    /**
-     * Is reading storing characters stream
-     * @param {Boolean} value
-     */
-    // setStoringCharacters (value): void {
-    //     this.storingCharacters = value;
-    // }
+    getStoringCharacters (): boolean {
+        return this.storingCharacters;
+    }
+    setStoringCharacters (value): void {
+        this.storingCharacters = value;
+    }
 
-    /**
-     * Properties
-     * @return {Array}
-     */
+
     getProperties (): PropertiesInfo {
         return this.properties;
     }
-
-    /**
-     * Properties
-     * @param {object} value
-     */
     setProperties (value): void {
         this.properties = value;
     }
@@ -469,7 +424,6 @@ export class TMXMapInfo {
      */
     // initWithXML (spfTextureMap: { [key: string]: SpriteFrame },
     //     textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
-        
     // }
 
     /**
@@ -635,7 +589,7 @@ export class TMXMapInfo {
                     // const animation = animations[0];
                     // const framesData = animation.getElementsByTagName('frame');
                     const animationProp: TiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
-                    this._tileAnimations.set(pid, animationProp);
+                    // this._tileAnimations.set(pid, animationProp);
                     // this._tss!.tAT[source] =  this._tss!.tAT[source] || [];
                     // this._tss!.tAT[source].push(animationProp);
                     // const frames = animationProp.frames;
@@ -712,8 +666,8 @@ export class TMXMapInfo {
         else layer.opacity = 255;
         layer.offset = new Vec2(selLayer.offsetx, selLayer.offsety/*parseFloat(selLayer.getAttribute('offsetx')!) || 0, parseFloat(selLayer.getAttribute('offsety')!) || 0*/);
 
-        const tintColor = selLayer.tintcolor;//.getAttribute('tintcolor');
-        layer.tintColor = tintColor ? strToColor(tintColor) : null;
+        // const tintColor = selLayer.tintcolor;//.getAttribute('tintcolor');
+        // layer.tintColor = tintColor ? strToColor(tintColor) : null;
 
         let nodeValue = data!.bdata;//'';
         // for (let j = 0; j < data.childNodes.length; j++) {// 会有多个data节点吗？
@@ -903,17 +857,17 @@ export class TMXMapInfo {
      * Sets the tile animations.
      * @return {Object}
      */
-    setTileAnimations (animations: TiledAnimationType): void {
-        this._tileAnimations = animations;
-    }
+    // setTileAnimations (animations: TiledAnimationType): void {
+    //     this._tileAnimations = animations;
+    // }
 
     /**
      * Gets the tile animations.
      * @return {Object}
      */
-    getTileAnimations (): TiledAnimationType {
-        return this._tileAnimations;
-    }
+    // getTileAnimations (): TiledAnimationType {
+    //     return this._tileAnimations;
+    // }
 
     /**
      * Gets the tile properties.
