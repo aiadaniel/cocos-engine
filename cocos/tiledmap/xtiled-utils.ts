@@ -90,7 +90,7 @@ export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextur
             rotated: false,
             gid: gid as unknown as GID,
             spriteFrame: spf,
-            texture: tex,
+            // texture: tex,
         };
 
         tileset.rectForGID(gid as unknown as GID, grid);

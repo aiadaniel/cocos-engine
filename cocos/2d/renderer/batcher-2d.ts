@@ -129,7 +129,7 @@ export class Batcher2D implements IBatcher {
     constructor (private _root: Root) {
         this.device = _root.device;
         this._batches = new CachedArray(64);
-        this._drawBatchPool = new Pool(() => new DrawBatch2D(), 128, (obj) => obj.destroy(this));
+        this._drawBatchPool = new Pool(() => new DrawBatch2D(), 128, (obj) => obj.destroy(this));//todo 64
     }
 
     public initialize (): boolean {

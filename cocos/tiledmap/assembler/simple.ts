@@ -26,7 +26,7 @@ import { JSB } from 'internal:constants';
 import { Mat4, Size, Vec3 } from '../../core/math';
 import { IAssembler } from '../../2d/renderer/base';
 import { IBatcher } from '../../2d/renderer/i-batcher';
-import { TiledLayer, XTiledRenderData, TiledTile, TiledMap, bmap } from '..';
+import { TiledLayer, XTiledRenderData, TiledTile, TiledMap, bmap, TiledUserNodeData } from '..';
 import { GID, MixedGID, TiledGrid, TileFlag } from '../xtiled-types';
 import { director, Director } from '../../game';
 import { StaticVBAccessor } from '../../2d/renderer/static-vb-accessor';
@@ -54,10 +54,10 @@ let _uvc = { x: 0, y: 0 };
 let _uvd = { x: 0, y: 0 };
 
 let _vfOffset = 0;
-let _moveX = 0;
-let _moveY = 0;
-let YZr = 0;// t.leftDownToCenterX,
-let qZr = 0;//t.leftDownToCenterY,
+// let _moveX = 0;
+// let _moveY = 0;
+let _moveX = 0;// t.leftDownToCenterX,
+let _moveY = 0;//t.leftDownToCenterY,
 
 let e$r = 0;
 let h$r = 0;
@@ -67,19 +67,23 @@ let r$r = 0;
 
 let t$r: SpriteFrame | TextureBase | null;
 
+let KZr = 0;
 let zZr: any[] = [];
 
 let _fillCount = 0;
 let _curTexture : Texture2D | null = null;
 let _tempBuffers : Float32Array;
-let _curLayer: TiledLayer;
-let i$r : TiledLayer|null;
-let $Zr : TiledMap | null;
+// let _curLayer: TiledLayer;
+let _curLayer : TiledLayer|null;
+
+let $Zr : TiledGrid | null;
+
 let o$r = {
     mat: null,
 };
+
 let s$r;
-let KZr = 0;
+
 
 let flipTexture: (grid: TiledGrid, gid: MixedGID) => void;
 
@@ -102,7 +106,7 @@ export const simple: IAssembler = {
     },
 
     createData (layer: TiledLayer) {
-        ($Zr = null),//TiledMap
+        ($Zr = null),//TiledGrid
             !(KZr = globalThis.multMat_maxUnits) ||
                 zZr ||
                 ((zZr = []), director.on(Director.EVENT_BEFORE_DRAW, FSr));
@@ -204,12 +208,12 @@ export const simple: IAssembler = {
         if (t.isUserNodeDirty()) {
             var i, n, r;
             switch (
-                ((YZr = t.leftDownToCenterX),
-                (qZr = t.leftDownToCenterY),
+                ((_moveX = t.leftDownToCenterX),
+                (_moveY = t.leftDownToCenterY),
                 (n = (r = t.cullingRect).leftDown),
                 (i = r.rightTop),
                 t.destroyRenderData(),
-                (i$r = t).renderOrder)
+                (_curLayer = t).renderOrder)
             ) {
                 case bmap.RenderOrder.RightDown:
                     traverseGrids(n, i, -1, 1, t);
@@ -223,7 +227,10 @@ export const simple: IAssembler = {
                 default:
                     traverseGrids(n, i, 1, -1, t);
             }
-            (i$r = null), t.setUserNodeDirty(!1);
+            (_curLayer = null), t.setUserNodeDirty(!1);
+            if (JSB) {
+                t.prepareDrawData();
+            }
         }
     },
 
@@ -603,256 +610,264 @@ b     c
 //     }
 //     packRenderData();
 // }
-function traverseGrids (t, i, n, r, e: TiledLayer): void {
-        var h, o, u, a, c, f, l, v, d, _, p, w, A, m, E, T, g, S, M, C, R, y, I, b, O, P, D; 
-        if ( (
-            (r$r = 0), 
-            e.tiledMapCurr?.clear && ((e.tiledMapCurr = {}), (e.tiledMapPool = {})), 
-            (c = e.isGroundLayer), 
-            (w = (f = e.node.worldPosition).x), 
-            (E = f.y), 
-            (p = e.texGrids), 
-            (A = e.tiles), 
-            (y = e.vertices), 
-            (S = e.hasUserNode), 
-            (O = e.downRow), 
-            (d = 0 != (null == (D = e._offset) ? void 0 : D.y) ? 1 : 0), 
+function traverseGrids(leftDown:{col:number,row:number}, rightTop:{col:number,row:number}, rowMoveDir:number, colMoveDir:number, _tiledLayer: TiledLayer) {
+        var col, cols, row, rows, u, a, d, T, gid, C, b, P; 
+        let _tiledGrid: TiledGrid | undefined;
+        (r$r = 0), 
+            _tiledLayer.tiledMapCurr?.clear && ((_tiledLayer.tiledMapCurr = {}), (_tiledLayer.tiledMapPool = {})), 
+            (d = 0 != (null == _tiledLayer._offset ? void 0 : _tiledLayer._offset!.y) ? 1 : 0), 
             (C = 0), 
-            (v = -1 === n ? ((_ = i.row + d), t.row - O + d) : ((_ = t.row - O + d), i.row + d)), 
-            (I = ( 1 === r ? ((o = t.col), i) : ((o = i.col), t) ).col), 
-            (R = 0), 
-            S) ) 
-            for (var B = i.row + e.nodeDownRow; B > i.row; --B) 
-                QTr(e.getSorttedNodesByRow(B)); 
-            for (; 0 <= (v - _) * n; _ += n) { 
-                if ((m = y[_])) 
-                    for (R = o; R <= I; R += r) 
-                        if ((M = m[R])) { 
-                            var L, N, F, U, k, G, V, H, W, j, X, z, Y, q, Q, J; 
-                            if (0 == (g = A[M.index])) 
+            (rows = -1 === rowMoveDir ? 
+                ((row = rightTop.row + d), leftDown.row - _tiledLayer.downRow + d) : 
+                ((row = leftDown.row - _tiledLayer.downRow + d), rightTop.row + d)), 
+            (cols = ( 1 === colMoveDir ? 
+                ((col = leftDown.col), rightTop) : 
+                ((col = rightTop.col), leftDown) ).col);
+        if (_tiledLayer.hasUserNode) 
+            for (var B = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) 
+                QTr(_tiledLayer.getSorttedNodesByRow(B)); 
+        for (; 0 <= (rows - row) * rowMoveDir; row += rowMoveDir) { 
+            const rowData = _tiledLayer.vertices[row];
+            if (rowData) {
+                for (var R = col; R <= cols; R += colMoveDir) {
+                    const colData = rowData[R];
+                    if (colData) { 
+                        let L, N, F, U, k, G, V, H, W, j, X, z, Y, q, J; 
+                        let Q: TextureBase | undefined;
+                        gid = _tiledLayer.tiles[colData.index]
+                        if (0 == gid) 
+                            continue; 
+                        _tiledGrid = _tiledLayer.texGrids!.get((gid & TileFlag.FLIPPED_MASK) >>> 0);
+                        if ( !_tiledGrid )
+                            continue; 
+                        if ( !(Q = null == _tiledGrid.spriteFrame ? void 0 : _tiledGrid.spriteFrame.texture) ) { 
+                            _tiledLayer.loadTileMapImage(_tiledGrid.tileset, _tiledLayer.texGrids, _tiledLayer.hasUserNode);
+                            if (!$Zr) 
                                 continue; 
-                            if ( !(l = p.get((g & TileFlag.FLIPPED_MASK) >>> 0)) ) //vZr
-                                continue; 
-                            if ( !(Q = null == (h = l.spriteFrame) ? void 0 : h.texture) ) { 
-                                if ((e.loadTileMapImage(l.tileset, p, S), !$Zr)) 
-                                    continue; 
-                                (Q = $Zr.spriteFrame.texture), 
-                                (l = $Zr); 
-                            } 
-                            if ( (t$r !== Q && 
-                                (!S && KZr 
-                                    ? (C == KZr - 1 && (ySr(!1), FSr()), 
-                                        (C = (function (t) { 
-                                            var i, n; 
-                                            return ( (n = t.getId()), 
-                                                null != (i = s$r[n]) ? i : ((zZr[ e$r ] = t), ((s$r = e$r % KZr == 0 ? {} : s$r)[ n ] = e$r++)) 
-                                            ); 
-                                        })(Q))) 
-                                    : ySr(!0), (t$r = Q), c) && ($Zr = l), 
-                                (q = 10000 * _ + R), 
-                                (L = e.tiledMapCurr), 
-                                (Y = e.tiledMapPool), 
-                                !(X = L[q]) && Y[q] && ((X = Y[q]), (L[q] = X), (Y[q] = null), delete Y[q]), 
-                                X) ) { 
-                                    X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
-                                    (n$r[r$r++] = q); 
-                                    continue; 
-                                } 
-                                for (z in Y) { 
-                                    (X = Y[z]), 
-                                    (Y[z] = null), 
-                                    delete Y[z]; 
-                                    break; 
-                                } 
-                                if ( ((X = X || new Float32Array(36)), 
-                                    (L[q] = X), 
-                                    (n$r[r$r++] = q), 
-                                    (T = l.tileset._tileSize), 
-                                    (a = w + M.left - YZr), 
-                                    (u = E + M.bottom - qZr), 
-                                    (b = a + T.width), 
-                                    (P = u + T.height), 
-                                    (X[0] = a), 
-                                    (X[1] = P), 
-                                    (X[9] = a), 
-                                    (X[10] = u), 
-                                    (X[18] = b), 
-                                    (X[19] = P), 
-                                    (X[27] = b), 
-                                    (X[28] = u), 
-                                    X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
-                                    1 != X[8]) ) 
-                                    for ( var Z = 5; Z < 36; Z += 5 ) 
-                                        (X[Z++] = 1), 
-                                        (X[Z++] = 1), 
-                                        (X[Z++] = 1), 
-                                        (X[Z++] = 1); 
-                                        (V = (F = l).r), 
-                                        (J = F.t), 
-                                        (U = j = F.l), 
-                                        (N = k = F.b), 
-                                        (W = V), 
-                                        (H = J), 
-                                        (G = void 0), 
-                                        (g & TileFlag.HORIZONTAL) >>> 0 && (
-                                            (G = j), 
-                                            (j = W), 
-                                            (W = G), 
-                                            (G = J), 
-                                            (J = H), 
-                                            (H = G), 
-                                            (G = U), 
-                                            (U = V), 
-                                            (V = G), 
-                                            (G = N), 
-                                            (N = k), 
-                                            (k = G)), 
-                                        (g & TileFlag.VERTICAL) >>> 0 && (
-                                            (G = j), 
-                                            (j = U), 
-                                            (U = G), 
-                                            (G = J), 
-                                            (J = N), 
-                                            (N = G), 
-                                            (G = W), 
-                                            (W = V), 
-                                            (V = G), 
-                                            (G = H), 
-                                            (H = k), 
-                                            (k = G)), 
-                                        l._rotated ? (
-                                                (X[3] = W), 
-                                                (X[4] = H), 
-                                                (X[12] = j), 
-                                                (X[13] = J), 
-                                                (X[21] = V), 
-                                                (X[22] = k), 
-                                                (X[30] = U), 
-                                                (X[31] = N)) 
-                                            : 
-                                            (
-                                                (X[3] = j), 
-                                                (X[4] = J), 
-                                                (X[12] = U), 
-                                                (X[13] = N), 
-                                                (X[21] = W), 
-                                                (X[22] = H), 
-                                                (X[30] = V), 
-                                                (X[31] = k)); 
+                            (Q = $Zr.spriteFrame.texture), 
+                            (_tiledGrid = $Zr); 
                         } 
-                S && QTr(e.getSorttedNodesByRow(_, !0)); 
-            } 
-            if (S) 
-                for ( 
-                    var $ = t.row - O - 1, 
-                        tt = t.row - e.nodeUpRow; 
-                    tt < $; --$ ) 
-                    QTr(e.getSorttedNodesByRow($)); 
-            ySr(S); 
+                        if (t$r !== Q) {
+                            if (!_tiledLayer.hasUserNode && KZr ) {
+                                (C == KZr - 1 && (ySr(!1), FSr()), 
+                                (C = (function (t) { 
+                                    var i, n; 
+                                    return ( (n = t.getId()), 
+                                        null != (i = s$r[n]) ? i : ((zZr[ e$r ] = t), ((s$r = e$r % KZr == 0 ? {} : s$r)[ n ] = e$r++)) 
+                                    ); 
+                                })(Q))) 
+                            } else {
+                                ySr(!0);
+                            } 
+                            (t$r = Q), 
+                            (_tiledLayer.isGroundLayer) && ($Zr = _tiledGrid);
+                        }
+                        (q = 10000 * row + R), 
+                        (L = _tiledLayer.tiledMapCurr), 
+                        (Y = _tiledLayer.tiledMapPool), 
+                        !(X = L[q]) && Y[q] && ((X = Y[q]), (L[q] = X), (Y[q] = null), delete Y[q]);
+                        if ( X ) { 
+                                X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
+                                (n$r[r$r++] = q); 
+                                continue; 
+                            } 
+                            for (z in Y) { 
+                                (X = Y[z]), 
+                                (Y[z] = null), 
+                                delete Y[z]; 
+                                break; 
+                            } 
+                            if ( ((X = X || new Float32Array(36)), 
+                                (L[q] = X), 
+                                (n$r[r$r++] = q), 
+                                (T = _tiledGrid.tileset._tileSize), 
+                                (a = _tiledLayer.node.worldPosition.x + colData.left - _moveX), 
+                                (u = _tiledLayer.node.worldPosition.y + colData.bottom - _moveY), 
+                                (b = a + T.width), 
+                                (P = u + T.height), 
+                                (X[0] = a), 
+                                (X[1] = P), 
+                                (X[9] = a), 
+                                (X[10] = u), 
+                                (X[18] = b), 
+                                (X[19] = P), 
+                                (X[27] = b), 
+                                (X[28] = u), 
+                                X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
+                                1 != X[8]) ) 
+                                for ( var Z = 5; Z < 36; Z += 5 ) 
+                                    (X[Z++] = 1), 
+                                    (X[Z++] = 1), 
+                                    (X[Z++] = 1), 
+                                    (X[Z++] = 1); 
+                                    (V = (F = _tiledGrid).r), 
+                                    (J = F.t), 
+                                    (U = j = F.l), 
+                                    (N = k = F.b), 
+                                    (W = V), 
+                                    (H = J), 
+                                    (G = void 0), 
+                                    (gid & TileFlag.HORIZONTAL) >>> 0 && (
+                                        (G = j), 
+                                        (j = W), 
+                                        (W = G), 
+                                        (G = J), 
+                                        (J = H), 
+                                        (H = G), 
+                                        (G = U), 
+                                        (U = V), 
+                                        (V = G), 
+                                        (G = N), 
+                                        (N = k), 
+                                        (k = G)), 
+                                    (gid & TileFlag.VERTICAL) >>> 0 && (
+                                        (G = j), 
+                                        (j = U), 
+                                        (U = G), 
+                                        (G = J), 
+                                        (J = N), 
+                                        (N = G), 
+                                        (G = W), 
+                                        (W = V), 
+                                        (V = G), 
+                                        (G = H), 
+                                        (H = k), 
+                                        (k = G)), 
+                                    _tiledGrid._rotated ? (
+                                            (X[3] = W), 
+                                            (X[4] = H), 
+                                            (X[12] = j), 
+                                            (X[13] = J), 
+                                            (X[21] = V), 
+                                            (X[22] = k), 
+                                            (X[30] = U), 
+                                            (X[31] = N)) 
+                                        : 
+                                        (
+                                            (X[3] = j), 
+                                            (X[4] = J), 
+                                            (X[12] = U), 
+                                            (X[13] = N), 
+                                            (X[21] = W), 
+                                            (X[22] = H), 
+                                            (X[30] = V), 
+                                            (X[31] = k)); 
+                    } 
+                }
+            }
+            _tiledLayer.hasUserNode && QTr(_tiledLayer.getSorttedNodesByRow(row, !0)); 
+        } 
+        if (_tiledLayer.hasUserNode) 
+            for ( 
+                var $ = leftDown.row - _tiledLayer.downRow - 1, 
+                    tt = leftDown.row - _tiledLayer.nodeUpRow; 
+                tt < $; --$ ) 
+                QTr(_tiledLayer.getSorttedNodesByRow($)); 
+        ySr(_tiledLayer.hasUserNode); 
     }
 
-function fillByTiledNode (tiledNode: Node, color: Float32Array, vbuf: Float32Array,
-    left: number, right: number, top: number, bottom: number, diamondTile: boolean): void {
-    const vertStep = 9;
-    const vertStep2 = vertStep * 2;
-    const vertStep3 = vertStep * 3;
+// function fillByTiledNode (tiledNode: Node, color: Float32Array, vbuf: Float32Array,
+//     left: number, right: number, top: number, bottom: number, diamondTile: boolean): void {
+//     const vertStep = 9;
+//     const vertStep2 = vertStep * 2;
+//     const vertStep3 = vertStep * 3;
 
-    tiledNode.updateWorldTransform();
-    Mat4.fromRTS(_mat4_temp, tiledNode.rotation, tiledNode.position, tiledNode.scale);
-    Vec3.set(_vec3u_temp, -(left + _moveX), -(bottom + _moveY), 0);
-    Mat4.transform(_mat4_temp, _mat4_temp, _vec3u_temp);
-    Mat4.multiply(_mat4_temp, tiledNode.parent!.worldMatrix, _mat4_temp);
+//     tiledNode.updateWorldTransform();
+//     Mat4.fromRTS(_mat4_temp, tiledNode.rotation, tiledNode.position, tiledNode.scale);
+//     Vec3.set(_vec3u_temp, -(left + _moveX), -(bottom + _moveY), 0);
+//     Mat4.transform(_mat4_temp, _mat4_temp, _vec3u_temp);
+//     Mat4.multiply(_mat4_temp, tiledNode.parent!.worldMatrix, _mat4_temp);
 
-    const m = _mat4_temp;
-    const tx = m.m12;
-    const ty = m.m13;
+//     const m = _mat4_temp;
+//     const tx = m.m12;
+//     const ty = m.m13;
 
-    const a = m.m00;
-    const b = m.m01;
-    const c = m.m04;
-    const d = m.m05;
+//     const a = m.m00;
+//     const b = m.m01;
+//     const c = m.m04;
+//     const d = m.m05;
 
-    const justTranslate = a === 1 && b === 0 && c === 0 && d === 1;
+//     const justTranslate = a === 1 && b === 0 && c === 0 && d === 1;
 
-    if (diamondTile) {
-        const centerX = (left + right) / 2;
-        const centerY = (top + bottom) / 2;
-        if (justTranslate) {
-            // ct
-            vbuf[_vfOffset] = centerX + tx;
-            vbuf[_vfOffset + 1] = top + ty;
+//     if (diamondTile) {
+//         const centerX = (left + right) / 2;
+//         const centerY = (top + bottom) / 2;
+//         if (justTranslate) {
+//             // ct
+//             vbuf[_vfOffset] = centerX + tx;
+//             vbuf[_vfOffset + 1] = top + ty;
 
-            // lc
-            vbuf[_vfOffset + vertStep] = left + tx;
-            vbuf[_vfOffset + vertStep + 1] = centerY + ty;
+//             // lc
+//             vbuf[_vfOffset + vertStep] = left + tx;
+//             vbuf[_vfOffset + vertStep + 1] = centerY + ty;
 
-            // rc
-            vbuf[_vfOffset + vertStep2] = right + tx;
-            vbuf[_vfOffset + vertStep2 + 1] = centerY + ty;
+//             // rc
+//             vbuf[_vfOffset + vertStep2] = right + tx;
+//             vbuf[_vfOffset + vertStep2 + 1] = centerY + ty;
 
-            // cb
-            vbuf[_vfOffset + vertStep3] = centerX + tx;
-            vbuf[_vfOffset + vertStep3 + 1] = bottom + ty;
-        } else {
-            // ct
-            vbuf[_vfOffset] = centerX * a + top * c + tx;
-            vbuf[_vfOffset + 1] = centerX * b + top * d + ty;
+//             // cb
+//             vbuf[_vfOffset + vertStep3] = centerX + tx;
+//             vbuf[_vfOffset + vertStep3 + 1] = bottom + ty;
+//         } else {
+//             // ct
+//             vbuf[_vfOffset] = centerX * a + top * c + tx;
+//             vbuf[_vfOffset + 1] = centerX * b + top * d + ty;
 
-            // lc
-            vbuf[_vfOffset + vertStep] = left * a + centerY * c + tx;
-            vbuf[_vfOffset + vertStep + 1] = left * b + centerY * d + ty;
+//             // lc
+//             vbuf[_vfOffset + vertStep] = left * a + centerY * c + tx;
+//             vbuf[_vfOffset + vertStep + 1] = left * b + centerY * d + ty;
 
-            // rc
-            vbuf[_vfOffset + vertStep2] = right * a + centerY * c + tx;
-            vbuf[_vfOffset + vertStep2 + 1] = right * b + centerY * d + ty;
+//             // rc
+//             vbuf[_vfOffset + vertStep2] = right * a + centerY * c + tx;
+//             vbuf[_vfOffset + vertStep2 + 1] = right * b + centerY * d + ty;
 
-            // cb
-            vbuf[_vfOffset + vertStep3] = centerX * a + bottom * c + tx;
-            vbuf[_vfOffset + vertStep3 + 1] = centerX * b + bottom * d + ty;
-        }
-    } else if (justTranslate) {
-        vbuf[_vfOffset] = left + tx;
-        vbuf[_vfOffset + 1] = top + ty;
+//             // cb
+//             vbuf[_vfOffset + vertStep3] = centerX * a + bottom * c + tx;
+//             vbuf[_vfOffset + vertStep3 + 1] = centerX * b + bottom * d + ty;
+//         }
+//     } else if (justTranslate) {
+//         vbuf[_vfOffset] = left + tx;
+//         vbuf[_vfOffset + 1] = top + ty;
 
-        vbuf[_vfOffset + vertStep] = left + tx;
-        vbuf[_vfOffset + vertStep + 1] = bottom + ty;
+//         vbuf[_vfOffset + vertStep] = left + tx;
+//         vbuf[_vfOffset + vertStep + 1] = bottom + ty;
 
-        vbuf[_vfOffset + vertStep2] = right + tx;
-        vbuf[_vfOffset + vertStep2 + 1] = top + ty;
+//         vbuf[_vfOffset + vertStep2] = right + tx;
+//         vbuf[_vfOffset + vertStep2 + 1] = top + ty;
 
-        vbuf[_vfOffset + vertStep3] = right + tx;
-        vbuf[_vfOffset + vertStep3 + 1] = bottom + ty;
-    } else {
-        // lt
-        vbuf[_vfOffset] = left * a + top * c + tx;
-        vbuf[_vfOffset + 1] = left * b + top * d + ty;
+//         vbuf[_vfOffset + vertStep3] = right + tx;
+//         vbuf[_vfOffset + vertStep3 + 1] = bottom + ty;
+//     } else {
+//         // lt
+//         vbuf[_vfOffset] = left * a + top * c + tx;
+//         vbuf[_vfOffset + 1] = left * b + top * d + ty;
 
-        // lb
-        vbuf[_vfOffset + vertStep] = left * a + bottom * c + tx;
-        vbuf[_vfOffset + vertStep + 1] = left * b + bottom * d + ty;
+//         // lb
+//         vbuf[_vfOffset + vertStep] = left * a + bottom * c + tx;
+//         vbuf[_vfOffset + vertStep + 1] = left * b + bottom * d + ty;
 
-        // rt
-        vbuf[_vfOffset + vertStep2] = right * a + top * c + tx;
-        vbuf[_vfOffset + vertStep2 + 1] = right * b + top * d + ty;
+//         // rt
+//         vbuf[_vfOffset + vertStep2] = right * a + top * c + tx;
+//         vbuf[_vfOffset + vertStep2 + 1] = right * b + top * d + ty;
 
-        // rb
-        vbuf[_vfOffset + vertStep3] = right * a + bottom * c + tx;
-        vbuf[_vfOffset + vertStep3 + 1] = right * b + bottom * d + ty;
-    }
+//         // rb
+//         vbuf[_vfOffset + vertStep3] = right * a + bottom * c + tx;
+//         vbuf[_vfOffset + vertStep3 + 1] = right * b + bottom * d + ty;
+//     }
 
-    vbuf.set(color, _vfOffset + 5);
-    vbuf.set(color, _vfOffset + vertStep + 5);
-    vbuf.set(color, _vfOffset + vertStep2 + 5);
-    vbuf.set(color, _vfOffset + vertStep3 + 5);
+//     vbuf.set(color, _vfOffset + 5);
+//     vbuf.set(color, _vfOffset + vertStep + 5);
+//     vbuf.set(color, _vfOffset + vertStep2 + 5);
+//     vbuf.set(color, _vfOffset + vertStep3 + 5);
+// }
+
+function QTr (t: TiledUserNodeData | null) {
+    t && (ySr(!0), _curLayer!.requestSubNodesData(t)); 
 }
-
-function QTr (t) {
-    t && (ySr(!0), i$r!.requestSubNodesData(t)); 
-}
-function ySr (t) { 
+function ySr (t: boolean) { 
     if (0 < r$r && t$r) { 
         var i:RenderData; 
-        (i = i$r!.requestTiledRenderData()).reuse(r$r), 
+        (i = _curLayer!.requestTiledRenderData()).reuse(r$r), 
         KZr ? (i.frame = t$r) : (i.updateTexture(t$r), i.updateHash()), 
         t || !KZr 
             ? 0 < e$r && FSr() 
@@ -861,7 +876,7 @@ function ySr (t) {
                 (h$r = e$r)
             ), 
         (t$r = null); 
-        for ( var n = i.chunk.vb, r = 0, s = i$r!.tiledMapCurr!, e = i$r!.tiledMapPool, h = 0; h < r$r; ++h ) 
+        for ( var n = i.chunk.vb, r = 0, s = _curLayer!.tiledMapCurr!, e = _curLayer!.tiledMapPool, h = 0; h < r$r; ++h ) 
             for (var o = s![n$r[h]], u = 0; u < 36; ++u) 
                 n[r++] = o[u]; 
         for (var a = 0; a < r$r; ++a) { 
@@ -870,13 +885,13 @@ function ySr (t) {
                 (s[c] = null), 
                 delete s[c]; 
         } 
-        (i$r!.tiledMapCurr = e), 
-        (i$r!.tiledMapPool = s), 
+        (_curLayer!.tiledMapCurr = e), 
+        (_curLayer!.tiledMapPool = s), 
         (r$r = 0); 
     } 
 }
 
-function FSr () { 
+function FSr () { //reset
     (o$r.mat = null), 
     0 < e$r && ((zZr.length = 0), (s$r = {}), (h$r = e$r = 0)); 
 }

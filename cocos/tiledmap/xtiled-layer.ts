@@ -91,14 +91,15 @@ export class TiledUserNodeData extends Component {
     isTiledNodeShow = !1;
     isFloor = !1;
 
-    unit = null;
+    node;
+    unit;
     _tiledLayer: TiledLayer|null;
     isStaticUnit = !1;
     renderData: RenderData|null;
-    loadRes = null;
-    onShow = null;
-    onHide = null;
-    onReset = null;
+    loadRes;
+    onShow;
+    onHide;
+    onReset;
 
     // _index = -1;
     // _row = -1;
@@ -106,7 +107,7 @@ export class TiledUserNodeData extends Component {
     // _tiledLayer: TiledLayer | null = null;
     constructor () {
         super();
-        // this.node = null;
+        this.node = null;
         this.unit = null;
         this._tiledLayer = null;
         this.isStaticUnit = !1;
@@ -165,7 +166,7 @@ export class TiledUserNodeData extends Component {
             (this.onShow = null),
             (this.onHide = null),
             (this.onReset = null),
-            // (this.node = null),
+            (this.node = null),
             (this.unit = null),
             (this._isNode = !0),
             (this.x = 0),
@@ -196,7 +197,7 @@ export class TiledUserNodeData extends Component {
     _userNodePosChange() {
         this._tiledLayer!._userNodePosChange(this);
     }
-    static chain() {
+    static chain(): TiledUserNodeData {
         var i = TiledUserNodeData.create();
         return (
             (i._isNode = !1),
@@ -237,19 +238,18 @@ export class TiledUserNodeData extends Component {
             t = t._prev!;
         t != this._prev && t.append(this);
     }
+}// TiledUserNodeData
 
-}
+// export interface TiledRenderData {
+//     renderData: RenderData | null;
+//     texture: Texture2D | null;
+// }
 
-export interface XTiledRenderData {
-    renderData: RenderData | null;
-    texture: Texture2D | null;
-}
+// interface TiledSubNodeData {
+//     subNodes: (null | TiledUserNodeData)[];
+// }
 
-interface XTiledSubNodeData {
-    subNodes: (null | TiledUserNodeData)[];
-}
-
- type TiledDataArray = (XTiledRenderData | XTiledSubNodeData)[];
+ type TiledDataArray = (RenderData|TiledUserNodeData|null)[]; // (TiledRenderData | TiledSubNodeData)[];
 
 /**
   * @en Render the TMX layer.
@@ -268,11 +268,11 @@ export class TiledLayer extends UIRenderer {
     // protected _userNodeMap: { [key: string]: TiledUserNodeData } = {};// [id] = node;
     protected _userNodeDirty = false;
     
-    topNodeHead = null;
+    topNodeHead: TiledUserNodeData | null = null;
     topNodeMap = {};
 
-    userNodeMap = {};
-    tiledMapCurr: TiledMap | undefined;
+    userNodeMap : { [key: string]: TiledUserNodeData } = {};// [id] = node;
+    tiledMapCurr;//: TiledMap | undefined;
     tiledMapPool;
     worldPosition;
     updateLayers;
@@ -343,7 +343,7 @@ export class TiledLayer extends UIRenderer {
     // 装备器根据cullingRect的左下右上 或者 直接 0，0和右上 的索引，从顶点数组拿出纹理网格的索引，再从texGrid拿纹理设置给renderData，同时设置其顶点数组
     // 实测这个顶点数据结构中的SafeRecord会把bottom一样的放在一起，相当于水平上相同的放一起，按left从左到右排列； 其key是col索引，(isometric)值从rows-1到rows+cols-2
     // vertex array
-    public vertices: SafeArray<{ minCol: number, maxCol: number } & SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
+    public vertices : SafeArray</*{ minCol: number, maxCol: number } & */SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
     // vertices dirty
     // protected _verticesDirty = true;
 
@@ -409,9 +409,9 @@ export class TiledLayer extends UIRenderer {
     // protected _vertexZvalue?: number;
     _offset?: Vec2;
 
-    protected _tiledDataArray;
+    protected _tiledDataArray!: TiledDataArray;
     _tiledDataLen = 0;
-    _tiledDataPool;
+    _tiledDataPool! : Array<RenderData|null>;
     _tiledDataPoolLen = 0;
     _drawNodePool = new Array();
     _drawNodePoolLen = 0;
@@ -419,7 +419,7 @@ export class TiledLayer extends UIRenderer {
 
     // protected _cameraNode?: Node;
 
-    get tiledDataArray (): TiledDataArray { return this._tiledDataArray; }
+    get tiledDataArray () : TiledDataArray { return this._tiledDataArray!; }
     get leftDownToCenterX (): number { return this._leftDownToCenterX; }
     get leftDownToCenterY (): number { return this._leftDownToCenterY; }
 
@@ -456,7 +456,7 @@ export class TiledLayer extends UIRenderer {
             0 <= t;
             t--
         )
-            this._tiledDataPool[t].clear();
+            this._tiledDataPool[t]!.clear();
     }
     loadTileMapImage (tileset, b, d) {}
     setTileMapImage (t, i, n) {
@@ -501,46 +501,43 @@ export class TiledLayer extends UIRenderer {
             })(t, i, n),
             this.updateLayers());
     }
-    getSorttedNodesByRow (t, i=false) {
+    getSorttedNodesByRow (t, i=false) : TiledUserNodeData | null {
         // void 0 === i && (i = !1);
         var n = (this.userNodeMap[t] =
                 this.userNodeMap[t] || TiledUserNodeData.chain()),
             r = n.first();
         if (r)
             for (
-                var s = this.showRect,
-                    e = s.x,
-                    h = s.y,
-                    o = s.width,
-                    u = s.height;
+                ;
                 null != (a = r) && a._isNode;
-
             ) {
                 var a,
                     c,
                     f,
                     l,
                     v,
-                    d = r._next;
-                r.x + r._right >= e &&
-                r.x - r._left <= o &&
-                r.y + r._up >= h &&
-                r.y - r._down <= u
-                    ? (r.isTiledNodeShow ||
-                          ((r.isTiledNodeShow = !0),
-                          r.loadRes && (r.loadRes(), (r.loadRes = null)),
-                          null == (c = (f = r).onShow)) || c.call(f),
+                    d = r!._next;
+                r!.x + r!._right >= this.showRect.x &&
+                r!.x - r!._left <= this.showRect.width &&
+                r!.y + r!._up >= this.showRect.y &&
+                r!.y - r!._down <= this.showRect.height
+                    ? (r!.isTiledNodeShow || (
+                        (r!.isTiledNodeShow = !0),
+                          r!.loadRes && (r!.loadRes(), (r!.loadRes = null)),
+                          null == (c = (f = r!).onShow)
+                        ) || c.call(f),
                       (i = !0))
-                    : r.isTiledNodeShow &&
-                      ((r.isTiledNodeShow = !1),
-                      null != (l = (v = r).onHide)) && l.call(v),
-                    r.loadRes &&
-                        r.x + r._right + 200 > e &&
-                        r.x - r._left - 200 < o &&
-                        r.y + r._up + 200 > h &&
-                        r.y - r._down - 200 < u &&
-                        (r.loadRes(), (r.loadRes = null)),
-                    (r = r._next || d);
+                    : r!.isTiledNodeShow && (
+                        (r!.isTiledNodeShow = !1),
+                        null != (l = (v = r!).onHide)
+                        ) && l.call(v),
+                r!.loadRes &&
+                        r!.x + r!._right + 200 > this.showRect.x &&
+                        r!.x - r!._left - 200 < this.showRect.width &&
+                        r!.y + r!._up + 200 > this.showRect.y &&
+                        r!.y - r!._down - 200 < this.showRect.height &&
+                        (r!.loadRes(), (r!.loadRes = null)),
+                (r = r!._next || d);
             }
         return i ? n : null;
     }
@@ -1793,7 +1790,7 @@ export class TiledLayer extends UIRenderer {
     }
 
     // <- traverseGrids <- updateRenderData
-    public requestSubNodesData (t)/*: XTiledSubNodeData*/ {
+    public requestSubNodesData (t : TiledUserNodeData)/*: XTiledSubNodeData*/ {
         // const arr = this._tiledDataArray as any[];
         // if (arr.length > 0) {
         //     if (arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
@@ -1819,13 +1816,15 @@ export class TiledLayer extends UIRenderer {
         // });
         // this._tiledDataArray.length = 0;
         // super.destroyRenderData();
-        for ( var t, i = 0; i < this._tiledDataLen; ++i )
-            this._tiledDataArray[i] instanceof RenderData &&
+        for ( var t, i = 0; i < this._tiledDataLen; ++i ) {
+            if (this._tiledDataArray[i] instanceof RenderData ) {
                 (this._tiledDataPoolLen == this._tiledDataPool.length &&
                     (this._tiledDataPool = fTr( this._tiledDataPool, this._tiledDataPoolLen )),
-                ((t = this._tiledDataArray[i]).frame = null),
+                ((t = this._tiledDataArray[i] as RenderData).frame = null),
                 (this._tiledDataPool[this._tiledDataPoolLen++] = t),
                 (this._tiledDataArray[i] = null));
+            }
+        }
         this._tiledDataLen = 0;
     }
 
@@ -1878,9 +1877,10 @@ export class TiledLayer extends UIRenderer {
                     r = this._tiledDataLen;
                 n < r;
                 ++n
-            )
+            ) {
                 ui.commitComp( this, i, i.frame, null, null ),
                     this._assembler!.fillBuffers( this._tiledDataArray[n] );
+            }
     }
 
     protected createRenderEntity (): RenderEntity {
@@ -1983,7 +1983,7 @@ export class TiledLayer extends UIRenderer {
                 i < n;
                 ++i
             ) {
-                var r = this._tiledDataArray[i]._next;
+                var r = this._tiledDataArray[i]!._next;
                 if (r)
                     for (; r._isNode; )
                         r.isTiledNodeShow &&
