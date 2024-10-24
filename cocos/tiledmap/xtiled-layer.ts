@@ -1872,7 +1872,7 @@ export class TiledLayer extends UIRenderer {
         // this.node._static = true;
         if (!this.hasUserNode && 0 < this._tiledDataLen)
             for (
-                var i = this._tiledDataArray[0],
+                var i = this._tiledDataArray[0] as RenderData,// todo
                     n = 0,
                     r = this._tiledDataLen;
                 n < r;
@@ -1983,20 +1983,20 @@ export class TiledLayer extends UIRenderer {
                 i < n;
                 ++i
             ) {
-                var r = this._tiledDataArray[i]!._next;
+                var r = (this._tiledDataArray[i]! as TiledUserNodeData)._next;
                 if (r)
-                    for (; r._isNode; )
-                        r.isTiledNodeShow &&
-                            r.isActive &&
-                            (r.renderData
-                                ? r.isFloor
-                                    ? this.addDrawInfo( r.renderData )
-                                    : (Bar[ K6n++ ] = r.renderData)
-                                : r.node &&
-                                    (r.isFloor
-                                        ? this.addDrawNode( r.node )
+                    for (; r!._isNode; )
+                        r!.isTiledNodeShow &&
+                            r!.isActive &&
+                            (r!.renderData
+                                ? r!.isFloor
+                                    ? this.addDrawInfo( r!.renderData )
+                                    : (Bar[ K6n++ ] = r!.renderData)
+                                : r!.node &&
+                                    (r!.isFloor
+                                        ? this.addDrawNode( r!.node )
                                         : (Bar[ K6n++ ] = r))),
-                            (r = r._next);
+                            (r = r!._next);
                 else
                     Bar[K6n++] = this._tiledDataArray[i];
             }

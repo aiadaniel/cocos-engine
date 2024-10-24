@@ -74,7 +74,7 @@ const m4_2 = new Mat4();
 const dirtyNodes: any[] = [];
 
 const reserveContentsForAllSyncablePrefabTag = Symbol('ReserveContentsForAllSyncablePrefab');
-let globalFlagChangeVersion = 0;
+// let globalFlagChangeVersion = 0;
 
 /**
  * @zh
@@ -1528,8 +1528,16 @@ export class Node extends CCObject implements ISchedulable, CustomSerializable {
     protected _transformFlags = TransformBit.TRS; // does the world transform need to update?
     protected _eulerDirty = false;
 
-    protected _flagChangeVersion = 0;
+    //protected _flagChangeVersion = 0;
     protected _hasChangedFlags = 0;
+
+    _visible = true;//lxm add
+    isVisible () {
+        return this._visible;
+    }
+    setVisible (t) {
+        this._visible = t;
+    }
 
     constructor (name?: string) {
         super(name);
@@ -1761,20 +1769,20 @@ export class Node extends CCObject implements ISchedulable, CustomSerializable {
      * @engineInternal
      * @internal
      */
-    get flagChangedVersion (): number {
-        return this._flagChangeVersion;
-    }
+    // get flagChangedVersion (): number {
+    //     return this._flagChangeVersion;
+    // }
 
     /**
      * @en Whether the node's transformation have changed during the current frame.
      * @zh 这个节点的空间变换信息在当前帧内是否有变过？
      */
     get hasChangedFlags (): number {
-        return this._flagChangeVersion === globalFlagChangeVersion ? this._hasChangedFlags : 0;
+        return this._hasChangedFlags;//this._flagChangeVersion === globalFlagChangeVersion ? this._hasChangedFlags : 0;
     }
 
     set hasChangedFlags (val: number) {
-        this._flagChangeVersion = globalFlagChangeVersion;
+        // this._flagChangeVersion = globalFlagChangeVersion;
         this._hasChangedFlags = val;
     }
 
@@ -1883,6 +1891,7 @@ export class Node extends CCObject implements ISchedulable, CustomSerializable {
      */
     public _onBatchCreated (dontSyncChildPrefab: boolean): void {
         this.hasChangedFlags = TransformBit.TRS;
+        this._transformFlags |= TransformBit.TRS;//lxm add
         const len = this._children.length;
         for (let i = 0; i < len; ++i) {
             this._children[i]._siblingIndex = i;
@@ -2590,7 +2599,7 @@ export class Node extends CCObject implements ISchedulable, CustomSerializable {
      * 清除所有节点的脏标记。
      */
     public static resetHasChangedFlags (): void {
-        globalFlagChangeVersion += 1;
+        // globalFlagChangeVersion += 1;// lxm change
     }
 
     /**
