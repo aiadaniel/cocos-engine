@@ -132,6 +132,15 @@ export class Batcher2D implements IBatcher {
         this._batches = new CachedArray(64);
         this._drawBatchPool = new Pool(() => new DrawBatch2D(), 128, (obj) => obj.destroy(this));//todo 64
     }
+    // setupStaticBatch(staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor) {
+    //     throw new Error('Method not implemented.');
+    // }
+    // endStaticBatch() {
+    //     throw new Error('Method not implemented.');
+    // }
+    // commitStaticBatch(comp: UIStaticBatch) {
+    //     throw new Error('Method not implemented.');
+    // }
 
     public initialize (): boolean {
         return true;
@@ -470,37 +479,37 @@ export class Batcher2D implements IBatcher {
      * @param [transform] - The related node transform if the render data is based on node's local coordinates
      * @deprecated since v3.6.2, please use [[commitMiddleware]] instead
      */
-    public commitIA (renderComp: UIRenderer, ia: InputAssembler, tex?: TextureBase, mat?: Material, transform?: Node): void {
-        // if the last comp is spriteComp, previous comps should be batched.
-        if (this._currMaterial !== this._emptyMaterial) {
-            this.autoMergeBatches(this._currComponent!);
-            this.resetRenderStates();
-        }
-        let depthStencil;
-        let dssHash = 0;
-        if (renderComp) {
-            renderComp.stencilStage = StencilManager.sharedManager!.stage;
-            if (renderComp.customMaterial !== null) {
-                depthStencil = StencilManager.sharedManager!.getStencilStage(renderComp.stencilStage, mat);
-            } else {
-                depthStencil = StencilManager.sharedManager!.getStencilStage(renderComp.stencilStage);
-            }
-            dssHash = StencilManager.sharedManager!.getStencilHash(renderComp.stencilStage);
-        }
+    // public commitIA (renderComp: UIRenderer, ia: InputAssembler, tex?: TextureBase, mat?: Material, transform?: Node): void {
+    //     // if the last comp is spriteComp, previous comps should be batched.
+    //     if (this._currMaterial !== this._emptyMaterial) {
+    //         this.autoMergeBatches(this._currComponent!);
+    //         this.resetRenderStates();
+    //     }
+    //     let depthStencil;
+    //     let dssHash = 0;
+    //     if (renderComp) {
+    //         renderComp.stencilStage = StencilManager.sharedManager!.stage;
+    //         if (renderComp.customMaterial !== null) {
+    //             depthStencil = StencilManager.sharedManager!.getStencilStage(renderComp.stencilStage, mat);
+    //         } else {
+    //             depthStencil = StencilManager.sharedManager!.getStencilStage(renderComp.stencilStage);
+    //         }
+    //         dssHash = StencilManager.sharedManager!.getStencilHash(renderComp.stencilStage);
+    //     }
 
-        const curDrawBatch = this._currStaticRoot ? this._currStaticRoot._requireDrawBatch() : this._drawBatchPool.alloc();
-        curDrawBatch.visFlags = renderComp.node.layer;
-        curDrawBatch.inputAssembler = ia;
-        curDrawBatch.useLocalData = transform || null;
-        if (tex) {
-            curDrawBatch.texture = tex.getGFXTexture();
-            curDrawBatch.sampler = tex.getGFXSampler();
-            curDrawBatch.textureHash = tex.getHash();
-            curDrawBatch.samplerHash = curDrawBatch.sampler.hash;
-        }
-        curDrawBatch.fillPasses(mat || null, depthStencil, dssHash, null);
-        this._batches.push(curDrawBatch);
-    }
+    //     const curDrawBatch = this._currStaticRoot ? this._currStaticRoot._requireDrawBatch() : this._drawBatchPool.alloc();
+    //     curDrawBatch.visFlags = renderComp.node.layer;
+    //     curDrawBatch.inputAssembler = ia;
+    //     curDrawBatch.useLocalData = transform || null;
+    //     if (tex) {
+    //         curDrawBatch.texture = tex.getGFXTexture();
+    //         curDrawBatch.sampler = tex.getGFXSampler();
+    //         curDrawBatch.textureHash = tex.getHash();
+    //         curDrawBatch.samplerHash = curDrawBatch.sampler.hash;
+    //     }
+    //     curDrawBatch.fillPasses(mat || null, depthStencil, dssHash, null);
+    //     this._batches.push(curDrawBatch);
+    // }
 
     /**
      * @en
@@ -614,19 +623,19 @@ export class Batcher2D implements IBatcher {
         }
     }
 
-    public setupStaticBatch (staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor): void {
-        this.finishMergeBatches();
-        this._staticVBBuffer = bufferAccessor;
-        this.currStaticRoot = staticComp;
-    }
+    // public setupStaticBatch (staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor): void {
+    //     this.finishMergeBatches();
+    //     this._staticVBBuffer = bufferAccessor;
+    //     this.currStaticRoot = staticComp;
+    // }
 
-    public endStaticBatch (): void {
-        this.finishMergeBatches();
-        this.currStaticRoot = null;
-        // Clear linear buffer to switch to the correct internal accessor
-        this._staticVBBuffer = null;
-        this.switchBufferAccessor();
-    }
+    // public endStaticBatch (): void {
+    //     this.finishMergeBatches();
+    //     this.currStaticRoot = null;
+    //     // Clear linear buffer to switch to the correct internal accessor
+    //     this._staticVBBuffer = null;
+    //     this.switchBufferAccessor();
+    // }
 
     /**
      * @en
@@ -638,10 +647,10 @@ export class Batcher2D implements IBatcher {
      * @param comp @en The UIStaticBatch component.
      *             @zh 静态组件
      */
-    public commitStaticBatch (comp: UIStaticBatch): void {
-        this._batches.concat(comp.drawBatchList);
-        this.finishMergeBatches();
-    }
+    // public commitStaticBatch (comp: UIStaticBatch): void {
+    //     this._batches.concat(comp.drawBatchList);
+    //     this.finishMergeBatches();
+    // }
 
     // lxm change
     /**
@@ -760,22 +769,22 @@ export class Batcher2D implements IBatcher {
      * @param sprite @en Sprite frame of current batch.
      *               @zh 当前批次的精灵帧。
      */
-    public forceMergeBatches (material: Material, frame: TextureBase | SpriteFrame | null, renderComp: UIRenderer): void {
-        this._currMaterial = material;
+    // public forceMergeBatches (material: Material, frame: TextureBase | SpriteFrame | null, renderComp: UIRenderer): void {
+    //     this._currMaterial = material;
 
-        if (frame) {
-            this._currTexture = frame.getGFXTexture();
-            this._currSampler = frame.getGFXSampler();
-            this._currTextureHash = frame.getHash();
-            this._currSamplerHash = this._currSampler.hash;
-        } else {
-            this._currTexture = this._currSampler = null;
-            this._currTextureHash = this._currSamplerHash = 0;
-        }
-        this._currLayer = renderComp.node.layer;
+    //     if (frame) {
+    //         this._currTexture = frame.getGFXTexture();
+    //         this._currSampler = frame.getGFXSampler();
+    //         this._currTextureHash = frame.getHash();
+    //         this._currSamplerHash = this._currSampler.hash;
+    //     } else {
+    //         this._currTexture = this._currSampler = null;
+    //         this._currTextureHash = this._currSamplerHash = 0;
+    //     }
+    //     this._currLayer = renderComp.node.layer;
 
-        this.autoMergeBatches(renderComp);
-    }
+    //     this.autoMergeBatches(renderComp);
+    // }
 
     public resetRenderStates (): void {
         this._currMaterial = this._emptyMaterial;
@@ -795,10 +804,10 @@ export class Batcher2D implements IBatcher {
      * @zh
      * 强制合并上一个批次的数据，开启新一轮合批。
      */
-    public finishMergeBatches (): void {
-        this.autoMergeBatches();
-        this.resetRenderStates();
-    }
+    // public finishMergeBatches (): void {
+    //     this.autoMergeBatches();
+    //     this.resetRenderStates();
+    // }
 
     /**
      * @en
@@ -807,9 +816,9 @@ export class Batcher2D implements IBatcher {
      * @zh
      * 强制刷新材质。
      */
-    public flushMaterial (mat: Material): void {
-        this._currMaterial = mat;
-    }
+    // public flushMaterial (mat: Material): void {
+    //     this._currMaterial = mat;
+    // }
     // lxm change   
     public walk (t: Node /*node: Node, level = 0*/): void {
         // if (!node.activeInHierarchy) {
@@ -965,13 +974,13 @@ export class Batcher2D implements IBatcher {
     }
 
     // TODO: Not a good way to do the job
-    private _releaseDescriptorSetCache (textureHash, sampler = null!): void {
-        if (JSB) {
-            this._nativeObj.releaseDescriptorSetCache(textureHash, sampler);
-        } else {
-            this._descriptorSetCache.releaseDescriptorSetCache(textureHash);
-        }
-    }
+    // private _releaseDescriptorSetCache (textureHash, sampler = null!): void {
+    //     if (JSB) {
+    //         this._nativeObj.releaseDescriptorSetCache(textureHash, sampler);
+    //     } else {
+    //         this._descriptorSetCache.releaseDescriptorSetCache(textureHash);
+    //     }
+    // }
 
     // Mask use
     private _createClearModel (): void {

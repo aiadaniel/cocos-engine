@@ -26,7 +26,7 @@ import { JSB } from 'internal:constants';
 import { Mat4, Size, Vec3 } from '../../core/math';
 import { IAssembler } from '../../2d/renderer/base';
 import { IBatcher } from '../../2d/renderer/i-batcher';
-import { TiledLayer, XTiledRenderData, TiledTile, TiledMap, bmap, TiledUserNodeData } from '..';
+import { TiledLayer, TiledTile, TiledMap, bmap, TiledUserNodeData } from '..';
 import { GID, MixedGID, TiledGrid, TileFlag } from '../xtiled-types';
 import { director, Director } from '../../game';
 import { StaticVBAccessor } from '../../2d/renderer/static-vb-accessor';
@@ -54,31 +54,29 @@ let _uvc = { x: 0, y: 0 };
 let _uvd = { x: 0, y: 0 };
 
 let _vfOffset = 0;
-// let _moveX = 0;
-// let _moveY = 0;
-let _moveX = 0;// t.leftDownToCenterX,
-let _moveY = 0;//t.leftDownToCenterY,
+let _moveX = 0;
+let _moveY = 0;
 
-let e$r = 0;
-let h$r = 0;
+let textureEnd = 0;
+let textureStart = 0;
 
 let n$r = new Array(300);
-let r$r = 0;
+let _fillCount = 0;
 
-let t$r: SpriteFrame | TextureBase | null;
+let _curTexture: SpriteFrame | TextureBase | null;
 
 let KZr = 0;
-let zZr: any[] = [];
+let textureList: any[] = [];
 
-let _fillCount = 0;
-let _curTexture : Texture2D | null = null;
-let _tempBuffers : Float32Array;
+// let _fillCount = 0;
+// let _curTexture : Texture2D | null = null;
+// let _tempBuffers : Float32Array;
 // let _curLayer: TiledLayer;
 let _curLayer : TiledLayer|null;
 
-let $Zr : TiledGrid | null;
+let _tiledGrid : TiledGrid | null;
 
-let o$r = {
+let textureMat = {
     mat: null,
 };
 
@@ -106,10 +104,10 @@ export const simple: IAssembler = {
     },
 
     createData (layer: TiledLayer) {
-        ($Zr = null),//TiledGrid
+        (_tiledGrid = null),//TiledGrid
             !(KZr = globalThis.multMat_maxUnits) ||
-                zZr ||
-                ((zZr = []), director.on(Director.EVENT_BEFORE_DRAW, FSr));
+                textureList ||
+                ((textureList = []), director.on(Director.EVENT_BEFORE_DRAW, reset));
         if (JSB) {
             console.log("createData in tileassembler");
             this.ensureAccessor();
@@ -611,159 +609,132 @@ b     c
 //     packRenderData();
 // }
 function traverseGrids(leftDown:{col:number,row:number}, rightTop:{col:number,row:number}, rowMoveDir:number, colMoveDir:number, _tiledLayer: TiledLayer) {
-        var col, cols, row, rows, u, a, d, T, gid, C, b, P; 
-        let _tiledGrid: TiledGrid | undefined;
-        (r$r = 0), 
-            _tiledLayer.tiledMapCurr?.clear && ((_tiledLayer.tiledMapCurr = {}), (_tiledLayer.tiledMapPool = {})), 
-            (d = 0 != (null == _tiledLayer._offset ? void 0 : _tiledLayer._offset!.y) ? 1 : 0), 
-            (C = 0), 
-            (rows = -1 === rowMoveDir ? 
-                ((row = rightTop.row + d), leftDown.row - _tiledLayer.downRow + d) : 
-                ((row = leftDown.row - _tiledLayer.downRow + d), rightTop.row + d)), 
-            (cols = ( 1 === colMoveDir ? 
-                ((col = leftDown.col), rightTop) : 
-                ((col = rightTop.col), leftDown) ).col);
+        let col:number, cols:number, row:number, rows:number;
+        let bottom = 0, left = 0, right = 0, top = 0; 
+        let gid: MixedGID = 0 as unknown as any;
+        let d, C;
+        let tileSize: Size
+        let grid: TiledGrid | undefined;
+        (_fillCount = 0), 
+        _tiledLayer.tiledMapCurr?.clear && ((_tiledLayer.tiledMapCurr = {}), (_tiledLayer.tiledMapPool = {})), 
+        (d = 0 != (null == _tiledLayer._offset ? void 0 : _tiledLayer._offset!.y) ? 1 : 0), 
+        (C = 0), 
+        (rows = -1 === rowMoveDir ? 
+            ((row = rightTop.row + d), leftDown.row - _tiledLayer.downRow + d) : 
+            ((row = leftDown.row - _tiledLayer.downRow + d), rightTop.row + d)), 
+        (cols = ( 1 === colMoveDir ? 
+            ((col = leftDown.col), rightTop) : 
+            ((col = rightTop.col), leftDown) ).col);
         if (_tiledLayer.hasUserNode) 
             for (var B = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) 
-                QTr(_tiledLayer.getSorttedNodesByRow(B)); 
+                dealUserNode(_tiledLayer.getSorttedNodesByRow(B)); 
         for (; 0 <= (rows - row) * rowMoveDir; row += rowMoveDir) { 
             const rowData = _tiledLayer.vertices[row];
             if (rowData) {
                 for (var R = col; R <= cols; R += colMoveDir) {
                     const colData = rowData[R];
                     if (colData) { 
-                        let L, N, F, U, k, G, V, H, W, j, X, z, Y, q, J; 
-                        let Q: TextureBase | undefined;
+                        let N, U, k, G, V, H, W, j, X, z, q, J; 
+                        let tex: TextureBase | undefined;
                         gid = _tiledLayer.tiles[colData.index]
                         if (0 == gid) 
                             continue; 
-                        _tiledGrid = _tiledLayer.texGrids!.get((gid & TileFlag.FLIPPED_MASK) >>> 0);
-                        if ( !_tiledGrid )
+                        grid = _tiledLayer.texGrids!.get((gid & TileFlag.FLIPPED_MASK) >>> 0);
+                        if ( !grid )
                             continue; 
-                        if ( !(Q = null == _tiledGrid.spriteFrame ? void 0 : _tiledGrid.spriteFrame.texture) ) { 
-                            _tiledLayer.loadTileMapImage(_tiledGrid.tileset, _tiledLayer.texGrids, _tiledLayer.hasUserNode);
-                            if (!$Zr) 
+                        if ( !(tex = null == grid.spriteFrame ? void 0 : grid.spriteFrame.texture) ) { 
+                            _tiledLayer.loadTileMapImage(grid.tileset, _tiledLayer.texGrids!, _tiledLayer.hasUserNode);
+                            if (!_tiledGrid) 
                                 continue; 
-                            (Q = $Zr.spriteFrame.texture), 
-                            (_tiledGrid = $Zr); 
+                            (tex = _tiledGrid.spriteFrame.texture), 
+                            (grid = _tiledGrid); 
                         } 
-                        if (t$r !== Q) {
+                        if (_curTexture !== tex) {
                             if (!_tiledLayer.hasUserNode && KZr ) {
-                                (C == KZr - 1 && (ySr(!1), FSr()), 
-                                (C = (function (t) { 
-                                    var i, n; 
-                                    return ( (n = t.getId()), 
-                                        null != (i = s$r[n]) ? i : ((zZr[ e$r ] = t), ((s$r = e$r % KZr == 0 ? {} : s$r)[ n ] = e$r++)) 
+                                (C == KZr - 1 && (packRenderData(!1), reset()), 
+                                (C = (function (t) { //返回 旧值 或 textureEnd自增前的值
+                                    var i, n = t.getId(); 
+                                    return (  
+                                        null != (i = s$r[n]) ? 
+                                        i : 
+                                        ((textureList[ textureEnd ] = t), ((s$r = textureEnd % KZr == 0 ? {} : s$r)[ n ] = textureEnd++)) 
                                     ); 
-                                })(Q))) 
+                                })(tex))) 
                             } else {
-                                ySr(!0);
+                                packRenderData(!0);
                             } 
-                            (t$r = Q), 
-                            (_tiledLayer.isGroundLayer) && ($Zr = _tiledGrid);
+                            (_curTexture = tex), 
+                            (_tiledLayer.isGroundLayer) && (_tiledGrid = grid);
                         }
-                        (q = 10000 * row + R), 
-                        (L = _tiledLayer.tiledMapCurr), 
-                        (Y = _tiledLayer.tiledMapPool), 
-                        !(X = L[q]) && Y[q] && ((X = Y[q]), (L[q] = X), (Y[q] = null), delete Y[q]);
+                        (q = 10000 * row + R);
+                        if (!(X = _tiledLayer.tiledMapCurr[q]) && _tiledLayer.tiledMapPool[q]) {
+                            (X = _tiledLayer.tiledMapPool[q]), 
+                            (_tiledLayer.tiledMapCurr[q] = X), 
+                            (_tiledLayer.tiledMapPool[q] = null), 
+                            delete _tiledLayer.tiledMapPool[q];
+                        } 
                         if ( X ) { 
-                                X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
-                                (n$r[r$r++] = q); 
-                                continue; 
-                            } 
-                            for (z in Y) { 
-                                (X = Y[z]), 
-                                (Y[z] = null), 
-                                delete Y[z]; 
-                                break; 
-                            } 
-                            if ( ((X = X || new Float32Array(36)), 
-                                (L[q] = X), 
-                                (n$r[r$r++] = q), 
-                                (T = _tiledGrid.tileset._tileSize), 
-                                (a = _tiledLayer.node.worldPosition.x + colData.left - _moveX), 
-                                (u = _tiledLayer.node.worldPosition.y + colData.bottom - _moveY), 
-                                (b = a + T.width), 
-                                (P = u + T.height), 
-                                (X[0] = a), 
-                                (X[1] = P), 
-                                (X[9] = a), 
-                                (X[10] = u), 
-                                (X[18] = b), 
-                                (X[19] = P), 
-                                (X[27] = b), 
-                                (X[28] = u), 
-                                X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
-                                1 != X[8]) ) 
-                                for ( var Z = 5; Z < 36; Z += 5 ) 
-                                    (X[Z++] = 1), 
-                                    (X[Z++] = 1), 
-                                    (X[Z++] = 1), 
-                                    (X[Z++] = 1); 
-                                    (V = (F = _tiledGrid).r), 
-                                    (J = F.t), 
-                                    (U = j = F.l), 
-                                    (N = k = F.b), 
-                                    (W = V), 
-                                    (H = J), 
-                                    (G = void 0), 
-                                    (gid & TileFlag.HORIZONTAL) >>> 0 && (
-                                        (G = j), 
-                                        (j = W), 
-                                        (W = G), 
-                                        (G = J), 
-                                        (J = H), 
-                                        (H = G), 
-                                        (G = U), 
-                                        (U = V), 
-                                        (V = G), 
-                                        (G = N), 
-                                        (N = k), 
-                                        (k = G)), 
-                                    (gid & TileFlag.VERTICAL) >>> 0 && (
-                                        (G = j), 
-                                        (j = U), 
-                                        (U = G), 
-                                        (G = J), 
-                                        (J = N), 
-                                        (N = G), 
-                                        (G = W), 
-                                        (W = V), 
-                                        (V = G), 
-                                        (G = H), 
-                                        (H = k), 
-                                        (k = G)), 
-                                    _tiledGrid._rotated ? (
-                                            (X[3] = W), 
-                                            (X[4] = H), 
-                                            (X[12] = j), 
-                                            (X[13] = J), 
-                                            (X[21] = V), 
-                                            (X[22] = k), 
-                                            (X[30] = U), 
-                                            (X[31] = N)) 
-                                        : 
-                                        (
-                                            (X[3] = j), 
-                                            (X[4] = J), 
-                                            (X[12] = U), 
-                                            (X[13] = N), 
-                                            (X[21] = W), 
-                                            (X[22] = H), 
-                                            (X[30] = V), 
-                                            (X[31] = k)); 
+                            X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)), 
+                            (n$r[_fillCount++] = q); 
+                            continue; 
+                        } 
+                        for (z in _tiledLayer.tiledMapPool) { 
+                            (X = _tiledLayer.tiledMapPool[z]), 
+                            (_tiledLayer.tiledMapPool[z] = null), 
+                            delete _tiledLayer.tiledMapPool[z]; 
+                            break; 
+                        } 
+                        X = X || new Float32Array(36); 
+                        _tiledLayer.tiledMapCurr[q] = X; 
+                        n$r[_fillCount++] = q; 
+                        tileSize = grid.tileset._tileSize; 
+                        left = _tiledLayer.node.worldPosition.x + colData.left - _moveX; 
+                        bottom = _tiledLayer.node.worldPosition.y + colData.bottom - _moveY; 
+                        right = left + tileSize.width; 
+                        top = bottom + tileSize.height; 
+                        X[0] = left; 
+                        X[1] = top; 
+                        X[9] = left; 
+                        X[10] = bottom; 
+                        X[18] = right; 
+                        X[19] = top; 
+                        X[27] = right; 
+                        X[28] = bottom; 
+                        X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C));
+                        if ( (1 != X[8]) ) {
+                            for ( var Z = 5; Z < 36; Z += 5 ) {
+                                (X[Z++] = 1), 
+                                (X[Z++] = 1), 
+                                (X[Z++] = 1), 
+                                (X[Z++] = 1); 
+                            }
+                        }
+                        (V = grid.r), 
+                        (J = grid.t), 
+                        (U = j = grid.l), 
+                        (N = k = grid.b), 
+                        (W = V), 
+                        (H = J), 
+                        (G = void 0), 
+                        (gid & TileFlag.HORIZONTAL) >>> 0 && ( (G = j), (j = W), (W = G), (G = J), (J = H), (H = G), (G = U), (U = V), (V = G), (G = N), (N = k), (k = G)), 
+                        (gid & TileFlag.VERTICAL) >>> 0 && ( (G = j), (j = U), (U = G), (G = J), (J = N), (N = G), (G = W), (W = V), (V = G), (G = H), (H = k), (k = G)), 
+                        grid._rotated ? ( (X[3] = W), (X[4] = H), (X[12] = j), (X[13] = J), (X[21] = V), (X[22] = k), (X[30] = U), (X[31] = N)) 
+                            : ( (X[3] = j), (X[4] = J), (X[12] = U), (X[13] = N), (X[21] = W), (X[22] = H), (X[30] = V), (X[31] = k)); 
+                        
+                            
                     } 
                 }
             }
-            _tiledLayer.hasUserNode && QTr(_tiledLayer.getSorttedNodesByRow(row, !0)); 
+            _tiledLayer.hasUserNode && dealUserNode(_tiledLayer.getSorttedNodesByRow(row, !0)); 
         } 
-        if (_tiledLayer.hasUserNode) 
+        if (_tiledLayer.hasUserNode) {
             for ( 
                 var $ = leftDown.row - _tiledLayer.downRow - 1, 
                     tt = leftDown.row - _tiledLayer.nodeUpRow; 
                 tt < $; --$ ) 
-                QTr(_tiledLayer.getSorttedNodesByRow($)); 
-        ySr(_tiledLayer.hasUserNode); 
+                dealUserNode(_tiledLayer.getSorttedNodesByRow($)); 
+        }
+        packRenderData(_tiledLayer.hasUserNode); 
     }
 
 // function fillByTiledNode (tiledNode: Node, color: Float32Array, vbuf: Float32Array,
@@ -861,38 +832,41 @@ function traverseGrids(leftDown:{col:number,row:number}, rightTop:{col:number,ro
 //     vbuf.set(color, _vfOffset + vertStep3 + 5);
 // }
 
-function QTr (t: TiledUserNodeData | null) {
-    t && (ySr(!0), _curLayer!.requestSubNodesData(t)); 
+function dealUserNode (t: TiledUserNodeData | null) {
+    t && (packRenderData(!0), _curLayer!.requestSubNodesData(t)); 
 }
-function ySr (t: boolean) { 
-    if (0 < r$r && t$r) { 
-        var i:RenderData; 
-        (i = _curLayer!.requestTiledRenderData()).reuse(r$r), 
-        KZr ? (i.frame = t$r) : (i.updateTexture(t$r), i.updateHash()), 
-        t || !KZr 
-            ? 0 < e$r && FSr() 
+function packRenderData (hasUserNode: boolean) { 
+    if (0 < _fillCount && _curTexture) { 
+        var rd = _curLayer!.requestTiledRenderData(); 
+        rd.reuse(_fillCount);
+        KZr ? (rd.frame = _curTexture) : (rd.updateTexture(_curTexture), rd.updateHash());
+        hasUserNode || !KZr 
+            ? 0 < textureEnd && reset() 
             : (
-                (i.textureInfo = { textureList: zZr, textureStart: h$r, textureEnd: e$r - 1, textureMat: o$r }), 
-                (h$r = e$r)
-            ), 
-        (t$r = null); 
-        for ( var n = i.chunk.vb, r = 0, s = _curLayer!.tiledMapCurr!, e = _curLayer!.tiledMapPool, h = 0; h < r$r; ++h ) 
-            for (var o = s![n$r[h]], u = 0; u < 36; ++u) 
-                n[r++] = o[u]; 
-        for (var a = 0; a < r$r; ++a) { 
-                var c; 
-                (e[(c = n$r.length)] = s[c]), 
+                (rd.textureInfo = { textureList: textureList, textureStart: textureStart, textureEnd: textureEnd - 1, textureMat: textureMat }), //todo
+                (textureStart = textureEnd)
+            ); 
+        _curTexture = null; 
+        var r = 0;
+        var s = _curLayer!.tiledMapCurr!;
+        var e = _curLayer!.tiledMapPool;
+        for ( var h = 0; h < _fillCount; ++h ) 
+            for (var u = 0; u < 36; ++u) 
+                rd.chunk.vb[r++] = s![n$r[h]][u]; 
+        for (var a = 0; a < _fillCount; ++a) { 
+                var c = n$r.length; 
+                (e[c] = s[c]), 
                 (s[c] = null), 
                 delete s[c]; 
         } 
         (_curLayer!.tiledMapCurr = e), 
         (_curLayer!.tiledMapPool = s), 
-        (r$r = 0); 
+        (_fillCount = 0); 
     } 
 }
 
-function FSr () { //reset
-    (o$r.mat = null), 
-    0 < e$r && ((zZr.length = 0), (s$r = {}), (h$r = e$r = 0)); 
+function reset () {
+    (textureMat.mat = null), 
+    0 < textureEnd && ((textureList.length = 0), (s$r = {}), (textureStart = textureEnd = 0)); 
 }
 

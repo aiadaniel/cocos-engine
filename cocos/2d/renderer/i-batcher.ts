@@ -66,14 +66,14 @@ export interface IBatcher {
     commitComp (comp: UIRenderer, renderData: BaseRenderData|null, frame: TextureBase | SpriteFrame | null, assembler: any, transform: Node | null);
     commitModel (comp: UIMeshRenderer | UIRenderer, model: Model | null, mat: Material | null);
 
-    setupStaticBatch (staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor);
-    endStaticBatch ();
-    commitStaticBatch (comp: UIStaticBatch);
+    // setupStaticBatch (staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor);
+    // endStaticBatch ();
+    // commitStaticBatch (comp: UIStaticBatch);
 
     autoMergeBatches (renderComp?: UIRenderer);
-    forceMergeBatches (material: Material, frame: TextureBase | SpriteFrame | null, renderComp: UIRenderer);
-    finishMergeBatches ();
-    flushMaterial (mat: Material);
+    // forceMergeBatches (material: Material, frame: TextureBase | SpriteFrame | null, renderComp: UIRenderer);
+    // finishMergeBatches ();
+    // flushMaterial (mat: Material);
 
     walk (node: Node, level?: number);
 }

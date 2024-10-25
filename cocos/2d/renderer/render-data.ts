@@ -99,6 +99,7 @@ export class BaseRenderData {
     atlasIndex = 0;
     meshBufferOffset = -1;
     meshFinishOffset = -1;
+    declare textureInfo;
 
     // entity for native
     protected _renderDrawInfo: RenderDrawInfo = null!;
@@ -358,7 +359,7 @@ export class RenderData extends BaseRenderData {
     }
 
     // lxm add
-    public reuse (t) {
+    public reuse (t: number) {
         if (this.chunk) {
             var i = this.chunk.vb.length / 36 - t;
             if (0 <= i && i <= 12)

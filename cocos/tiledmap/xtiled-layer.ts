@@ -272,8 +272,8 @@ export class TiledLayer extends UIRenderer {
     topNodeMap = {};
 
     userNodeMap : { [key: string]: TiledUserNodeData } = {};// [id] = node;
-    tiledMapCurr;//: TiledMap | undefined;
-    tiledMapPool;
+    tiledMapCurr;// { index: new Float32Array(36) }
+    tiledMapPool;// same
     worldPosition;
     updateLayers;
     currRenderData;
@@ -458,7 +458,7 @@ export class TiledLayer extends UIRenderer {
         )
             this._tiledDataPool[t]!.clear();
     }
-    loadTileMapImage (tileset, b, d) {}
+    loadTileMapImage (tileset: TMXTilesetInfo, b: TiledTextureGrids, hasUserNode: boolean) {}
     setTileMapImage (t, i, n) {
         this.updateLayers &&
             ((function (t, i, n) {
@@ -501,10 +501,10 @@ export class TiledLayer extends UIRenderer {
             })(t, i, n),
             this.updateLayers());
     }
-    getSorttedNodesByRow (t, i=false) : TiledUserNodeData | null {
+    getSorttedNodesByRow (row: number, i=false) : TiledUserNodeData | null {
         // void 0 === i && (i = !1);
-        var n = (this.userNodeMap[t] =
-                this.userNodeMap[t] || TiledUserNodeData.chain()),
+        var n = (this.userNodeMap[row] =
+                this.userNodeMap[row] || TiledUserNodeData.chain()),
             r = n.first();
         if (r)
             for (
