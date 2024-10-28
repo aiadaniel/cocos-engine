@@ -46,11 +46,12 @@ export class TiledMapAsset extends Asset {
 
     // @serializable
     // tmxXmlStr = '';
+
     // @type(BufferAsset)
     _data: Uint8Array|null = null;
 
     @serializable
-    @type([BufferAsset])
+    @type([BufferAsset])//TextAsset
     tsxFiles: BufferAsset[] = [];
 
     @serializable

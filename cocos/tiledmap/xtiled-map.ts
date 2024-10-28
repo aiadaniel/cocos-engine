@@ -69,7 +69,7 @@ export class TiledMap extends Component {
     // _imageLayers: TMXImageLayerInfo[] = [];
     _layers: TiledLayer[] = [];
 
-    _layerMap;
+    _layerMap: { [key: string]: TiledLayer} = {};
     // _groups: TiledObjectGroup[] = [];
     // _images: ImageExtendedNode[] = [];
     _properties: PropertiesInfo = {} as any;
@@ -80,7 +80,7 @@ export class TiledMap extends Component {
     _tileSize: Size = new Size(0, 0);
 
     // 图集支持跨图复用 filename,ts
-    // static readonly tss: Map<string, bmap.TileSet> = new Map();
+    static readonly tss: Map<string, bmap.TileSet> = new Map();
 
     _mapOrientation = bmap.Orientation.Orthogonal;
 
@@ -105,10 +105,7 @@ export class TiledMap extends Component {
     static TMXObjectType = TMXObjectType;
     static RenderOrder = bmap.RenderOrder;
     
-    // _bMap: bmap.BMap | undefined;
-
     private _isApplied = false;
-
     
     @serializable
     _tmxFile: TiledMapAsset | null = null;
@@ -132,46 +129,6 @@ export class TiledMap extends Component {
             this._isApplied = true;
         }
     }
-
-    // @serializable
-    // _btile: BufferAsset | null = null;
-    // @type(BufferAsset)
-    // @displayOrder(7)
-    // get btileAsset (): BufferAsset {
-    //     return this._btile!;
-    // }
-
-    // set btileAsset (value: BufferAsset) {
-    //     if (this._btile !== value || EDITOR) {
-    //         this._btile = value;
-    //         this._applyFile();
-    //         this._isApplied = true;
-    //     }
-    // }
-
-    // @type([SpriteFrame])
-    // sfs: SpriteFrame[] = []
-
-    // @serializable
-    // @displayOrder(8)
-    // ab: string="resources";
-    // get ab(): string { return this._ab; }
-    // set ab(v) { this._ab = v; }
-
-    // @serializable
-    // @displayOrder(9)
-    // tsxPath: string="";
-
-    // @type([BufferAsset])
-    // tsxs: BufferAsset[] = [];
-
-    // _tsxMap: Map<string, BufferAsset> = new Map();
-
-    // _atlasMap: Map<string, SpriteAtlas> = new Map();
-
-    // 使用指定图集（实测使用自动图集时，preload时还是空的）
-    // @type([SpriteAtlas])
-    // atlass: SpriteAtlas[] = [];
 
     /**
      * @en
@@ -391,86 +348,89 @@ export class TiledMap extends Component {
     }
 
     _applyFile (): void {
-        // const spriteFrames: SpriteFrame[] = [];
-        // const spriteFramesCache = {};
+        const spriteFrames: SpriteFrame[] = [];
+        const spriteFramesCache = {};
 
-        // const file = this._tmxFile;
+        const file = this._tmxFile;
 
-        // if (file) {
-        //     // let texValues = file.textures;
-        //     let spfNames: string[] = file.spriteFrameNames;
-        //     const spfSizes: Size[] = file.spriteFrameSizes;
-        //     const fSpriteFrames: SpriteFrame[] = file.spriteFrames;
-        //     const spfTexturesMap: { [key: string]: SpriteFrame } = {};
-        //     const spfTextureSizeMap: { [key: string]: Size } = {};
+        if (file) {
+            // let texValues = file.textures;
+            let spfNames: string[] = file.spriteFrameNames;
+            const spfSizes: Size[] = file.spriteFrameSizes;
+            // const fSpriteFrames: SpriteFrame[] = file.spriteFrames;
+            const spfTexturesMap: { [key: string]: SpriteFrame } = {};
+            const spfTextureSizeMap: { [key: string]: Size } = {};
 
-        //     for (let i = 0; i < spfNames.length; ++i) {
-        //         const texName = spfNames[i];
-        //         // console.log("--" + texName); 
-        //         // textures[texName] = texValues[i];
-        //         spfTextureSizeMap[texName] = spfSizes[i];
-        //         spriteFrames[i] = fSpriteFrames[i];
-        //         const frame = spriteFrames[i];
-        //         if (frame) {
-        //             spriteFramesCache[frame.name] = frame;
-        //             spfTexturesMap[texName] = frame;
-        //         }
-        //     }
+            for (let i = 0; i < spfNames.length; ++i) {
+                const texName = spfNames[i];
+                // textures[texName] = texValues[i];
+                spfTextureSizeMap[texName] = spfSizes[i];
+                // spriteFrames[i] = fSpriteFrames[i];
+                // const frame = spriteFrames[i];
+                // if (frame) {
+                //     spriteFramesCache[frame.name] = frame;
+                //     spfTexturesMap[texName] = frame;
+                // }
+            }
 
-        //     const imageLayerTextures: { [key: string]: SpriteFrame } = {};
-        //     const texValues = file.imageLayerSpriteFrame;
-        //     spfNames = file.imageLayerSpriteFrameNames;
-        //     for (let i = 0; i < texValues.length; ++i) {
-        //         imageLayerTextures[spfNames[i]] = texValues[i];
-        //     }
+            const imageLayerTextures: { [key: string]: SpriteFrame } = {};
+            // const texValues = file.imageLayerSpriteFrame;
+            // spfNames = file.imageLayerSpriteFrameNames;
+            // for (let i = 0; i < texValues.length; ++i) {
+            //     imageLayerTextures[spfNames[i]] = texValues[i];
+            // }
 
-        //     const tsxFileNames = file.tsxFileNames;
-        //     const tsxFiles = file.tsxFiles;
-        //     const tsxContentMap: { [key: string]: BufferAsset } = {};
-        //     for (let i = 0; i < tsxFileNames.length; ++i) {
-        //         if (tsxFileNames[i].length > 0) {
-        //             tsxContentMap[tsxFileNames[i]] = tsxFiles[i];
-        //             // console.log("--" + tsxFileNames[i] + "---" + tsxFiles[i]); 
-        //         }
-        //     }
+            const tsxFileNames = file.tsxFileNames;
+            const tsxFiles = file.tsxFiles;
+            const tsxContentMap: { [key: string]: BufferAsset } = {};
+            for (let i = 0; i < tsxFileNames.length; ++i) {
+                if (tsxFileNames[i].length > 0) {
+                    tsxContentMap[tsxFileNames[i]] = tsxFiles[i];
+                    // console.log("--" + tsxFileNames[i] + "---" + tsxFiles[i]); 
+                }
+            }
 
-
-        //     const cb = (mapInfo: XTMXMapInfo)=> {
-        //         const tilesets = mapInfo.getTilesets();
-        //         if (!tilesets || tilesets.length === 0) {
-        //             logID(7241);
-        //         }
+            const self = this;
+            const cb = (mapInfo: TMXMapInfo)=> {
+                const tilesets = mapInfo.getTilesets();
+                if (!tilesets || tilesets.length === 0) {
+                    logID(7241);
+                }
     
-        //         this._buildWithMapInfo(mapInfo);
-        //     }
+                self._buildWithMapInfo(mapInfo);
+                file._data = null;// release
+                file.tsxFiles.forEach( ( t ) => {
+                    return assetManager.releaseAsset( t );
+                });
+            }
 
-        //     const mapInfo = new XTMXMapInfo(file._bm!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
+            const mapInfo = new TMXMapInfo(file._bm!, TiledMap.tss, tsxContentMap, spfTexturesMap, spfTextureSizeMap, imageLayerTextures, cb);
 
-        // } else {
-        //     this._releaseMapInfo();
-        // }
+        } else {
+            this._releaseMapInfo();
+        }
 
-        var t = this._tmxFile;
-        if (t) {
-            for (
-                var i = t.tsxFileNames,
-                    n = t.tsxFiles,
-                    r = {},
-                    s = 0;
-                s < i.length;
-                ++s
-            )
-                0 < i[s].length && (r[ i[s] ] = n[ s ]);
-            var e = new TMXMapInfo( t.tmxXmlStr, r, {}, {}, {} ),
-                h = e.getTilesets();
-            (h && 0 !== h.length) || logID(7241),
-                this._buildWithMapInfo( e ),
-                (t.tmxXmlStr = ""),
-                t.tsxFiles.forEach( function ( t ) {
-                        return assetManager.releaseAsset( t );
-                    }
-                );
-        } else this._releaseMapInfo();
+        // var t = this._tmxFile;
+        // if (t) {
+        //     for (
+        //         var i = t.tsxFileNames,
+        //             n = t.tsxFiles,
+        //             r = {},
+        //             s = 0;
+        //         s < i.length;
+        //         ++s
+        //     )
+        //         0 < i[s].length && (r[ i[s] ] = n[ s ]);
+        //     var e = new TMXMapInfo( t.tmxXmlStr, r, {}, {}, {} ),
+        //         h = e.getTilesets();
+        //     (h && 0 !== h.length) || logID(7241),
+        //         this._buildWithMapInfo( e ),
+        //         (t.tmxXmlStr = ""),
+        //         t.tsxFiles.forEach( function ( t ) {
+        //                 return assetManager.releaseAsset( t );
+        //             }
+        //         );
+        // } else this._releaseMapInfo();
     }
 
     onDestroy () {
@@ -706,153 +666,51 @@ export class TiledMap extends Component {
         // this.node._uiProps.uiTransformComp!.setContentSize(maxWidth, maxHeight);
         // this._syncAnchorPoint();
         
-        var t,
-        i = this._tilesets,
-        n = this._texGrids;
-        n.clear();
+        var layers,
+        tilesets = this._tilesets,
+        texGrids = this._texGrids;
+        texGrids.clear();
         for (
             var r = 0,
-                e = i.length;
+                e = tilesets.length;
             r < e;
             ++r
         ) {
-            var h = i[r];
-            // function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextureGrids, spFrame?: SpriteFrame): void
-            h && (function ( t: TMXTilesetInfo, i: TiledTextureGrids, n?: SpriteFrame ) {
-                    var r,
-                        e,
-                        h,
-                        o = n || t.sourceImage!,
-                        u = t.collection,
-                        a =
-                            ((t.imageSize.width && t.imageSize.height) ||
-                                ((r = t.sourceImage),
-                                (t.imageSize.width = r.width),
-                                (t.imageSize.height = r.height)),
-                            t.imageSize.width),
-                        c = t.imageSize.height,
-                        f = t._tileSize.width,
-                        l = t._tileSize.height,
-                        v = (null == o ? void 0 : o.width) || a,
-                        d = (null == o ? void 0 : o.height) || c,
-                        _ = t.spacing,
-                        p = t.margin,
-                        w = 1;
-                    u || ((e = Math.floor( (a - 2 * p + _) / (f + _) )),//s = 2
-                        (h = Math.floor( (c - 2 * p + _) / (l + _) )),
-                        (w = Math.max( 1, h * e )));
-                    for (
-                        var A,
-                            m,
-                            E = t.firstGid,
-                            T,
-                            g = !!i.get( E ),
-                            S = t.firstGid + w,
-                            M = E;
-                        M < S &&
-                            ((g = !( g && !i.get( M ) ) && g) ||
-                                !i.get( M ));
-                        ++M
-                    ) {
-                        // var C;
-                        T = {
-                            tileset: t,
-                            x: 0,
-                            y: 0,
-                            width: f,
-                            height: l,
-                            t: 0,
-                            l: 0,
-                            r: 0,
-                            b: 0,
-                            cx: 0,
-                            cy: 0,
-                            offsetX: 0,
-                            offsetY: 0,
-                            rotated: false,
-                            gid: M,// gid as unknown as GID,
-                            spriteFrame: o
-                            // texture: tex,
-                        };//TiledGrid
-                        t.rectForGID( M, T );
-                        !n || 1 < w
-                                ? (n
-                                    ? ((T._name = n.name),
-                                        (A = n.unbiasUV[0]),
-                                        (m = n.rotated
-                                                ? n.unbiasUV[1]
-                                                : n.unbiasUV[ 5 ]),
-                                        (T.l = A + (T.x + 0.5) / v),
-                                        (T.t = m + (T.y + 0.5) / d),
-                                        (T.r = A + (T.x + T.width - 0.5) / v),
-                                        (T.b = m + (T.y + T.height - 0.5) / d))
-                                    : ((T.l = T.x / v),
-                                        (T.t = T.y / d),
-                                        (T.r = (T.x + T.width) / v),
-                                        (T.b = (T.y + T.height) / d)),
-                                (T._rect = new Rect( T.x, T.y, T.width, T.height )))
-                                : n.rotated
-                                ? ((T._rotated = !0),
-                                (T._name = n.name),
-                                (T._rect = n.getRect()),
-                                (T.l = n.unbiasUV[0]),
-                                (T.t = n.unbiasUV[1]),
-                                (T.r = n.unbiasUV[ 4 ]),
-                                (T.b = n.unbiasUV[ 3 ]))
-                                : ((T._name = n.name),
-                                (T._rect = n.getRect()),
-                                (T.l = n.unbiasUV[0]),
-                                (T.t = n.unbiasUV[ 5 ]),
-                                (T.r = n.unbiasUV[ 2 ]),
-                                (T.b =
-                                    n.unbiasUV[1])),
-                            (T.cx = (T.l + T.r) / 2),
-                            (T.cy = (T.t + T.b) / 2),
-                            i.set( M, T );
-                    }
-                })(
-                    h,//tileset
-                    n,//texgrid
-                    h.sourceImage
-                );
+            var tileset = tilesets[r];
+            tileset && fillTextureGrids(tileset, texGrids, tileset.sourceImage);
         }
         var o =
-                null != (t = this._layers)
-                    ? t
+                null != (layers = this._layers)
+                    ? layers
                     : (this._layers = []),
-            u = this._mapInfo,
-            c = u!.getAllChildren(),
-            f = 0,
-            l = 0;
-        if (c && 0 < c.length)
+            mapInfo = this._mapInfo,
+            layerInfos = mapInfo!.getAllChildren(),
+            maxWidth = 0,
+            maxHeight = 0;
+        if (layerInfos && 0 < layerInfos.length)
             for (
                 var v = 0,
-                    d = c.length;
+                    d = layerInfos.length;
                 v < d;
                 v++
             ) {
-                var _,
-                    p,
-                    w,
-                    A,
-                    m = c[ v ],
-                    E = m.name,
-                    T = this.node.getChildByName( E );
-                T &&
-                    (m instanceof TMXLayerInfo &&
-                        ((_ =
-                            (_ = T.getComponent( TiledLayer )) ||
-                            T.addComponent( TiledLayer )).init( m, u, i, [], n ),
-                        (_.enableCulling = this._enableCulling),
-                        (_.updateLayers = this.updateLayers.bind( this )),
-                        o.push( _ ),
-                        (this._layerMap[ E ] = _)),
-                    (w = (p = T._uiProps.uiTransformComp!).width),
-                    (A = p.height),
-                    (f = Math.max( f, w )),
-                    (l = Math.max( l, A )));
+                var layer,
+                    layerInfo = layerInfos[ v ],
+                    name = layerInfo.name,
+                    child = this.node.getChildByName( name );
+                child &&
+                    (layerInfo instanceof TMXLayerInfo &&
+                        ((layer =
+                            (layer = child.getComponent( TiledLayer )) ||
+                            child.addComponent( TiledLayer )).init( layerInfo, mapInfo, tilesets, [], texGrids ),
+                        (layer.enableCulling = this._enableCulling),
+                        (layer.updateLayers = this.updateLayers.bind( this )),
+                        o.push( layer ),
+                        (this._layerMap[ name ] = layer)),
+                    (maxWidth = Math.max( maxWidth, child._uiProps.uiTransformComp!.width )),
+                    (maxHeight = Math.max( maxHeight, child._uiProps.uiTransformComp!.height )));
             }
-        this.node._uiProps.uiTransformComp!.setContentSize(f, l),
+        this.node._uiProps.uiTransformComp!.setContentSize(maxWidth, maxHeight),
             this._syncAnchorPoint();
     }
 

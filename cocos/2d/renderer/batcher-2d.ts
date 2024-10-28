@@ -974,13 +974,13 @@ export class Batcher2D implements IBatcher {
     }
 
     // TODO: Not a good way to do the job
-    // private _releaseDescriptorSetCache (textureHash, sampler = null!): void {
-    //     if (JSB) {
-    //         this._nativeObj.releaseDescriptorSetCache(textureHash, sampler);
-    //     } else {
-    //         this._descriptorSetCache.releaseDescriptorSetCache(textureHash);
-    //     }
-    // }
+    private _releaseDescriptorSetCache (textureHash, sampler = null!): void {
+        if (JSB) {
+            this._nativeObj.releaseDescriptorSetCache(textureHash, sampler);
+        } else {
+            this._descriptorSetCache.releaseDescriptorSetCache(textureHash);
+        }
+    }
 
     // Mask use
     private _createClearModel (): void {

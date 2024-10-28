@@ -467,7 +467,7 @@ export interface TiledGrid {
     offsetY: number;
     rotated: boolean;
     gid: GID;
-    spriteFrame: SpriteFrame;
+    spriteFrame: SpriteFrame|undefined;
     // texture: Texture2D;
 
     _name?: string;

@@ -141,7 +141,7 @@ function getPropertyList (node: Element, map?: PropertiesInfo): PropertiesInfo {
 
 export class TMXMapInfo {
 
-    staticMap;
+    staticMap: { [key: string]: TMXTilesetInfo; } = {};//property的unitID
 
     /**
      * Properties of the map info.
@@ -204,7 +204,7 @@ export class TMXMapInfo {
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
-    // cb: Function | undefined
+    cb: Function | undefined
     // _ab: string;
     // _atlasMap: Map<string, SpriteAtlas> = new Map();
     // _tsxPath: string="";
@@ -220,44 +220,44 @@ export class TMXMapInfo {
     _bm: bmap.BMap | null = null;
     _tss: Map<string, bmap.TileSet> | undefined ;
 
-    // constructor (bin: bmap.BMap, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
-    //     textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
-    //     // console.log("bin:" + bin);
-    //     // this.cb = cb;
-    //     // const bb = new ByteBuf(bin);
-    //     // this._bm = new bmap.BMap(bb);
-    //     this._bm = bin;
+    constructor (bin: bmap.BMap, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
+        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
+        // console.log("bin:" + bin);
+        this.cb = cb;
+        // const bb = new ByteBuf(bin);
+        // this._bm = new bmap.BMap(bb);
+        this._bm = bin;
 
-    //     this._tss = tss;
+        this._tss = tss;
 
-    //     this._tsxContentMap = tsxBins;
-    //     this._spriteFrameMap = spfTexturesMap;
-    //     this._imageLayerSPF = imageLayerTextures;
-    //     this._spfSizeMap = textureSizes;
+        this._tsxContentMap = tsxBins;
+        this._spriteFrameMap = spfTexturesMap;
+        this._imageLayerSPF = imageLayerTextures;
+        this._spfSizeMap = textureSizes;
 
-    //     // this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
-    //     this._tilesets.length = 0;
-    //     this._layers.length = 0;
-    //     // this._imageLayers.length = 0;
+        // this.initWithXML(spfTexturesMap, textureSizes, imageLayerTextures);
+        this._tilesets.length = 0;
+        this._layers.length = 0;
+        // this._imageLayers.length = 0;
 
-    //     this._objectGroups.length = 0;
-    //     this._allChildren.length = 0;
-    //     this.properties = {} as any;
-    //     this._tileProperties = new Map();
-    //     // this._tileAnimations = new Map();
+        this._objectGroups.length = 0;
+        this._allChildren.length = 0;
+        this.properties = {} as any;
+        this._tileProperties = new Map();
+        // this._tileAnimations = new Map();
 
-    //     // tmp vars
-    //     this.currentString = '';
-    //     this.storingCharacters = false;
-    //     this.layerAttrs = TMXLayerInfo.ATTRIB_NONE;
-    //     // this.parentElement = null;
+        // tmp vars
+        this.currentString = '';
+        this.storingCharacters = false;
+        this.layerAttrs = TMXLayerInfo.ATTRIB_NONE;
+        // this.parentElement = null;
 
-    //     this.parseXMLString();
-    // }
-    constructor (tmxFile: string, tsxContentMap: { [key: string]: string }, spfTexturesMap: { [key: string]: SpriteFrame },
-        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
-        this.initWithXML(tmxFile, tsxContentMap, spfTexturesMap, textureSizes, imageLayerTextures);
+        this.parseXMLString();
     }
+    // constructor (tmxFile: string, tsxContentMap: { [key: string]: string }, spfTexturesMap: { [key: string]: SpriteFrame },
+    //     textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }) {
+    //     this.initWithXML(tmxFile, tsxContentMap, spfTexturesMap, textureSizes, imageLayerTextures);
+    // }
 
     /**
      * Gets the staggerAxis of map.
@@ -441,48 +441,22 @@ export class TMXMapInfo {
         // const map = mapXML.documentElement;
         // console.log(JSON.stringify(this._bm));
 
-        this.orientation = this._bm.orientation;
-        this.renderOrder = this._bm.renderorder;
+        this.orientation = this._bm!.orientation;
+        this.renderOrder = this._bm!.renderorder;
 
-        this._mapSize.width = this._bm.width;
-        this._mapSize.height = this._bm.height;
+        this._mapSize.width = this._bm!.width;
+        this._mapSize.height = this._bm!.height;
 
-        this._tileSize.width = this._bm.tilewidth;
-        this._tileSize.height = this._bm.tileheight;
+        this._tileSize.width = this._bm!.tilewidth;
+        this._tileSize.height = this._bm!.tileheight;
 
         // The parent element is the map
         this.properties = {} //getPropertyList(map);
 
-                // PARSE <layer> & <objectgroup> in order
-                const childNodes = this._bm.layer;// map.childNodes;
-                for (i = 0; i < childNodes.length; i++) {
-                    const childNode = childNodes[i];
-                    // if (this._shouldIgnoreNode(childNode)) {
-                    //     continue;
-                    // }
-        
-                    // if (childNode.type === bmap.LayerType.ImageLayerType/*'imagelayer'*/) {
-                    //     const imageLayer = this._parseImageLayer(childNode as Element);
-                    //     if (imageLayer) {
-                    //         this.setImageLayers(imageLayer);
-                    //     }
-                    // }
-        
-                    if (childNode.type === bmap.LayerType.TileLayerType /*'layer'*/) {
-                        const layer = this._parseLayer(childNode /*as Element*/);
-                        this.setLayers(layer!);
-                    }
-        
-                    if (childNode.type === bmap.LayerType.ObjectGroupType/*'objectgroup'*/) {
-                        const objectGroup = this._parseObjectGroup(childNode /*as Element*/);
-                        this.setObjectGroups(objectGroup);
-                    }
-                }
-
         // 使用独立独立瓦片集的情况，每个瓦片集的source就是对应的bin资源文件名，按需加载
         let need = 0;
         const self = this;
-        for (let [key, value] of this._bm.tileset) {
+        for (let [key, value] of this._bm!.tileset) {
             let firstGid = key;
             let source = value;
             // console.log("ts source:" + source);
@@ -496,7 +470,7 @@ export class TMXMapInfo {
             }
 
             
-            let images = curTileset.image;
+            let image = curTileset.image;//我们当前默认都只有一张图
 
             const tiles = curTileset.tiles;
             const tileCount = tiles?.length || 1;
@@ -504,17 +478,17 @@ export class TMXMapInfo {
             let tileset: TMXTilesetInfo | null = null;
             for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
                 // parse tiles by tileIdx
-                let tile = curTileset.tiles[tileIdx];// tiles && tiles[tileIdx];
+                let tile = tiles[tileIdx];// tiles && tiles[tileIdx];
                 if (!tile) {
                     continue;
                 }
 
-                const curImage = images ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;
+                const curImage = image ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;//默认也一张
                 if (!curImage) continue;
                 let curImageName: string = curImage.source;//getAttribute('source')!;
                 // curImageName = curImageName.replace(/\\/g, '/');
                 
-                if (!tileset || tile.image/*|| collection*/) {
+                if (!tileset /*|| collection*/) {
                     tileset = new TMXTilesetInfo();
                     tileset.name = curTileset.name;
                     tileset.firstGid = firstGid & TileFlag.FLIPPED_MASK;
@@ -527,10 +501,9 @@ export class TMXMapInfo {
                         tileset.imageName = curImageName;
                         tileset.imageSize.width = curImage.width;//parseFloat(curImage.getAttribute('width')!) || 0;
                         tileset.imageSize.height = curImage.height;//parseFloat(curImage.getAttribute('height')!) || 0;
-                        const idx = curImageName.lastIndexOf("/");
-                        curImageName = curImageName.substring(idx+1);
-                        // console.log("=="+curImageName);
-                        tileset.sourceImage = this._spriteFrameMap![curImageName];
+                        // const idx = curImageName.lastIndexOf("/");
+                        // curImageName = curImageName.substring(idx+1);
+                        // tileset.sourceImage = this._spriteFrameMap![curImageName];
                     }
                     tileset.spacing = curTileset.spacing;//tilesetSpacing;
                     tileset.margin = curTileset.margin;//tilesetMargin;
@@ -565,10 +538,7 @@ export class TMXMapInfo {
                     //     tileset._tileSize.width = tileset.imageSize.width;
                     //     tileset._tileSize.height = tileset.imageSize.height;
                     // }
-                    const idx = imageName.lastIndexOf("/");
-                    imageName = imageName.substring(idx+1);
-                    // console.log("===="+imageName);
-                    tileset.sourceImage = this._spriteFrameMap![imageName];
+
                     // tileset.sourceImage = this._atlasMap[tileset.name]?.spriteFrames[imageName];
                     // 从图集加载
                     // const tts = tileset;
@@ -582,33 +552,60 @@ export class TMXMapInfo {
                     tileset.firstGid = this.parentGID & TileFlag.FLIPPED_MASK;
                 }
                 const pid = ((TileFlag.FLIPPED_MASK & this.parentGID as unknown as number) >>> 0) as unknown as GID;
-                // this._tileProperties.set(pid, getPropertyList(tile));
-                const animations = tile.anis?.anilist;//tile.getElementsByTagName('animation');
-                // console.log("parse anis " + animations?.length);
-                if (animations && animations.length > 0) {
-                    // const animation = animations[0];
-                    // const framesData = animation.getElementsByTagName('frame');
-                    const animationProp: TiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
-                    // this._tileAnimations.set(pid, animationProp);
-                    // this._tss!.tAT[source] =  this._tss!.tAT[source] || [];
-                    // this._tss!.tAT[source].push(animationProp);
-                    // const frames = animationProp.frames;
-                    for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
-                        const frame = animations[frameIdx];// framesData[frameIdx];
-                        const tileid = firstGid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
-                        const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
-                        animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
-                    }
-                }
-            }//tile
+                // this._tileProperties.set(pid, getPropertyList(tile));//todo
+                // todo staticMap
+                
+                // const animations = tile.anis?.anilist;//tile.getElementsByTagName('animation');
+                // if (animations && animations.length > 0) {
+                //     // const animation = animations[0];
+                //     // const framesData = animation.getElementsByTagName('frame');
+                //     const animationProp: TiledAnimation = { frames: [], dt: 0, frameIdx: 0 };
+                //     // this._tileAnimations.set(pid, animationProp);
+                //     // this._tss!.tAT[source] =  this._tss!.tAT[source] || [];
+                //     // this._tss!.tAT[source].push(animationProp);
+                //     // const frames = animationProp.frames;
+                //     for (let frameIdx = 0; frameIdx < animations.length; frameIdx++) {
+                //         const frame = animations[frameIdx];// framesData[frameIdx];
+                //         const tileid = firstGid! + frame.x; //(parseInt(frame.getAttribute('tileid')!) || 0);
+                //         const duration = frame.y; // parseFloat(frame.getAttribute('duration')!) || 0;
+                //         animationProp.frames.push({ tileid: tileid as unknown as GID, duration: duration / 1000, grid: null });
+                //     }
+                // }
+            }//tiles
 
             need ++;
         }// for tileset
 
-        if(need == this._bm.tileset.size) this.cb?.(self)
+        // PARSE <layer> & <objectgroup> in order
+        const childNodes = this._bm!.layer;// map.childNodes;
+        for (i = 0; i < childNodes.length; i++) {
+            const childNode = childNodes[i];
+            // if (this._shouldIgnoreNode(childNode)) {
+            //     continue;
+            // }
+
+            // if (childNode.type === bmap.LayerType.ImageLayerType/*'imagelayer'*/) {
+            //     const imageLayer = this._parseImageLayer(childNode as Element);
+            //     if (imageLayer) {
+            //         this.setImageLayers(imageLayer);
+            //     }
+            // }
+
+            if (childNode.type === bmap.LayerType.TileLayerType /*'layer'*/) {
+                const layer = this._parseLayer(childNode /*as Element*/);
+                this.setLayers(layer!);
+            }
+
+            if (childNode.type === bmap.LayerType.ObjectGroupType/*'objectgroup'*/) {
+                const objectGroup = this._parseObjectGroup(childNode /*as Element*/);
+                this.setObjectGroups(objectGroup);
+            }
+        }
+
+        if(need == this._bm!.tileset.size) this.cb?.(self)
 
     }
-
+    // 参考 https://baike.baidu.com/item/nodeType%20%E5%B1%9E%E6%80%A7/278300?fr=ge_ala
     // protected _shouldIgnoreNode (node: ChildNode): boolean {
     //     return node.nodeType === 3 // text
     //         || node.nodeType === 8   // comment
