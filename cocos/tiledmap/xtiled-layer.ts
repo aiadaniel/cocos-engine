@@ -1852,7 +1852,7 @@ export class TiledLayer extends UIRenderer {
       * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
       */
     public _tiledDataArrayIdx = 0;
-    protected _render (ui: IBatcher): void {
+    public _render (ui: IBatcher): void {
         // for (let i = 0; i < this._tiledDataArray.length; i++) {
         //     this._tiledDataArrayIdx = i;
         //     const m = this._tiledDataArray[i];

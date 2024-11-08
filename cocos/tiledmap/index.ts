@@ -30,4 +30,6 @@ export * from './xtiled-object-group';
 export * from './xtiled-tile';
 export * from './assembler';
 
+export * from './xtmx-xml-parser';
+
 export * from './BTile';
