@@ -65,6 +65,12 @@ export const simple: IAssembler = {
         }
     },
 
+    //lxm add
+    updateSpriteFrame(sf) {
+        this.updateUVs(sf);
+        this.updateVertexData(sf);//todo
+    },
+
     updateWorldVerts (sprite: Sprite, chunk: StaticVBChunk) {
         const renderData = sprite.renderData!;
         const vData = chunk.vb;

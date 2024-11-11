@@ -149,6 +149,11 @@ export const ttf: IAssembler = {
     updateColor (comp: Label) {
         // no needs to update color
     },
+
+    // lxm add
+    updateSpriteFrame(sf) {
+        this.updateUVs(sf);
+    }
 };
 
 js.addon(ttf, ttfUtils);
