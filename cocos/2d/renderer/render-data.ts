@@ -50,16 +50,16 @@ export interface IRenderData {
 }
 
 // lxm add
-const rdPool = new Pool(()=>{
-    return {
-        x: 0,
-        y: 0,
-        z: 0,
-        u: 0,
-        v: 0,
-        color: Color.WHITE.clone(),
-    }
-}, 128);
+// const rdPool = new Pool(()=>{
+//     return {
+//         x: 0,
+//         y: 0,
+//         z: 0,
+//         u: 0,
+//         v: 0,
+//         color: Color.WHITE.clone(),
+//     }
+// }, 128);
 
 const DEFAULT_STRIDE = getAttributeStride(vfmtPosUvColor) >> 2;
 
@@ -256,32 +256,32 @@ export class RenderData extends BaseRenderData {
     }
 
     set dataLength (length: number) {
-        // const data: IRenderData[] = this._data;
-        // if (data.length !== length) {
-        //     for (let i = data.length; i < length; i++) {
-        //         data.push({
-        //             x: 0,
-        //             y: 0,
-        //             z: 0,
-        //             u: 0,
-        //             v: 0,
-        //             color: Color.WHITE.clone(),
-        //         });
-        //     }
+        const data: IRenderData[] = this._data;
+        if (data.length !== length) {
+            for (let i = data.length; i < length; i++) {
+                data.push({
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    u: 0,
+                    v: 0,
+                    color: Color.WHITE.clone(),
+                });
+            }
 
-        //     data.length = length;
-        // }
-        // lxm add
-        var i = this._data;
-        if (i.length !== length) {
-            var n = i.length,
-                r = 0;
-            for (r = length; r < n; r++)
-                rdPool.free(i[r]);
-            for (r = n; r < length; r++)
-                i[r] = rdPool.alloc();
-            i.length = length;
+            data.length = length;
         }
+        // lxm add
+        // var i = this._data;
+        // if (i.length !== length) {
+        //     var n = i.length,
+        //         r = 0;
+        //     for (r = length; r < n; r++)
+        //         rdPool.free(i[r]);
+        //     for (r = n; r < length; r++)
+        //         i[r] = rdPool.alloc();
+        //     i.length = length;
+        // }
 
         this.syncRender2dBuffer();
     }
@@ -338,10 +338,10 @@ export class RenderData extends BaseRenderData {
     private _data: IRenderData[] = [];
 
     // lxm add
-    _pivotX = 0;
-    _pivotY = 0;
-    _width = 0;
-    _height = 0;
+    // _pivotX = 0;
+    // _pivotY = 0;
+    // _width = 0;
+    // _height = 0;
 
     private _frame: SpriteFrame | TextureBase | null = null;
     protected _accessor: StaticVBAccessor = null!;
@@ -544,26 +544,26 @@ export class RenderData extends BaseRenderData {
         }
     }
     // lxm add
-    public updateSizeNPivot (t, i, n, r) {
-        (t === this._width &&
-            i === this._height &&
-            n === this._pivotX &&
-            r === this._pivotY) ||
-            ((this._width = t),
-            (this._height = i),
-            (this._pivotX = n),
-            (this._pivotY = r),
-            (this.vertDirty = !0));
-    }
+    // public updateSizeNPivot (t, i, n, r) {
+    //     (t === this._width &&
+    //         i === this._height &&
+    //         n === this._pivotX &&
+    //         r === this._pivotY) ||
+    //         ((this._width = t),
+    //         (this._height = i),
+    //         (this._pivotX = n),
+    //         (this._pivotY = r),
+    //         (this.vertDirty = !0));
+    // }
 
     public clear (): void {
         this.resize(0, 0);
         this._data.length = 0;
         // lxm add
-        (this._pivotX = 0),
-        (this._pivotY = 0),
-        (this._width = 0),
-        (this._height = 0),
+        // (this._pivotX = 0),
+        // (this._pivotY = 0),
+        // (this._width = 0),
+        // (this._height = 0),
 
         this.indices = null;
         this.vertDirty = true;

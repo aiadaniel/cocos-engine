@@ -190,7 +190,7 @@ export class TiledObjectGroup extends Component {
         }
 
         this._texGrids = texGrids;
-        this._animations = mapInfo.getTileAnimations();
+        // this._animations = mapInfo.getTileAnimations();
         this.aniObjects = [];
         this._hasAniObj = false;
 
@@ -318,14 +318,14 @@ export class TiledObjectGroup extends Component {
                     imgNode = new Node();
                 }
 
-                if (this._animations.get(gridGID)) {
-                    this.aniObjects.push({
-                        object,
-                        imgNode,
-                        gridGID,
-                    });
-                    this._hasAniObj = true;
-                }
+                // if (this._animations.get(gridGID)) {
+                //     this.aniObjects.push({
+                //         object,
+                //         imgNode,
+                //         gridGID,
+                //     });
+                //     this._hasAniObj = true;
+                // }
 
                 const tileOffsetX = tileset.tileOffset.x;
                 const tileOffsetY = tileset.tileOffset.y;

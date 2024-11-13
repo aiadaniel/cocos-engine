@@ -128,7 +128,7 @@ export class TiledUserNodeData extends Component {
         return new TiledUserNodeData();
     }
     
-    getRender() {
+    getRender() : RenderData {
         var t = this.renderData!;
         return (
             t ||
@@ -274,7 +274,7 @@ export class TiledLayer extends UIRenderer {
     userNodeMap : { [key: string]: TiledUserNodeData } = {};// [id] = node;
     tiledMapCurr;// { index: new Float32Array(36) }
     tiledMapPool;// same
-    worldPosition;
+    worldPosition: Vec3 | undefined;
     updateLayers;
     currRenderData;
     

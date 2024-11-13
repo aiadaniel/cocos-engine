@@ -63,7 +63,7 @@ let textureStart = 0;
 let n$r = new Array(300);
 let _fillCount = 0;
 
-let _curTexture: SpriteFrame | TextureBase | null;
+let _curTexture: TextureBase | undefined;
 
 let KZr = 0;
 let textureList: any[] = [];
@@ -646,20 +646,20 @@ function traverseGrids(leftDown:{col:number,row:number}, rightTop:{col:number,ro
                             _tiledLayer.loadTileMapImage(grid.tileset, _tiledLayer.texGrids!, _tiledLayer.hasUserNode);
                             if (!_tiledGrid) 
                                 continue; 
-                            (tex = _tiledGrid.spriteFrame.texture), 
+                            (tex = _tiledGrid.spriteFrame?.texture), 
                             (grid = _tiledGrid); 
                         } 
                         if (_curTexture !== tex) {
                             if (!_tiledLayer.hasUserNode && KZr ) {
                                 (C == KZr - 1 && (packRenderData(!1), reset()), 
-                                (C = (function (t) { //返回 旧值 或 textureEnd自增前的值
+                                (C = (function (t: TextureBase) { //返回 旧值 或 textureEnd自增前的值
                                     var i, n = t.getId(); 
                                     return (  
                                         null != (i = s$r[n]) ? 
                                         i : 
                                         ((textureList[ textureEnd ] = t), ((s$r = textureEnd % KZr == 0 ? {} : s$r)[ n ] = textureEnd++)) 
                                     ); 
-                                })(tex))) 
+                                })(tex as TextureBase))) 
                             } else {
                                 packRenderData(!0);
                             } 
@@ -846,7 +846,7 @@ function packRenderData (hasUserNode: boolean) {
                 (rd.textureInfo = { textureList: textureList, textureStart: textureStart, textureEnd: textureEnd - 1, textureMat: textureMat }), //todo
                 (textureStart = textureEnd)
             ); 
-        _curTexture = null; 
+        _curTexture = null!; 
         var r = 0;
         var s = _curLayer!.tiledMapCurr!;
         var e = _curLayer!.tiledMapPool;
