@@ -39,7 +39,7 @@ import { ModelLocalBindings, UBOLocal } from '../../rendering/define';
 import { SpriteFrame } from '../assets';
 import { TextureBase } from '../../asset/assets/texture-base';
 import { IBatcher } from './i-batcher';
-import { StaticVBAccessor } from './static-vb-accessor';
+import { StaticVBAccessor, StaticVBChunk } from './static-vb-accessor';
 import { getAttributeStride, vfmt, vfmtPosUvColor } from './vertex-format';
 import { updateOpacity } from '../assembler/utils';
 import { BaseRenderData, MeshRenderData } from './render-data';
@@ -130,7 +130,7 @@ export class Batcher2D implements IBatcher {
     constructor (private _root: Root) {
         this.device = _root.device;
         this._batches = new CachedArray(64);
-        this._drawBatchPool = new Pool(() => new DrawBatch2D(), 128, (obj) => obj.destroy(this));//todo 64
+        this._drawBatchPool = new Pool(() => new DrawBatch2D(), 64, (obj) => obj.destroy(this));//lxm 128->64
     }
     // setupStaticBatch(staticComp: UIStaticBatch, bufferAccessor: StaticVBAccessor) {
     //     throw new Error('Method not implemented.');
@@ -820,7 +820,7 @@ export class Batcher2D implements IBatcher {
     //     this._currMaterial = mat;
     // }
     // lxm change   
-    public walk (t: Node /*node: Node, level = 0*/): void {
+    public walk (node: Node /*node: Node, level = 0*/): void {
         // if (!node.activeInHierarchy) {
         //     return;
         // }
@@ -888,8 +888,8 @@ export class Batcher2D implements IBatcher {
 
         // level += 1;
 
-        if (t.activeInHierarchy && t.isVisible()) {
-            let uiProps = t._uiProps,
+        if (node.activeInHierarchy && node.isVisible()) {
+            let uiProps = node._uiProps,
                 render = uiProps.uiComp as UIRenderer,
                 _renderEnabled = null == render ? void 0 : render.enabled;
             if ( uiProps.colorDirty || this._opacityDirty || uiProps.localOpacity < 1 ) {
@@ -907,21 +907,21 @@ export class Batcher2D implements IBatcher {
                         render.fillBuffers(this);
                         var _renderData = render.renderData;
                         if (_renderData) {
-                            var u,
-                                c =
-                                    null == _renderData || null == (u = _renderData.chunk)
+                            var chunk: StaticVBChunk,
+                                _vb =
+                                    null == _renderData || null == (chunk = _renderData.chunk)
                                         ? void 0
-                                        : u.vb;
-                            if (c)
+                                        : chunk.vb;
+                            if (_vb)
                                 if ( 9 == _renderData.floatStride ) {
-                                    if ( c[8] != opacity )
+                                    if ( _vb[8] != opacity )
                                         for (
                                             var f = 8,
-                                                l = c.length;
+                                                l = _vb.length;
                                             f < l;
                                             f += 9
                                         )
-                                            c[ f ] = opacity;
+                                            _vb[ f ] = opacity;
                                 } else
                                     !render.useVertexOpacity &&
                                         0 < _renderData.vertexCount &&
@@ -929,11 +929,11 @@ export class Batcher2D implements IBatcher {
                         }
                     }
                     if (
-                        (t.hasChangedFlags = 0) < t.children.length &&
-                        !t._static
+                        (node.hasChangedFlags = 0) < node.children.length &&
+                        !node._static
                     )
                         for (
-                            var v = t.children,
+                            let v = node.children,
                                 d = 0,
                                 _ = v.length;
                             d < _;
@@ -947,11 +947,11 @@ export class Batcher2D implements IBatcher {
                 this._pOpacity = parentOpacity;
             } else if (
                 (_renderEnabled && render.fillBuffers(this),
-                (t.hasChangedFlags = 0) < t.children.length &&
-                    !t._static)
+                (node.hasChangedFlags = 0) < node.children.length &&
+                    !node._static)
             )
                 for (
-                    var p = t.children,
+                    var p = node.children,
                         w = 0,
                         A = p.length;
                     w < A;
