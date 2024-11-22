@@ -803,6 +803,11 @@ export class Director extends EventTarget {
     public isPersistRootNode (node: Node): boolean {
         return !!node._persistNode;
     }
+
+    // lxm
+    tryShrinkPools () {
+        scalableContainerManager.tryShrink();
+    }
 }
 
 export declare namespace Director {

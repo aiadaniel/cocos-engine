@@ -307,7 +307,7 @@ export class AssetManager {
      */
     public references = references;
 
-    private _releaseManager = releaseManager;
+    public _releaseManager = releaseManager;
     private _files = files;
     private _parsed = parsed;
     private _parsePipeline = BUILD ? null : new Pipeline('parse existing json', [this.loadPipe]);
