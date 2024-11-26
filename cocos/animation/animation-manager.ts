@@ -54,10 +54,15 @@ export class AnimationManager extends System {
     private _blendStateBuffer: LegacyBlendStateBuffer = new LegacyBlendStateBuffer();
     private _sockets: ISocketData[] = [];
 
+    //lxm add
+    _dirty = true;
+
     public addCrossFade (crossFade: CrossFade): void {
         const index = this._crossFades.array.indexOf(crossFade);
         if (index === -1) {
             this._crossFades.push(crossFade);
+            // lxm
+            this._dirty = true;
         }
     }
 
@@ -71,6 +76,11 @@ export class AnimationManager extends System {
     }
 
     public update (dt: number): void {
+        // lxm
+        if (!this._dirty) return;
+
+        let ii = false;//lxm
+
         const { _delayEvents, _crossFades: crossFadesIter, _sockets } = this;
 
         { // Update cross fades
@@ -78,6 +88,7 @@ export class AnimationManager extends System {
             for (crossFadesIter.i = 0; crossFadesIter.i < crossFades.length; ++crossFadesIter.i) {
                 const crossFade = crossFades[crossFadesIter.i];
                 crossFade.update(dt);
+                ii = true;//lxm
             }
         }
 
@@ -88,6 +99,7 @@ export class AnimationManager extends System {
             if (!anim.isMotionless) {
                 anim.update(dt);
             }
+            ii = true;//lxm
         }
         this._blendStateBuffer.apply();
 
@@ -95,13 +107,16 @@ export class AnimationManager extends System {
         for (let i = 0, l = _sockets.length; i < l; i++) {
             const { target, transform } = _sockets[i];
             target.matrix = getWorldMatrix(transform, stamp);
+            ii = true;//lxm
         }
 
         for (let i = 0, l = _delayEvents.length; i < l; i++) {
             const event = _delayEvents[i];
             event.fn.apply(event.thisArg, event.args);
+            ii = true;//lxm
         }
         _delayEvents.length = 0;
+        this._dirty = ii;//lxm
     }
 
     public destruct (): void {
@@ -112,6 +127,8 @@ export class AnimationManager extends System {
         const index = this._anims.array.indexOf(anim);
         if (index === -1) {
             this._anims.push(anim);
+            // lxm
+            this._dirty = true;
         }
     }
 
@@ -130,6 +147,8 @@ export class AnimationManager extends System {
             thisArg,
             args,
         });
+        // lxm
+        this._dirty = true;
     }
 
     public addSockets (root: Node, sockets: Socket[]): void {
@@ -140,6 +159,8 @@ export class AnimationManager extends System {
             const transform = socket.target && targetNode && getTransform(targetNode, root);
             if (transform) {
                 this._sockets.push({ target: socket.target!, transform });
+                //lxm
+                this._dirty = true;
             }
         }
     }
