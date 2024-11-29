@@ -704,7 +704,7 @@ export class AssetManager {
         opts.preset = opts.preset || 'bundle';
         opts.ext = 'bundle';
         opts.__isNative__ = true;
-        console.log("--loadBundle " + nameOrUrl);
+        // console.log("--loadBundle " + nameOrUrl);
         this.loadAny({ url: nameOrUrl }, opts, null, (err, data): void => {
             if (err) {
                 error(err.message, err.stack);
