@@ -160,6 +160,7 @@ export class TiledUserNodeData extends Component {
             (this._next = null));
     }
     destroy(): boolean {
+        super.destroy();
         this.remove(),
             this.removeRender(),
             (this.loadRes = null),
