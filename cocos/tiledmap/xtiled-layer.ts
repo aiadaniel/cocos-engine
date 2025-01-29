@@ -83,10 +83,12 @@ export class TiledUserNodeData extends Component {
     x = 0;
     y = 0;
     _row = -1;
+
     _left = 0;
     _right = 0;
     _up = 0;
     _down = 0;
+
     isActive = !0;
     isTiledNodeShow = !1;
     isFloor = !1;
@@ -130,19 +132,17 @@ export class TiledUserNodeData extends Component {
     
     getRender() : RenderData {
         var t = this.renderData!;
-        return (
-            t ||
-                (0 < renIdx
-                    ? ((t = renders[--renIdx]),
-                      (renders[renIdx] = null),
-                      (t.atlasIndex = 0),
-                      (t.meshBufferOffset = -1),
-                      (t.meshFinishOffset = -1))
-                    : (t =
-                          this._tiledLayer!.getRenderData()),
-                (this.renderData = t)),
-            t
-        );
+        if (!t) {
+            0 < renIdx
+                ? ((t = renders[--renIdx]),
+                  (renders[renIdx] = null),
+                  (t.atlasIndex = 0),
+                  (t.meshBufferOffset = -1),
+                  (t.meshFinishOffset = -1))
+                : (t = this._tiledLayer!.getRenderData());
+            this.renderData = t;
+        }
+        return t;
     }
     removeRender() {
         this.renderData &&
@@ -162,31 +162,31 @@ export class TiledUserNodeData extends Component {
     destroy(): boolean {
         super.destroy();
         this.remove(),
-            this.removeRender(),
-            (this.loadRes = null),
-            (this.onShow = null),
-            (this.onHide = null),
-            (this.onReset = null),
-            (this.node = null),
-            (this.unit = null),
-            (this._isNode = !0),
-            (this.x = 0),
-            (this.y = 0),
-            (this._row = -1),
-            (this._tiledLayer = null),
-            (this.isTiledNodeShow = !1),
-            (this.isActive = !0),
-            (this.isFloor = !1),
-            (this.isStaticUnit = !1),
-            (this._left = 0),
-            (this._right = 0),
-            (this._up = 0),
-            (this._down = 0),
-            ((arr =
-                arr.length == arrIdx
-                    ? fTr(arr, arrIdx)
-                    : arr)[arrIdx++] = this);
-            return true;
+        this.removeRender(),
+        (this.loadRes = null),
+        (this.onShow = null),
+        (this.onHide = null),
+        (this.onReset = null),
+        (this.node = null),
+        (this.unit = null),
+        (this._isNode = !0),
+        (this.x = 0),
+        (this.y = 0),
+        (this._row = -1),
+        (this._tiledLayer = null),
+        (this.isTiledNodeShow = !1),
+        (this.isActive = !0),
+        (this.isFloor = !1),
+        (this.isStaticUnit = !1),
+        (this._left = 0),
+        (this._right = 0),
+        (this._up = 0),
+        (this._down = 0),
+        ((arr =
+            arr.length == arrIdx
+                ? fTr(arr, arrIdx)
+                : arr)[arrIdx++] = this);
+        return true;
     }
     setSpriteRect(t, i, n, r) {
         (r /= 2),
@@ -199,11 +199,11 @@ export class TiledUserNodeData extends Component {
         this._tiledLayer!._userNodePosChange(this);
     }
     static chain(): TiledUserNodeData {
-        var i = TiledUserNodeData.create();
-        return (
-            (i._isNode = !1),
-            ((i._next = i)._prev = i)
-        );
+        const i = TiledUserNodeData.create();
+        i._isNode = !1;
+        i._next = i;
+        i._prev = i;
+        return i;
     }
     first() {
         var t = this._next!;
@@ -214,8 +214,7 @@ export class TiledUserNodeData extends Component {
             t._next &&
                 ((t._next._prev = t._prev),
                 (t._prev._next = t._next)),
-            ((this._next!._prev = t)._next =
-                this._next),
+            ((this._next!._prev = t)._next = this._next),
             ((t._prev = this)._next = t),
             this
         );

@@ -213,6 +213,8 @@ export const sliced: IAssembler = {
         const stride = renderData.floatStride;
         const uv = sprite.spriteFrame.uvSliced;
         let uvOffset = 3;
+        // todo lxm 后续发布去掉
+        if (!uv) return; 
         for (let i = 0; i < 16; i++) {
             vData[uvOffset] = uv[i].u;
             vData[uvOffset + 1] = uv[i].v;
