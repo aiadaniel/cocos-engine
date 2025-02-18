@@ -347,7 +347,7 @@ export const tiled: IAssembler = {
 
         const rotated = frame.rotated;
         const uv = frame.uv;
-        const uvSliced: IUV[] = frame.uvSliced;
+        const uvSliced: IUV[] = frame._uvSliced;
         // origin at left bottom
         origin = uvSliced[0];
         // on bottom edge

@@ -90,7 +90,9 @@ export const sliced: IAssembler = {
         //         sprite._activateMaterial();
         //     }
         // }
-        dynamicAtlasManager.packToDynamicAtlas(sprite, frame);
+
+        // dynamicAtlasManager.packToDynamicAtlas(sprite, frame);// lxm +
+
         // TODO update material and uv
         this.updateUVs(sprite); // dirty need
         //this.updateColor(sprite); // dirty need
@@ -211,10 +213,8 @@ export const sliced: IAssembler = {
         const renderData = sprite.renderData!;
         const vData = renderData.chunk.vb;
         const stride = renderData.floatStride;
-        const uv = sprite.spriteFrame.uvSliced;
+        const uv = sprite.spriteFrame._uvSliced;
         let uvOffset = 3;
-        // todo lxm 后续发布去掉
-        if (!uv) return; 
         for (let i = 0; i < 16; i++) {
             vData[uvOffset] = uv[i].u;
             vData[uvOffset + 1] = uv[i].v;

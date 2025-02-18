@@ -636,7 +636,7 @@ export class Sprite extends UIRenderer {
             if (this._type === SpriteType.SLICED) {
                 this._spriteFrame.on(SpriteFrame.EVENT_UV_UPDATED, this._updateUVs, this);
             } else {
-                this._spriteFrame.off(SpriteFrame.EVENT_UV_UPDATED, this._updateUVs, this);//todo lxm 去掉
+                this._spriteFrame.off(SpriteFrame.EVENT_UV_UPDATED, this._updateUVs, this);
             }
         }
     }

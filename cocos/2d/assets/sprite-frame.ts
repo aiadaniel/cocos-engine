@@ -562,6 +562,13 @@ export class SpriteFrame extends Asset {
         return this._trimmedBorder;
     }
 
+    // lxm add
+    get uvSliced() {
+        if (!this._uvSliced)
+            this._calculateSlicedUV();
+        return this._uvSliced;
+    }
+
     /**
      * @en Vertex list for the mesh type sprite frame.
      * @zh 网格类型精灵帧的所有顶点列表。
@@ -583,12 +590,12 @@ export class SpriteFrame extends Asset {
      * @en UV for sliced 9 vertices.
      * @zh 九宫格的顶点 UV。
      */
-    public uvSliced: IUV[] = [];
+    public _uvSliced: IUV[] = [];//lxm 改成_uvSliced 加了get/set方法
 
     // the location of the sprite on rendering texture
     protected _rect = new Rect();
 
-    protected _trimmedBorder = new Vec4();
+    protected _trimmedBorder = new Vec4();//todo lxm   = null
 
     // for trimming
     protected _offset = new Vec2();
@@ -602,7 +609,7 @@ export class SpriteFrame extends Asset {
 
     protected _atlasUuid = '';
     // TODO: not initialized in constructor
-    protected _texture!: TextureBase;
+    protected _texture!: TextureBase;//todo lxm 去掉感叹号？
 
     protected _isFlipUVY = false;
 
@@ -769,7 +776,7 @@ export class SpriteFrame extends Asset {
      * @returns @en Gfx Texture resource. @zh GFX 贴图资源。
      */
     public getGFXTexture (): Texture | null {
-        return this._texture.getGFXTexture();
+        return this._texture?.getGFXTexture();// lxm
     }
 
     /**
@@ -930,9 +937,9 @@ export class SpriteFrame extends Asset {
     }
 
     public destroy (): boolean {
-        if (this._packable && dynamicAtlasManager) {
-            dynamicAtlasManager.deleteAtlasSpriteFrame(this);
-        }
+        // if (this._packable && dynamicAtlasManager) { // lxm remove
+        //     dynamicAtlasManager.deleteAtlasSpriteFrame(this);
+        // }
         return super.destroy();
     }
 
@@ -953,7 +960,7 @@ export class SpriteFrame extends Asset {
         const bottomHeight = this._capInsets[INSET_BOTTOM];
         const centerHeight = rect.height - topHeight - bottomHeight;
 
-        const uvSliced = this.uvSliced;
+        const uvSliced = this._uvSliced;
         uvSliced.length = 0;
         if (this._rotated) {
             temp_uvs[0].u = rect.x / atlasWidth;
@@ -1224,7 +1231,13 @@ export class SpriteFrame extends Asset {
             }
         }
 
-        this._calculateSlicedUV();
+        (this._uvSliced || // lxm 
+            this._capInsets[0] ||
+            this._capInsets[2] ||
+            this._capInsets[1] ||
+            this._capInsets[3]) &&
+            this._calculateSlicedUV();
+        // this._calculateSlicedUV();// lxm 原本只有这行
     }
 
     /**
@@ -1260,28 +1273,28 @@ export class SpriteFrame extends Asset {
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
      */
-    public _checkPackable (): void {
-        const dynamicAtlas = dynamicAtlasManager;
-        if (!dynamicAtlas) return;
-        const texture = this._texture;
+    public _checkPackable (): void { // lxm 删掉整个函数了
+        // const dynamicAtlas = dynamicAtlasManager;
+        // if (!dynamicAtlas) return;
+        // const texture = this._texture;
 
-        if (!(texture instanceof Texture2D) || texture.isCompressed) {
-            this._packable = false;
-            return;
-        }
+        // if (!(texture instanceof Texture2D) || texture.isCompressed) {
+        //     this._packable = false;
+        //     return;
+        // }
 
-        const w = this.width;
-        const h = this.height;
-        if (!texture.image
-            || w > dynamicAtlas.maxFrameSize || h > dynamicAtlas.maxFrameSize) {
-            this._packable = false;
-            return;
-        }
-        const CanvasElement = ccwindow.HTMLCanvasElement;
+        // const w = this.width;
+        // const h = this.height;
+        // if (!texture.image
+        //     || w > dynamicAtlas.maxFrameSize || h > dynamicAtlas.maxFrameSize) {
+        //     this._packable = false;
+        //     return;
+        // }
+        // const CanvasElement = ccwindow.HTMLCanvasElement;
 
-        if (texture.image && texture.image instanceof CanvasElement) {
-            this._packable = true;
-        }
+        // if (texture.image && texture.image instanceof CanvasElement) {
+        //     this._packable = true;
+        // }
     }
 
     /**
@@ -1428,9 +1441,9 @@ export class SpriteFrame extends Asset {
         } : null as any;
         sp.uv.splice(0, sp.uv.length, ...this.uv);
         sp.unbiasUV.splice(0, sp.unbiasUV.length, ...this.unbiasUV);
-        sp.uvSliced.splice(0, sp.uvSliced.length, ...this.uvSliced);
+        sp._uvSliced.splice(0, sp._uvSliced.length, ...this._uvSliced);
         sp._rect.set(this._rect);
-        sp._trimmedBorder.set(this._trimmedBorder);
+        sp._trimmedBorder.set(this._trimmedBorder);//373没有这个
         sp._offset.set(this._offset);
         sp._originalSize.set(this._originalSize);
         sp._rotated = this._rotated;
