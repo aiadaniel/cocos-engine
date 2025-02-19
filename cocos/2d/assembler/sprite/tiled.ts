@@ -100,13 +100,13 @@ export const tiled: IAssembler = {
 
         this.updateVerts(sprite, sizableWidth, sizableHeight, row, col);
 
-        if (renderData.vertexCount !== row * col * 4) {
-            sprite.renderEntity.colorDirty = true;
-        }
+        // if (renderData.vertexCount !== row * col * 4) { // lxm 删了3行
+        //     sprite.renderEntity.colorDirty = true;
+        // }
         // update data property
         renderData.resize(row * col * 4, row * col * 6);
         // update index here
-        if (JSB) {
+        if (JSB) { // todo lxm 这些native层的都需要再看怎么做
             const indexCount = renderData.indexCount;
             this.createQuadIndices(indexCount);
             renderData.chunk.setIndexBuffer(QUAD_INDICES!);
@@ -156,12 +156,13 @@ export const tiled: IAssembler = {
         }
         if (sprite._flagChangedVersion !== node.flagChangedVersion || renderData.vertDirty) {
             this.updateWorldVertexAndUVData(sprite, chunk);
+            this.updateColorLate(sprite); // lxm 下面移上来的
             renderData.vertDirty = false;
             sprite._flagChangedVersion = node.flagChangedVersion;
         }
 
         // forColor
-        this.updateColorLate(sprite);
+        // this.updateColorLate(sprite); // lxm 移到上面了
 
         // update indices
         const bid = chunk.bufferId;
@@ -169,17 +170,34 @@ export const tiled: IAssembler = {
         const meshBuffer = chunk.meshBuffer;
         const ib = chunk.meshBuffer.iData;
         let indexOffset = meshBuffer.indexOffset;
-        for (let i = 0; i < renderData.indexCount; i += 6) {
-            ib[indexOffset++] = vid;
-            ib[indexOffset++] = vid + 1;
-            ib[indexOffset++] = vid + 2;
-            ib[indexOffset++] = vid + 1;
-            ib[indexOffset++] = vid + 3;
-            ib[indexOffset++] = vid + 2;
-            vid += 4;
-            meshBuffer.indexOffset += 6;
+        
+        // lxm 替换了下面整部分
+        let u = indexOffset + renderData.indexCount;
+        if (renderData.meshBufferOffset != indexOffset || renderData.meshFinishOffset != u || ib[indexOffset] != vid) {
+            renderData.meshBufferOffset = indexOffset;
+            renderData.meshFinishOffset = u;
+            for(;indexOffset < u;) {
+                ib[indexOffset++] = vid;
+                ib[indexOffset++] = ++vid;
+                ib[indexOffset++] = ++vid;
+                ib[indexOffset++] = vid;
+                ib[indexOffset++] = vid++ - 1;
+                ib[indexOffset++] = vid++;
+            }
         }
-        meshBuffer.setDirty();
+        meshBuffer.indexOffset = u;
+        // lxm 以下全部由上面替换了
+        // for (let i = 0; i < renderData.indexCount; i += 6) {
+        //     ib[indexOffset++] = vid;
+        //     ib[indexOffset++] = vid + 1;
+        //     ib[indexOffset++] = vid + 2;
+        //     ib[indexOffset++] = vid + 1;
+        //     ib[indexOffset++] = vid + 3;
+        //     ib[indexOffset++] = vid + 2;
+        //     vid += 4;
+        //     meshBuffer.indexOffset += 6;
+        // }
+        // meshBuffer.setDirty();
     },
 
     updateWorldUVData (sprite: Sprite) {
@@ -203,19 +221,20 @@ export const tiled: IAssembler = {
         const stride = renderData.floatStride;
         const dataList: IRenderData[] = renderData.data;
         const vData = chunk.vb;
+        const u = renderData.atlasIndex;// lxm add
 
         const length = dataList.length;
         for (let i  = 0; i < length; i++) {
             const x = dataList[i].x;
             const y = dataList[i].y;
-            const z = dataList[i].z;
-            let rhw = m.m03 * x + m.m07 * y + m.m11 * z + m.m15;
+            // const z = dataList[i].z; // lxm 下面也对应删掉z
+            let rhw = m.m03 * x + m.m07 * y /*+ m.m11 * z*/ + m.m15;
             rhw = rhw ? 1 / rhw : 1;
 
             const offset = i * stride;
-            vData[offset] = (m.m00 * x + m.m04 * y + m.m08 * z + m.m12) * rhw;
-            vData[offset + 1] = (m.m01 * x + m.m05 * y + m.m09 * z + m.m13) * rhw;
-            vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m10 * z + m.m14) * rhw;
+            vData[offset] = (m.m00 * x + m.m04 * y /*+ m.m08 * z*/ + m.m12) * rhw;
+            vData[offset + 1] = (m.m01 * x + m.m05 * y /*+ m.m09 * z*/ + m.m13) * rhw;
+            vData[offset + 2] = u;// (m.m02 * x + m.m06 * y + m.m10 * z + m.m14) * rhw; //lxm
         }
 
         this.updateWorldUVData(sprite);

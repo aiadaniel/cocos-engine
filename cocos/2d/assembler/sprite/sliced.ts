@@ -47,35 +47,36 @@ export const sliced: IAssembler = {
         // 0-4 for local vertex
         renderData.dataLength = 16;
         renderData.resize(16, 54);
-        this.QUAD_INDICES = new Uint16Array(54);
-        this.createQuadIndices(4, 4);
-        renderData.chunk.setIndexBuffer(this.QUAD_INDICES as Uint16Array);
+        // this.QUAD_INDICES = new Uint16Array(54); // lxm 删掉3行
+        // this.createQuadIndices(4, 4);
+        // renderData.chunk.setIndexBuffer(this.QUAD_INDICES as Uint16Array);
         return renderData;
     },
 
-    createQuadIndices (vertexRow: number, vertexCol: number) {
-        let offset = 0;
-        for (let curRow = 0; curRow < vertexRow - 1; curRow++) {
-            for (let curCol = 0; curCol < vertexCol - 1; curCol++) {
-                // vid is the index of the left bottom vertex in each rect.
-                const vid = curRow * vertexCol + curCol;
+    // lxm 上面删掉这就不需要了
+    // createQuadIndices (vertexRow: number, vertexCol: number) {
+    //     let offset = 0;
+    //     for (let curRow = 0; curRow < vertexRow - 1; curRow++) {
+    //         for (let curCol = 0; curCol < vertexCol - 1; curCol++) {
+    //             // vid is the index of the left bottom vertex in each rect.
+    //             const vid = curRow * vertexCol + curCol;
 
-                // left bottom
-                this.QUAD_INDICES[offset++] = vid;
-                // right bottom
-                this.QUAD_INDICES[offset++] = vid + 1;
-                // left top
-                this.QUAD_INDICES[offset++] = vid + vertexCol;
+    //             // left bottom
+    //             this.QUAD_INDICES[offset++] = vid;
+    //             // right bottom
+    //             this.QUAD_INDICES[offset++] = vid + 1;
+    //             // left top
+    //             this.QUAD_INDICES[offset++] = vid + vertexCol;
 
-                // right bottom
-                this.QUAD_INDICES[offset++] = vid + 1;
-                // right top
-                this.QUAD_INDICES[offset++] = vid + 1 + vertexCol;
-                // left top
-                this.QUAD_INDICES[offset++] = vid + vertexCol;
-            }
-        }
-    },
+    //             // right bottom
+    //             this.QUAD_INDICES[offset++] = vid + 1;
+    //             // right top
+    //             this.QUAD_INDICES[offset++] = vid + 1 + vertexCol;
+    //             // left top
+    //             this.QUAD_INDICES[offset++] = vid + vertexCol;
+    //         }
+    //     }
+    // },
 
     updateRenderData (sprite: Sprite) {
         const frame = sprite.spriteFrame;
@@ -167,18 +168,28 @@ export const sliced: IAssembler = {
         const meshBuffer = chunk.meshBuffer;
         const ib = chunk.meshBuffer.iData;
         let indexOffset = meshBuffer.indexOffset;
-        for (let r = 0; r < 3; ++r) {
-            for (let c = 0; c < 3; ++c) {
-                const start = vid + r * 4 + c;
-                ib[indexOffset++] = start;
-                ib[indexOffset++] = start + 1;
-                ib[indexOffset++] = start + 4;
-                ib[indexOffset++] = start + 1;
-                ib[indexOffset++] = start + 5;
-                ib[indexOffset++] = start + 4;
+
+        // lxm add
+        let n = indexOffset + renderData.indexCount;
+        if (renderData.meshBufferOffset != indexOffset || renderData.meshFinishOffset != n || ib[indexOffset] != vid) {
+            renderData.meshBufferOffset = indexOffset;
+            renderData.meshFinishOffset = n;
+            // lxm 把循环移动到if里面了
+            for (let r = 0; r < 3; ++r) {
+                for (let c = 0; c < 3; ++c) {
+                    const start = vid + r * 4 + c;
+                    ib[indexOffset++] = start;
+                    ib[indexOffset++] = start + 1;
+                    ib[indexOffset++] = start + 4;
+                    ib[indexOffset++] = start + 1;
+                    ib[indexOffset++] = start + 5;
+                    ib[indexOffset++] = start + 4;
+                }
             }
         }
-        meshBuffer.indexOffset = indexOffset;
+
+        // meshBuffer.indexOffset = indexOffset;
+        meshBuffer.indexOffset = n;// lxm 
     },
 
     updateWorldVertexData (sprite: Sprite, chunk: StaticVBChunk) {
@@ -189,6 +200,8 @@ export const sliced: IAssembler = {
         const stride = renderData.floatStride;
         const dataList: IRenderData[] = renderData.data;
         const vData = chunk.vb;
+        //lxm add
+        const u = renderData.atlasIndex;
 
         let offset = 0;
         for (let row = 0; row < 4; ++row) {
@@ -203,17 +216,18 @@ export const sliced: IAssembler = {
                 offset = (row * 4 + col) * stride;
                 vData[offset + 0] = (m.m00 * x + m.m04 * y + m.m12) * rhw;
                 vData[offset + 1] = (m.m01 * x + m.m05 * y + m.m13) * rhw;
-                vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw;
+                // vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw; // lxm change
+                vData[offset + 2] = u;
             }
         }
     },
 
     updateUVs (sprite: Sprite) {
-        if (!sprite.spriteFrame) return;
+        if (!sprite.spriteFrame || !sprite.spriteFrame.uv) return; // lxm 加后半句判断
         const renderData = sprite.renderData!;
         const vData = renderData.chunk.vb;
         const stride = renderData.floatStride;
-        const uv = sprite.spriteFrame._uvSliced;
+        const uv = sprite.spriteFrame.uvSliced;// lxm 改成没有下划线
         let uvOffset = 3;
         for (let i = 0; i < 16; i++) {
             vData[uvOffset] = uv[i].u;
