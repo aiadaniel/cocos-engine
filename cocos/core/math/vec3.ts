@@ -29,6 +29,9 @@ import { Mat4 } from './mat4';
 import { IMat3Like, IMat4Like, IQuatLike, IVec3Like } from './type-define';
 import { clamp, EPSILON, lerp, random } from './utils';
 import { legacyCC } from '../global-exports';
+import { Pool } from '../memop';
+
+let _v3Pool: Pool<Vec3>;
 
 /**
  * @en Representation of 3D vectors and points.
@@ -44,6 +47,20 @@ export class Vec3 extends ValueType {
     public static ZERO = Object.freeze(new Vec3(0, 0, 0));
     public static ONE = Object.freeze(new Vec3(1, 1, 1));
     public static NEG_ONE = Object.freeze(new Vec3(-1, -1, -1));
+
+    // lxm add two func
+    public static alloc  (x?, y?, z?) {
+        return (_v3Pool =
+            _v3Pool ||
+            new Pool(function () {
+                return new Vec3();
+            }, 30))
+            .alloc()
+            .set(x, y, z);
+    }
+    public static free (v3) {
+        v3 && _v3Pool.free(v3);
+    }
 
     /**
      * @en return a Vec3 object with x = 0, y = 0, z = 0.

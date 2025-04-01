@@ -99,7 +99,7 @@ export class BaseRenderData {
     atlasIndex = 0;
     meshBufferOffset = -1;
     meshFinishOffset = -1;
-    declare textureInfo;
+    textureInfo;
 
     // entity for native
     protected _renderDrawInfo: RenderDrawInfo = null!;

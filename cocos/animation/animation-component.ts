@@ -51,7 +51,8 @@ import { CrossFade } from './cross-fade';
 @menu('Animation/Animation')
 export class Animation extends Eventify(Component) {
     // lxm add
-    @type(boolean)
+    @serializable
+    @editable
     _recorderMode = false;
     get recorderMode() {
         return this._recorderMode;
