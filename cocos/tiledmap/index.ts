@@ -22,14 +22,14 @@
  THE SOFTWARE.
 */
 
-export * from './xtiled-types';
-export * from './xtiled-map';
+export * from './tiled-types';
+export * from './tiled-map';
 export * from './tiled-map-asset';
-export * from './xtiled-layer';
-export * from './xtiled-object-group';
-export * from './xtiled-tile';
+export * from './tiled-layer';
+export * from './tiled-object-group';
+export * from './tiled-tile';
 export * from './assembler';
 
-export * from './xtmx-xml-parser';
+export * from './tmx-xml-parser';
 
 export * from './BTile';

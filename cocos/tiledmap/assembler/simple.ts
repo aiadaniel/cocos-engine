@@ -27,7 +27,7 @@ import { Mat4, Size, Vec3 } from '../../core/math';
 import { IAssembler } from '../../2d/renderer/base';
 import { IBatcher } from '../../2d/renderer/i-batcher';
 import { TiledLayer, TiledTile, TiledMap, bmap, TiledUserNodeData } from '..';
-import { GID, MixedGID, TiledGrid, TileFlag } from '../xtiled-types';
+import { GID, MixedGID, TiledGrid, TileFlag } from '../tiled-types';
 import { director, Director } from '../../game';
 import { StaticVBAccessor } from '../../2d/renderer/static-vb-accessor';
 import { vfmtPosUvColor } from '../../2d/renderer/vertex-format';
