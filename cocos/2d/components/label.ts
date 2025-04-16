@@ -231,7 +231,14 @@ export class Label extends UIRenderer {
         }
 
         this._string = value;
-        this._markForUpdateRenderData();
+        // this.markForUpdateRenderData(); // lxm change block below
+        if (value == '') {
+            this.destroyRenderData();
+        } else if (this.renderData) {
+            this._markForUpdateRenderData();
+        } else {
+            this.updateRenderData(true);
+        }
     }
 
     /**
@@ -424,8 +431,10 @@ export class Label extends UIRenderer {
         if (value) {
             this.font = null;
         }
-        this._flushAssembler();
-        this._markForUpdateRenderData();
+        if (this._string != '') { // lxm add if
+            this._flushAssembler();
+            this._markForUpdateRenderData();
+        }
     }
 
     /**
@@ -503,11 +512,11 @@ export class Label extends UIRenderer {
         if (oldCacheMode === value) {
             return;
         }
-
-        if (oldCacheMode === CacheMode.BITMAP && !(this._font instanceof BitmapFont) && this._ttfSpriteFrame) {
-            this._ttfSpriteFrame._resetDynamicAtlasFrame();
-        }
-        if (oldCacheMode === CacheMode.CHAR) {
+        // lxm delete block
+        // if (this._cacheMode === CacheMode.BITMAP && !(this._font instanceof BitmapFont) && this._ttfSpriteFrame) {
+        //     this._ttfSpriteFrame._resetDynamicAtlasFrame();
+        // }
+        if (this._cacheMode === CacheMode.CHAR) {
             this._ttfSpriteFrame = null;
             this.destroyLetterTexture();
         }
@@ -790,6 +799,10 @@ export class Label extends UIRenderer {
         return this._textLayoutData!;
     }
 
+    // lxm add
+    @serializable
+    protected _labelStyle = '';
+
     @serializable
     protected _string = 'label';
     @serializable
@@ -883,6 +896,17 @@ export class Label extends UIRenderer {
         this._textRenderData = new TextOutputRenderData();
     }
 
+    //lxm add
+    public getLabelStyle (): string {
+        return this._labelStyle;
+    }
+    public setLabelStyle (t, i, n): void {
+        this._labelStyle = t;
+        if (this._labelStyle === 'Strong') {
+            CanvasPool.getInstance().recycle(t, i, n); // CanvasPool in font-utils.ts
+        }
+    }
+
     public onEnable (): void {
         super.onEnable();
 
@@ -894,35 +918,41 @@ export class Label extends UIRenderer {
         if (this._isSystemFontUsed && !this._fontFamily) {
             this.fontFamily = 'Arial';
         }
+        // lxm add
+        if (this._string === '') {
+            this.destroyRenderData();
+            return;
+        }
+        // end lxm
 
         this._applyFontTexture();
     }
 
-    private destroyTtfSpriteFrame (): void {
-        if (!this._ttfSpriteFrame) {
-            return;
-        }
-        this._ttfSpriteFrame._resetDynamicAtlasFrame();
-        const tex = this._ttfSpriteFrame.texture;
-        this._ttfSpriteFrame.destroy();
-        if (tex) {
-            const tex2d = tex as Texture2D;
-            if (tex2d.image) {
-                tex2d.image.destroy();
-            }
-            tex.destroy();
-        }
-        this._ttfSpriteFrame = null;
-    }
+    // private destroyTtfSpriteFrame (): void { // lxm
+    //     if (!this._ttfSpriteFrame) {
+    //         return;
+    //     }
+    //     this._ttfSpriteFrame._resetDynamicAtlasFrame();
+    //     const tex = this._ttfSpriteFrame.texture;
+    //     this._ttfSpriteFrame.destroy();
+    //     if (tex) {
+    //         const tex2d = tex as Texture2D;
+    //         if (tex2d.image) {
+    //             tex2d.image.destroy();
+    //         }
+    //         tex.destroy();
+    //     }
+    //     this._ttfSpriteFrame = null;
+    // }
 
     // Override
-    public _onPreDestroy (): void {
-        super._onPreDestroy();
-        if (!this._isOnLoadCalled) {
-            // If _objFlags does not contain IsOnLoadCalled, it is possible to destroy the ttfSpriteFrame.
-            this.destroyTtfSpriteFrame();
-        }
-    }
+    // public _onPreDestroy (): void { // lxm
+    //     super._onPreDestroy();
+    //     if (!this._isOnLoadCalled) {
+    //         // If _objFlags does not contain IsOnLoadCalled, it is possible to destroy the ttfSpriteFrame.
+    //         this.destroyTtfSpriteFrame();
+    //     }
+    // }
 
     public onDestroy (): void {
         if (this._assembler && this._assembler.resetAssemblerData) {
@@ -930,7 +960,21 @@ export class Label extends UIRenderer {
         }
 
         this._assemblerData = null;
-        this.destroyTtfSpriteFrame();
+        // this.destroyTtfSpriteFrame(); // lxm
+
+        if (this._ttfSpriteFrame) { // lxm add block
+            const _tex = this._ttfSpriteFrame.texture as Texture2D; // lxm ?
+            if (_tex) {
+                if (_tex.image) {
+                    _tex.image.destroy();
+                    _tex.image = null;
+                }
+                _tex.destroy();
+            }
+            this._ttfSpriteFrame.destroy(),
+            (this._ttfSpriteFrame = null);
+        }
+
         // Don't set null for properties which are init in constructor.
         // this._textStyle = null;
         // this._textLayout = null;
@@ -959,20 +1003,34 @@ export class Label extends UIRenderer {
      * @param force @en Whether to force an immediate update. @zh 是否立马强制更新渲染数据。
      */
     public updateRenderData (force = false): void {
-        if (force) {
-            this._flushAssembler();
-            // Hack: Fixed the bug that richText wants to get the label length by _measureText,
-            // _assembler.updateRenderData will update the content size immediately.
-            if (this.renderData) this.renderData.vertDirty = true;
-            this._applyFontTexture();
-        }
-        if (this._assembler) {
-            this._assembler.updateRenderData!(this);
-        }
+        this._string == ''
+            ? this.destroyRenderData()
+            : !this._renderData || force
+                ? (this._flushAssembler(),
+                this._renderData
+                        && (this._renderData.vertDirty = true),
+                void this._applyFontTexture(true))
+                : void (
+                    this._assembler
+                        && this._assembler.updateRenderData(this)
+                );
+        // lxm
+        // if (force) {
+        //     this._flushAssembler();
+        //     // Hack: Fixed the bug that richText wants to get the label length by _measureText,
+        //     // _assembler.updateRenderData will update the content size immediately.
+        //     if (this.renderData) this.renderData.vertDirty = true;
+        //     this._applyFontTexture();
+        // }
+        // if (this._assembler) {
+        //     this._assembler.updateRenderData(this);
+        // }
     }
 
     protected _render (render: IBatcher): void {
-        render.commitComp(this, this.renderData, this._texture, this._assembler!, null);
+        if (this.renderData && this.renderData.chunk) { // lxm add if
+            render.commitComp(this, this.renderData, this._texture, this._assembler!, null);
+        }
     }
 
     // Cannot use the base class methods directly because BMFont and CHAR cannot be updated in assambler with just color.
@@ -1013,6 +1071,9 @@ export class Label extends UIRenderer {
     }
 
     protected _flushAssembler (): void {
+        if (this._string == '')// lxm
+        { return this.destroyRenderData(); }
+
         const assembler = Label.Assembler.getAssembler(this);
 
         if (this._assembler !== assembler) {
@@ -1032,9 +1093,9 @@ export class Label extends UIRenderer {
             }
         }
     }
-
-    protected _applyFontTexture (): void {
-        this._markForUpdateRenderData();
+    // lxm 增加参数t
+    protected _applyFontTexture (t?: boolean): void {
+        // this._markForUpdateRenderData(); // lxm
         const font = this._font;
         if (font instanceof BitmapFont) {
             const spriteFrame = font.spriteFrame;
@@ -1043,10 +1104,10 @@ export class Label extends UIRenderer {
                 if (this.renderData) {
                     this.renderData.textureDirty = true;
                 }
-                this.changeMaterialForDefine();
-                if (this._assembler) {
-                    this._assembler.updateRenderData!(this);
-                }
+                // this.changeMaterialForDefine(); // lxm delete block
+                // if (this._assembler) {
+                //     this._assembler.updateRenderData(this);
+                // }
             }
         } else {
             if (this.cacheMode === CacheMode.CHAR) {
@@ -1062,9 +1123,9 @@ export class Label extends UIRenderer {
             } else if (!this._ttfSpriteFrame) {
                 this._ttfSpriteFrame = new SpriteFrame();
                 this._assemblerData = (this._assembler as TTF).getAssemblerData();
-                const image = new ImageAsset(this._assemblerData.canvas);
+                // const image = new ImageAsset(this._assemblerData!.canvas); // lxm
                 const texture = new Texture2D();
-                texture.image = image;
+                // texture.image = image; // lxm
                 this._ttfSpriteFrame.texture = texture;
             }
 
@@ -1072,7 +1133,13 @@ export class Label extends UIRenderer {
                 // this._frame._refreshTexture(this._texture);
                 this._texture = this._ttfSpriteFrame;
             }
-            this.changeMaterialForDefine();
+            // this.changeMaterialForDefine(); // lxm 移动到外面?
+        }
+        this.changeMaterialForDefine();//lxm add block
+        if (t && this._assembler) {
+            this._assembler.updateRenderData?.(this);
+        } else {
+            this.markForUpdateRenderData();
         }
     }
 

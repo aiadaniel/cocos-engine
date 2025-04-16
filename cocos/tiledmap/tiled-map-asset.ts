@@ -25,9 +25,10 @@
 
 import { ccclass, type, serializable } from 'cc.decorator';
 import { Asset } from '../asset/assets/asset';
-import { CCString, Size } from '../core';
+import { ByteBuf, CCString, Size } from '../core';
 import { SpriteFrame } from '../2d/assets';
-import { TextAsset } from '../asset/assets';
+import { BufferAsset, TextAsset } from '../asset/assets';
+import { bmap } from './BTile';
 
 /**
  * @en
@@ -43,12 +44,18 @@ export class TiledMapAsset extends Asset {
     constructor () {
         super();
     }
-    @serializable
-    tmxXmlStr = '';
+
+    _bm: bmap.BMap|null = null;
+
+    // @serializable
+    // tmxXmlStr = '';
+
+    // @type(BufferAsset)
+    _data: Uint8Array|null = null;
 
     @serializable
-    @type([TextAsset])
-    tsxFiles: TextAsset[] = [];
+    @type([BufferAsset])//TextAsset
+    tsxFiles: BufferAsset[] = [];
 
     @serializable
     @type([CCString])
@@ -60,9 +67,9 @@ export class TiledMapAsset extends Asset {
      * @zh
      * SpriteFrame 数组
      */
-    @serializable
-    @type([SpriteFrame])
-    spriteFrames: SpriteFrame[] = [];
+    // @serializable
+    // @type([SpriteFrame])
+    // spriteFrames: SpriteFrame[] = [];
 
     /**
      * @en
@@ -71,9 +78,9 @@ export class TiledMapAsset extends Asset {
      * ImageLayerSpriteFrame 数组
      * @property {SpriteFrame[]} imageLayerSpriteFrame
      */
-    @serializable
-    @type([SpriteFrame])
-    imageLayerSpriteFrame: SpriteFrame[] = [];
+    // @serializable
+    // @type([SpriteFrame])
+    // imageLayerSpriteFrame: SpriteFrame[] = [];
 
     /**
      * @en
@@ -107,4 +114,28 @@ export class TiledMapAsset extends Asset {
     @serializable
     @type([Size])
     spriteFrameSizes: Size[] = [];
+
+    /**
+     * editor-》assetManager.loadAny-》factory.create ?
+     */
+    get _nativeAsset (): ArrayBuffer {
+        console.log(`22222 ${this._data}`);
+        return this._data!.buffer;
+    }
+    set _nativeAsset (value: ArrayBuffer) {
+        console.log(`11111 ${value}`);
+
+        this._loadNativeData(value);
+    }
+
+    _loadNativeData (value: ArrayBuffer): boolean {
+        if (this._data && this._data.byteLength === value.byteLength) {
+            this._data.set(new Uint8Array(value));
+        } else {
+            this._data = new Uint8Array(value);
+        }
+        const bb = new ByteBuf(this._data);
+        this._bm = new bmap.BMap(bb);
+        return true;
+    }
 }

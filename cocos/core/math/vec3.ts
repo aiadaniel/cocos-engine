@@ -32,6 +32,7 @@ import { IMat3Like, IMat4Like, IQuatLike, IVec3Like } from './type-define';
 import { clamp, EPSILON, lerp, random } from './utils';
 import { legacyCC } from '../global-exports';
 import { warnID } from '../platform/debug';
+import { Pool } from '../memop';
 
 const abs = Math.abs;
 const max = Math.max;
@@ -49,6 +50,8 @@ function freezeVec3 (x: number, y: number, z: number): Readonly<Vec3> {
     return Object.freeze(new Vec3(x, y, z));
 }
 
+let _v3Pool: Pool<Vec3>;
+
 /**
  * @en Representation of 3D vectors and points.
  * @zh 三维向量。
@@ -63,6 +66,17 @@ export class Vec3 extends ValueType {
     public static ZERO = freezeVec3(0, 0, 0);
     public static ONE = freezeVec3(1, 1, 1);
     public static NEG_ONE = freezeVec3(-1, -1, -1);
+
+    // lxm add two func
+    public static alloc  (x?: number, y?: number, z?: number): Vec3 {
+        _v3Pool = _v3Pool || new Pool((() => new Vec3()), 30);
+        return _v3Pool
+            .alloc()
+            .set(x, y, z);
+    }
+    public static free (v3: Vec3): void {
+        if (v3) _v3Pool.free(v3);
+    }
 
     /**
      * @en return a Vec3 object with x = 0, y = 0, z = 0.

@@ -455,6 +455,9 @@ export class Sprite extends UIRenderer {
      */
     public static EventType = SpriteEventType;
 
+    //lxm add
+    _subColor;
+
     @serializable
     protected _spriteFrame: SpriteFrame | null = null;
     @serializable
@@ -475,6 +478,21 @@ export class Sprite extends UIRenderer {
     protected _useGrayscale = false;
     @serializable
     protected _atlas: SpriteAtlas | null = null;
+
+    // lxm add
+    updateSpriteFrame (sf): void { //新增
+        let i;
+        (sf && this._spriteFrame)
+            || (this.spriteFrame = sf),
+        sf
+            && ((this._spriteFrame = sf),
+            (i = this._renderData))
+            && this._assembler
+            && (this._assembler.updateSpriteFrame
+                ? this._assembler.updateSpriteFrame(this)
+                : ((i.vertDirty = !0),
+                this._assembler.updateRenderData?.(this)));
+    }
 
     public __preload (): void {
         this.changeMaterialForDefine();
@@ -692,6 +710,9 @@ export class Sprite extends UIRenderer {
 
         let textureChanged = false;
         if (spriteFrame) {
+            if (this._type === SpriteType.SLICED) { // lxm add
+                this._flushAssembler();
+            }
             if (!oldFrame || oldFrame.texture !== spriteFrame.texture) {
                 textureChanged = true;
             }
@@ -705,10 +726,10 @@ export class Sprite extends UIRenderer {
                 }
                 self.changeMaterialForDefine();
             }
-            self._applySpriteSize();
-            if (self._type === SpriteType.SLICED) {
-                spriteFrame.on(SpriteFrameEvent.UV_UPDATED, self._updateUVs, self);
-            }
+            this._applySpriteSize();
+            // if (this._type === SpriteType.SLICED) {// lxm delete
+            //     spriteFrame.on(SpriteFrame.EVENT_UV_UPDATED, this._updateUVs, this);
+            // }
         }
     }
 }

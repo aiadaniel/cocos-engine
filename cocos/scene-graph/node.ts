@@ -1649,6 +1649,14 @@ export class Node extends CCObject implements ISchedulable, CustomSerializable {
     protected _flagChangeVersion = 0;
     protected _hasChangedFlags = 0;
 
+    _visible = true;//lxm add
+    public isVisible (): boolean {
+        return this._visible;
+    }
+    public setVisible (t): void {
+        this._visible = t;
+    }
+
     constructor (name?: string) {
         if (name === undefined) name = 'New Node';
         super(name);

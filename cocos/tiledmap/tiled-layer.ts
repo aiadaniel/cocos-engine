@@ -24,19 +24,19 @@
  THE SOFTWARE.
 */
 
-import { ccclass } from 'cc.decorator';
+import { boolean, ccclass } from 'cc.decorator';
 
 import { EDITOR_NOT_IN_PREVIEW } from 'internal:constants';
 import { UIRenderer } from '../2d/framework/ui-renderer';
 import { SpriteFrame } from '../2d/assets/sprite-frame';
 import { Component, Node } from '../scene-graph';
 import { TMXMapInfo } from './tmx-xml-parser';
-import { Color, IVec2Like, Mat4, Size, Vec2, Vec3, logID, warnID } from '../core';
+import { Color, IVec2Like, Mat4, Size, Vec2, Vec3, warn, logID, Rect } from '../core';
 import { TiledTile } from './tiled-tile';
 import { RenderData } from '../2d/renderer/render-data';
 import { IBatcher } from '../2d/renderer/i-batcher';
 import {
-    MixedGID, GID, Orientation, TiledTextureGrids, TMXTilesetInfo, RenderOrder, StaggerAxis, StaggerIndex, TileFlag,
+    MixedGID, GID, TiledTextureGrids, TMXTilesetInfo, TileFlag,
     GIDFlags, TiledAnimationType, PropertiesInfo, TMXLayerInfo,
 } from './tiled-types';
 import { fillTextureGrids } from './tiled-utils';
@@ -46,49 +46,200 @@ import { RenderDrawInfo, RenderDrawInfoType } from '../2d/renderer/render-draw-i
 import { Texture2D } from '../asset/assets';
 import { director } from '../game';
 import { Camera } from '../render-scene/scene';
+import { bmap } from './BTile';
+import { view } from '../ui/view';
+import { TiledMap } from './tiled-map';
 
-const _mat4_temp = new Mat4();
+type SafeArray<T> = Array<T | undefined>;// from engine global
+
+const _mat4_temp = new Mat4();//j0n
 const _vec2_temp = new Vec2();
-const _vec3_temp = new Vec3();
-const _vec3_temp2 = new Vec3();
-const _tempRowCol = { row: 0, col: 0 };
+const _vec3_temp = new Vec3();//q$n
+const _vec3_temp2 = new Vec3();//P9n
+const _tempRowCol = { row: 0, col: 0 };//llr
 
-function isTiledSubNodeData (data: TiledRenderData | TiledSubNodeData): data is TiledSubNodeData {
-    return 'subNodes' in data;
+let camera: Camera;
+
+let arr = new Array<TiledUserNodeData|null>(300);
+let arrIdx = 0;
+
+let renders = new Array(300);
+let renIdx = 0;
+
+let K6n = 0;
+
+function fTr (t, i, n = 300): any[] {
+    const r = new Array(i + n);
+    for (let s = 0; s < i; ++s) {
+        r[s] = t[s];
+    }
+    return r;
 }
 
 @ccclass('cc.TiledUserNodeData')
 export class TiledUserNodeData extends Component {
-    _index = -1;
+    _isNode = !0;
+    _prev: TiledUserNodeData|null = null;
+    _next: TiledUserNodeData|null = null;
+    x = 0;
+    y = 0;
     _row = -1;
-    _col = -1;
-    _tiledLayer: TiledLayer | null = null;
+
+    _left = 0;
+    _right = 0;
+    _up = 0;
+    _down = 0;
+
+    isActive = !0;
+    isTiledNodeShow = !1;
+    isFloor = !1;
+
+    node;
+    unit;
+    _tiledLayer: TiledLayer|null;
+    isStaticUnit = !1;
+    renderData: RenderData|null;
+    loadRes;
+    onShow;
+    onHide;
+    onReset;
+
+    // _index = -1;
+    // _row = -1;
+    // _col = -1;
+    // _tiledLayer: TiledLayer | null = null;
     constructor () {
         super();
+        this.node = null;
+        this.unit = null;
+        this._tiledLayer = null;
+        this.isStaticUnit = !1;
+        this.renderData = null;
+        this.loadRes = null;
+        this.onShow = null;
+        this.onHide = null;
+        this.onReset = null;
     }
-}
+    setLog (t): void {}
 
-export interface TiledRenderData {
-    renderData: RenderData | null;
-    texture: Texture2D | null;
-}
+    static create (): TiledUserNodeData {
+        if (arrIdx > 0) {
+            const temp: TiledUserNodeData = arr[--arrIdx]!;
+            arr[arrIdx] = null;
+            return temp;
+        }
+        return new TiledUserNodeData();
+    }
 
-interface TiledSubNodeData {
-    subNodes: (null | TiledUserNodeData)[];
-}
+    getRender (): RenderData {
+        let t = this.renderData!;
+        if (!t) {
+            renIdx > 0
+                ? ((t = renders[--renIdx]),
+                (renders[renIdx] = null),
+                (t.atlasIndex = 0),
+                (t.meshBufferOffset = -1),
+                (t.meshFinishOffset = -1))
+                : (t = this._tiledLayer!.getRenderData());
+            this.renderData = t;
+        }
+        return t;
+    }
+    removeRender (): void {
+        this.renderData
+            && (renders.length == renIdx
+                && (renders = fTr(renders, renIdx)),
+            (this.renderData.frame = null),
+            (renders[renIdx++] = this.renderData),
+            (this.renderData = null));
+    }
+    remove (): void {
+        this._next
+            && ((this._next._prev = this._prev),
+            (this._prev!._next = this._next),
+            (this._prev = null),
+            (this._next = null));
+    }
+    destroy (): boolean {
+        super.destroy();
+        this.remove(),
+        this.removeRender(),
+        (this.loadRes = null),
+        (this.onShow = null),
+        (this.onHide = null),
+        (this.onReset = null),
+        (this.node = null),
+        (this.unit = null),
+        (this._isNode = !0),
+        (this.x = 0),
+        (this.y = 0),
+        (this._row = -1),
+        (this._tiledLayer = null),
+        (this.isTiledNodeShow = !1),
+        (this.isActive = !0),
+        (this.isFloor = !1),
+        (this.isStaticUnit = !1),
+        (this._left = 0),
+        (this._right = 0),
+        (this._up = 0),
+        (this._down = 0),
+        ((arr =            arr.length == arrIdx
+            ? fTr(arr, arrIdx)
+            : arr)[arrIdx++] = this);
+        return true;
+    }
+    setSpriteRect (t, i, n, r): void {
+        (r /= 2),
+        (this._right = t + (n /= 2)),
+        (this._left = n - t),
+        (this._up = i + r),
+        (this._down = r - i);
+    }
+    _userNodePosChange (): void {
+        this._tiledLayer!._userNodePosChange(this);
+    }
+    static chain (): TiledUserNodeData {
+        const i = TiledUserNodeData.create();
+        i._isNode = !1;
+        i._next = i;
+        i._prev = i;
+        return i;
+    }
+    first (): TiledUserNodeData | null {
+        const t = this._next!;
+        return t._isNode ? t : null;
+    }
+    append (t): TiledUserNodeData {
+        t._next
+            && ((t._next._prev = t._prev),
+            (t._prev._next = t._next)),
+        ((this._next!._prev = t)._next = this._next),
+        ((t._prev = this)._next = t);
+        return this;
+    }
+    down (): void {
+        let t = this._next!;
+        for (; t._isNode && !(t.y <= this.y);) t = t._next!;
+        (t = t._prev!) != this
+            && t.append(this);
+    }
+    up (): void {
+        let t = this._prev!;
+        for (; t._isNode && !(t.y >= this.y);) t = t._prev!;
+        t != this._prev && t.append(this);
+    }
+}// TiledUserNodeData
 
-type TiledDataArray = (TiledRenderData | TiledSubNodeData)[];
+// export interface TiledRenderData {
+//     renderData: RenderData | null;
+//     texture: Texture2D | null;
+// }
 
-export interface ITiledLayerCullingRect {
-    leftDown: {
-        row: number;
-        col: number;
-    };
-    rightTop: {
-        row: number;
-        col: number;
-    };
-}
+// interface TiledSubNodeData {
+//     subNodes: (null | TiledUserNodeData)[];
+// }
+
+ type TiledDataArray = (RenderData|TiledUserNodeData|null)[]; // (TiledRenderData | TiledSubNodeData)[];
 
 /**
   * @en Render the TMX layer.
@@ -98,124 +249,171 @@ export interface ITiledLayerCullingRect {
   */
 @ccclass('cc.TiledLayer')
 export class TiledLayer extends UIRenderer {
+    // 需要注意这个row和col并不是直接按照map的row和col来算，而是按照左下角为0，0开始，右上角最大rows+cols，包括viewport等都是这个算法；
+    // 而如果是按照layer的tiles，则是按照x + width * y  即getTileGIDAt等几个api需要的
     // [row][col] = {count: 0, nodesList: []};
-    protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (TiledUserNodeData | null)[] } >> = {};
-    protected _userNodeMap: { [key: string]: TiledUserNodeData } = {};// [id] = node;
+    // & 符号是交叉类型
+    // protected _userNodeGrid: SafeRecord<number, { count: number; } & SafeRecord<number, { count: number, list: (TiledUserNodeData | null)[] } >> = {};
+    // protected _userNodeMap: { [key: string]: TiledUserNodeData } = {};// [id] = node;
     protected _userNodeDirty = false;
 
-    // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
-    public tiledTiles: (TiledTile | null)[] = [];
+    topNodeHead: TiledUserNodeData | null = null;
+    topNodeMap = {};
 
-    // // store the layer tilesets index array
-    // _tilesetIndexArr: number[] = [];
-    // // tileset index to array index
-    // _tilesetIndexToArrIndex: { [key: number]: number } = {};
+    userNodeMap: { [key: string]: TiledUserNodeData } = {};// [id] = node;
+    tiledMapCurr;// { index: new Float32Array(36) }
+    tiledMapPool;// same
+    worldPosition: Vec3 | undefined;
+    updateLayers;
+    currRenderData;
+
+    // store the layer tiles node, index is caculated by 'x + width * y', format likes '[0]=tileNode0,[1]=tileNode1, ...'
+    // public tiledTiles: (TiledTile | null)[] = [];
 
     protected _viewPort = { x: -1, y: -1, width: -1, height: -1 };
-    protected _cullingRect: ITiledLayerCullingRect = {
+
+    // 我们以offset.x+offset.y为key来存储复用结果 计算culling时使用
+    // _offsetKey: number = 0;
+    // _sharedCullingRect: Map<number, {
+    //     cullingDirty: boolean;
+    //     leftDown: {
+    //         row: number;
+    //         col: number;
+    //     };
+    //     rightTop: {
+    //         row: number;
+    //         col: number;
+    //     };
+    // }> | undefined;
+
+    protected _cullingRect = {
         leftDown: { row: -1, col: -1 },
         rightTop: { row: -1, col: -1 },
     };
-    get cullingRect (): ITiledLayerCullingRect {
-        return this._cullingRect;
-    }
+    get cullingRect (): {
+        leftDown: {
+            row: number;
+            col: number;
+        };
+        rightTop: {
+            row: number;
+            col: number;
+        };
+        } { return this._cullingRect; }
 
-    protected _cullingDirty = true;
-    protected _rightTop = { row: -1, col: -1 };
-    get rightTop (): {
-        row: number;
-        col: number;
-        } { return this._rightTop; }
+    showRect = new Rect();
+
+    // protected _cullingDirty = true;
+    // protected _rightTop = { row: -1, col: -1 };
+    // get rightTop (): {
+    //     row: number;
+    //     col: number;
+    // } { return this._rightTop; }
 
     protected _layerInfo: TMXLayerInfo | null = null;
     protected _mapInfo: TMXMapInfo | null = null;
 
     // record max or min tile texture offset,
     // it will make culling rect more large, which insure culling rect correct.
-    protected _topOffset = 0;
-    protected _downOffset = 0;
-    protected _leftOffset = 0;
-    protected _rightOffset = 0;
+    // protected _topOffset = 0;
+    // protected _downOffset = 0;
+    // protected _leftOffset = 0;
+    // protected _rightOffset = 0;
+    nodeUpRow = 0;
+    nodeDownRow = 0;
+    hasUserNode = !1;
+    isGroundLayer = !1;
+    downRow = 1;
 
     // store the layer tiles, index is caculated by 'x + width * y', format likes '[0]=gid0,[1]=gid1, ...'
     public tiles: MixedGID[] = [];
 
+    // 这个数据结构给渲染使用，iso类型瓦片会切成4个矩形（宽高一半）
+    // 装备器根据cullingRect的左下右上 或者 直接 0，0和右上 的索引，从顶点数组拿出纹理网格的索引，再从texGrid拿纹理设置给renderData，同时设置其顶点数组
+    // 实测这个顶点数据结构中的SafeRecord会把bottom一样的放在一起，相当于水平上相同的放一起，按left从左到右排列； 其key是col索引，(isometric)值从rows-1到rows+cols-2
     // vertex array
-    public vertices: SafeArray<{ minCol: number, maxCol: number } & SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
+    public vertices: SafeArray</*{ minCol: number, maxCol: number } & */SafeRecord<number, { left: number, bottom: number, index: number }>> = [];
     // vertices dirty
-    protected _verticesDirty = true;
+    // protected _verticesDirty = true;
 
     protected _layerName = '';
-    protected _layerSize?: Size;
+    protected _layerSize?: Size;// equal to mapsize
+
+    _layerSizeWidth = 0;
+    _layerSizeHeight = 0;
+
+    // _isFirstLayer = false;
+
+    // // hasInit = false;
+    // maptw = 0;
+    // mapth = 0 ;
+    // maptw2 = 0;
+    // mapth2 = 0;
+    // rows = 0;
+    // cols = 0;
+
+    // _needCalcViewport = false;// 更新viewport是否复用
 
     get layerSize (): Size { return this._layerSize!; }
 
-    protected _minGID?: GID;
-    protected _maxGID?: GID;
-    protected _layerOrientation: null | Orientation = null;
+    // protected _minGID?: GID;
+    // protected _maxGID?: GID;
+    // protected _layerOrientation: null | bmap.Orientation = null;
 
-    protected _opacity?: number;
-    protected _tintColor?: Color;
+    // protected _opacity?: number;
+    // protected _tintColor?: Color;
 
     // store all layer gid corresponding texture info, index is gid, format likes '[gid0]=tex-info,[gid1]=tex-info, ...'
     public texGrids: TiledTextureGrids | null = null;
     // store all tileset texture, index is tileset index, format likes '[0]=texture0, [1]=texture1, ...'
-    protected _textures: SpriteFrame[] = [];
+    // protected _textures: SpriteFrame[] = [];
     protected _tilesets: TMXTilesetInfo[] = [];
 
     protected _leftDownToCenterX = 0;
     protected _leftDownToCenterY = 0;
 
-    protected _hasTiledNodeGrid = false;
-    protected _hasAniGrid = false;
-    protected _animations: TiledAnimationType | null = null;
+    // protected _hasTiledNodeGrid = false;
+    // protected _hasAniGrid = false;
+    // protected _animations: TiledAnimationType | null = null;
 
     // switch of culling
     protected _enableCulling?: boolean;
 
-    public colorChanged = false;
+    // public colorChanged = false;
 
     protected _properties?: PropertiesInfo;
-    public renderOrder?: RenderOrder;
-    protected _staggerAxis?: StaggerAxis;
-    protected _staggerIndex?: StaggerIndex;
-    protected _hexSideLength?: number;
+    public renderOrder?: bmap.RenderOrder;
+    // protected _staggerAxis?: bmap.StaggerAxis;
+    // protected _staggerIndex?: bmap.StaggerIndex;
+    // protected _hexSideLength?: number;
 
     protected _mapTileSize?: Size;
-    protected _odd_even?: number;
-    protected _diffX1?: number;
-    protected _diffY1?: number;
-    protected _useAutomaticVertexZ?: boolean;
-    protected _vertexZvalue?: number;
-    protected _offset?: Vec2;
+    protected _mapTileSizeWidth = 0;
+    protected _mapTileSizeHeight = 0;
 
-    protected _tiledDataArray: TiledDataArray = [];
+    // protected _odd_even?: number;
+    // protected _diffX1?: number;
+    // protected _diffY1?: number;
+    // protected _useAutomaticVertexZ?: boolean;
+    // protected _vertexZvalue?: number;
+    _offset?: Vec2;
 
-    protected _cameraNode?: Node;
+    protected _tiledDataArray!: TiledDataArray;
+    _tiledDataLen = 0;
+    _tiledDataPool!: Array<RenderData|null>;
+    _tiledDataPoolLen = 0;
+    _drawNodePool = [];
+    _drawNodePoolLen = 0;
+    ratio = 0;
+
+    // protected _cameraNode?: Node;
 
     get tiledDataArray (): TiledDataArray { return this._tiledDataArray; }
     get leftDownToCenterX (): number { return this._leftDownToCenterX; }
     get leftDownToCenterY (): number { return this._leftDownToCenterY; }
 
-    private _drawInfoList: RenderDrawInfo[] = [];
-    private requestDrawInfo (idx: number): RenderDrawInfo {
-        if (!this._drawInfoList[idx]) {
-            this._drawInfoList[idx] = new RenderDrawInfo();
-            this._drawInfoList[idx].setDrawInfoType(RenderDrawInfoType.MIDDLEWARE);
-        }
-        return this._drawInfoList[idx];
-    }
-
     constructor () {
         super();
-    }
-
-    public hasTiledNode (): boolean {
-        return this._hasTiledNodeGrid;
-    }
-
-    public hasAnimation (): boolean {
-        return this._hasAniGrid;
     }
 
     /**
@@ -227,195 +425,277 @@ export class TiledLayer extends UIRenderer {
     set enableCulling (value: boolean) {
         if (this._enableCulling !== value) {
             this._enableCulling = value;
-            this._cullingDirty = true;
-            this._markForUpdateRenderData();
+            // this._cullingDirty = true;
+            // this.markForUpdateRenderData();
+            this.setUserNodeDirty(true);
         }
     }
     get enableCulling (): boolean { return this._enableCulling!; }
 
-    /**
-      * @en Adds user's node into layer.
-      * @zh 添加用户节点。
-      * @method addUserNode
-      * @param {cc.Node} node
-      * @return {Boolean}
-      */
-    public addUserNode (node: Node): boolean {
-        let dataComp = node.getComponent(TiledUserNodeData);
-        if (dataComp) {
-            warnID(7242);
-            return false;
-        }
-
-        dataComp = node.addComponent(TiledUserNodeData);
-        node.parent = this.node;
-        this._userNodeMap[node.uuid] = dataComp;
-
-        dataComp._row = -1;
-        dataComp._col = -1;
-        dataComp._tiledLayer = this;
-
-        this._nodeLocalPosToLayerPos(node.getPosition(), _vec2_temp);
-        this._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
-        this._addUserNodeToGrid(dataComp, _tempRowCol);
-        this._updateCullingOffsetByUserNode(node);
-        node.on(NodeEventType.TRANSFORM_CHANGED, this._userNodePosChange, dataComp);
-        node.on(NodeEventType.SIZE_CHANGED, this._userNodeSizeChange, dataComp);
-        return true;
+    onLoad (): void {
+        super.onLoad();
+        this.topNodeHead = TiledUserNodeData.chain();
+        this._tiledDataArray = [];
+        this._tiledDataPool = [];
     }
-
-    /**
-      * @en Removes user's node.
-      * @zh 移除用户节点。
-      * @method removeUserNode
-      * @param {cc.Node} node
-      * @return {Boolean}
-      */
-    public removeUserNode (node: Node): boolean {
-        const dataComp = node.getComponent(TiledUserNodeData);
-        if (!dataComp) {
-            warnID(7243);
-            return false;
-        }
-        node.off(NodeEventType.TRANSFORM_CHANGED, this._userNodePosChange, dataComp);
-        node.off(NodeEventType.SIZE_CHANGED, this._userNodeSizeChange, dataComp);
-        this._removeUserNodeFromGrid(dataComp);
-        delete this._userNodeMap[node.uuid];
-        node._removeComponent(dataComp);
-        dataComp.destroy();
-        node.removeFromParent();
-        // node._renderFlag &= ~RenderFlow.FLAG_BREAK_FLOW;
-        return true;
+    onDestroy (): void {
+        this.hasUserNode = !1;
+        this.destroyRenderData();
+        for (
+            let t = this._tiledDataPoolLen - 1;
+            t >= 0;
+            t--
+        ) this._tiledDataPool[t]!.clear();
     }
-
-    /**
-      * @en Destroy user's node.
-      * @zh 销毁用户节点。
-      * @method destroyUserNode
-      * @param {cc.Node} node
-      */
-    public destroyUserNode (node: Node): void {
-        this.removeUserNode(node);
-        node.destroy();
-    }
-
-    // acording layer anchor point to calculate node layer pos
-    protected _nodeLocalPosToLayerPos (nodePos: IVec2Like, out: IVec2Like): void {
-        out.x = nodePos.x + this._leftDownToCenterX;
-        out.y = nodePos.y + this._leftDownToCenterY;
-    }
-
-    public getNodesByRowCol (row: number, col: number): {
-        count: number;
-        list: (TiledUserNodeData | null)[];
-    } | null | undefined {
-        const rowData = this._userNodeGrid[row];
-        if (!rowData) return null;
-        return rowData[col];
-    }
-
-    public getNodesCountByRow (row): number {
-        const rowData = this._userNodeGrid[row];
-        if (!rowData) return 0;
-        return rowData.count;
-    }
-
-    protected _updateAllUserNode (): void {
-        this._userNodeGrid = {};
-        for (const dataId in this._userNodeMap) {
-            const dataComp = this._userNodeMap[dataId];
-            this._nodeLocalPosToLayerPos(dataComp.node.getPosition(), _vec2_temp);
-            this._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
-            this._addUserNodeToGrid(dataComp, _tempRowCol);
-            this._updateCullingOffsetByUserNode(dataComp.node);
+    loadTileMapImage (tileset: TMXTilesetInfo, b: TiledTextureGrids, hasUserNode: boolean): void {}
+    setTileMapImage (t, i, n): void {
+        if (this.updateLayers) {
+            (function (t, i, n) {
+                t.sourceImage = n;
+                let r;
+                let e;
+                const h = t.firstGid;
+                const o = t.imageSize.width;
+                const u = t.imageSize.height;
+                const a = t._tileSize.width;
+                const c = t._tileSize.height;
+                const f = t.spacing;
+                const l = t.margin;
+                let v = 1;
+                if (!t.collection) {
+                    r = Math.floor((o - 2 * l + f) / (a + f));
+                    e = Math.floor((u - 2 * l + f) / (c + f));
+                    v = Math.max(1, e * r);
+                }
+                for (let d = t.firstGid + v, _ = h; _ < d; ++_) {
+                    let p;
+                    let w;
+                    let A;
+                    let m;
+                    const E = i.get(_);
+                    if (E) {
+                        E.spriteFrame = n;
+                        E._name = n.name;
+                        p = n.width;
+                        w = n.height;
+                        A =  n.unbiasUV[0];
+                        m =  n.rotated
+                            ? n.unbiasUV[1]
+                            : n.unbiasUV[5];
+                        E.l = A + (E.x + 0.5) / p;
+                        E.t = m + (E.y + 0.5) / w;
+                        E.r = A + (E.x + E.width - 0.5) / p;
+                        E.b = m + (E.y + E.height - 0.5) / w;
+                        E._rect = new Rect(E.x, E.y, E.width, E.height);//Rect
+                    }
+                }
+            }(t, i, n));
+            this.updateLayers();
         }
     }
-
-    protected _updateCullingOffsetByUserNode (node_: Node): void {
-        const node = node_._getUITransformComp()!.contentSize;
-        if (this._topOffset < node.height) {
-            this._topOffset = node.height;
+    getSorttedNodesByRow (row: number, i = false): TiledUserNodeData | null {
+        // void 0 === i && (i = !1);
+        const n = (this.userNodeMap[row] = this.userNodeMap[row] || TiledUserNodeData.chain());
+        let r = n.first();
+        if (r) {
+            for (; r != null && r._isNode;) {
+                // let a;
+                let c;
+                let f;
+                let l;
+                let v;
+                const d = r._next;
+                if (r.x + r._right >= this.showRect.x
+                && r.x - r._left <= this.showRect.width
+                && r.y + r._up >= this.showRect.y
+                && r.y - r._down <= this.showRect.height) {
+                    if (!r.isTiledNodeShow) {
+                        r.isTiledNodeShow = !0;
+                        if (r.loadRes) {
+                            r.loadRes();
+                            r.loadRes = null;
+                        }
+                        if (r.onShow) {
+                            r.onShow.call(f);
+                        }
+                    }
+                    (i = !0);
+                } else if (r.isTiledNodeShow) {
+                    r.isTiledNodeShow = !1;
+                    if (r.onHide) {
+                        r.onHide.call(f);
+                    }
+                }
+                if (r.loadRes
+                        && r.x + r._right + 200 > this.showRect.x
+                        && r.x - r._left - 200 < this.showRect.width
+                        && r.y + r._up + 200 > this.showRect.y
+                        && r.y - r._down - 200 < this.showRect.height) {
+                    r.loadRes();
+                    r.loadRes = null;
+                }
+                r = r._next || d;
+            }
         }
-        if (this._downOffset < node.height) {
-            this._downOffset = node.height;
-        }
-        if (this._leftOffset < node.width) {
-            this._leftOffset = node.width;
-        }
-        if (this._rightOffset < node.width) {
-            this._rightOffset = node.width;
-        }
+        return i ? n : null;
     }
 
-    protected _userNodeSizeChange (): void {
-        const dataComp: TiledUserNodeData = this as unknown as any;
-        const node = dataComp.node;
-        const self = dataComp._tiledLayer!;
-        self._updateCullingOffsetByUserNode(node);
-        self._userNodeDirty = true;
-        self._markForUpdateRenderData();
-    }
+    // public getNodesByRowCol (row: number, col: number): {
+    //     count: number;
+    //     list: (TiledUserNodeData | null)[];
+    // } | null | undefined {
+    //     const rowData = this._userNodeGrid[row];
+    //     if (!rowData) return null;
+    //     return rowData[col];
+    // }
 
-    protected _userNodePosChange (): void {
-        const dataComp: TiledUserNodeData = this as unknown as any;
-        const node = dataComp.node;
-        const self = dataComp._tiledLayer!;
-        self._nodeLocalPosToLayerPos(node.getPosition(), _vec2_temp);
-        self._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
-        self._limitInLayer(_tempRowCol);
-        // users pos not change
-        if (_tempRowCol.row === dataComp._row && _tempRowCol.col === dataComp._col) return;
+    // public getNodesCountByRow (row): number {
+    //     const rowData = this._userNodeGrid[row];
+    //     if (!rowData) return 0;
+    //     return rowData.count;
+    // }
+    // _prepareToRender
+    // protected _updateAllUserNode (): void {
+    //     this._userNodeGrid = {};
+    //     for (const dataId in this._userNodeMap) {
+    //         const dataComp = this._userNodeMap[dataId];
+    //         this._nodeLocalPosToLayerPos(dataComp.node.getPosition(), _vec2_temp);
+    //         this._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
+    //         this._addUserNodeToGrid(dataComp, _tempRowCol);
+    //         this._updateCullingOffsetByUserNode(dataComp.node);
+    //     }
+    // }
 
-        self._removeUserNodeFromGrid(dataComp);
-        self._addUserNodeToGrid(dataComp, _tempRowCol);
+    // protected _updateCullingOffsetByUserNode (node_: Node): void {
+    //     const node = node_._uiProps.uiTransformComp!.contentSize;
+    //     if (this._topOffset < node.height) {
+    //         this._topOffset = node.height;
+    //     }
+    //     if (this._downOffset < node.height) {
+    //         this._downOffset = node.height;
+    //         console.log("_updateCullingOffsetByUserNode _downOffset " + this._downOffset);
+    //     }
+    //     if (this._leftOffset < node.width) {
+    //         this._leftOffset = node.width;
+    //     }
+    //     if (this._rightOffset < node.width) {
+    //         this._rightOffset = node.width;
+    //     }
+    // }
+
+    // protected _userNodeSizeChange (): void {
+    //     const dataComp: TiledUserNodeData = this as unknown as any;
+    //     const node = dataComp.node;
+    //     const self = dataComp._tiledLayer!;
+    //     self._updateCullingOffsetByUserNode(node);
+    //     self._userNodeDirty = true;
+    //     self.markForUpdateRenderData();
+    // }
+
+    _userNodePosChange (t: TiledUserNodeData): void {
+        // const dataComp: TiledUserNodeData = this as unknown as any;
+        // const node = dataComp.node;
+        // const self = dataComp._tiledLayer!;
+        // self._nodeLocalPosToLayerPos(node.getPosition(), _vec2_temp);
+        // self._positionToRowCol(_vec2_temp.x, _vec2_temp.y, _tempRowCol);
+        // self._limitInLayer(_tempRowCol);
+        // // users pos not change
+        // if (_tempRowCol.row === dataComp._row && _tempRowCol.col === dataComp._col) return;
+
+        // self._removeUserNodeFromGrid(dataComp);
+        // // console.log("_userNodePosChange pos:(" + _vec2_temp.x +" " + _vec2_temp.y +") rowcol:(" + _tempRowCol.row + " " + _tempRowCol.col + ")");
+        // self._addUserNodeToGrid(dataComp, _tempRowCol);
+        let i;
+        let n;
+        let r;
+        let e;
+        const h = t.node.position;
+        const o = h.x - t.x;
+        const u = h.y - t.y;
+        (o < 2
+            && o > -2
+            && u < 2
+            && u > -2)
+            || ((t.x = h.x),
+            (t.y = h.y),
+            (n = Math.floor((h.y + this._leftDownToCenterY) / 60)), //e4n
+            (r = this.showRect),
+            t.x + t._right >= r.x
+            && t.x - t._left <= r.width
+            && t.y + t._up >= r.y
+            && t.y - t._down <= r.height
+                ? t.isTiledNodeShow
+                    || ((t.isTiledNodeShow = !0),
+                    (i = t.onShow) == null) || i.call(t)
+                : t.isTiledNodeShow
+                    && ((t.isTiledNodeShow = !1),
+                    (e = t.onHide) != null) && e.call(t),
+            n == t._row
+                ? u < 0
+                    ? t.down()
+                    : u > 0 && t.up()
+                : ((this.userNodeMap[n] = (this.userNodeMap[n] || TiledUserNodeData.chain()).append(t)),
+                t.down()),
+            (t._row = n));
     }
 
     protected _removeUserNodeFromGrid (dataComp: TiledUserNodeData): void {
-        const row = dataComp._row;
-        const col = dataComp._col;
-        const index = dataComp._index;
+        // const row = dataComp._row;
+        // const col = dataComp._col;
+        // const index = dataComp._index;
 
-        const rowData = this._userNodeGrid[row];
-        const colData = rowData && rowData[col];
-        if (colData) {
-            rowData.count--;
-            colData.count--;
-            colData.list[index] = null;
-            if (colData.count <= 0) {
-                colData.list.length = 0;
-                colData.count = 0;
-            }
-        }
+        // const rowData = this._userNodeGrid[row];
+        // const colData = rowData && rowData[col];
+        // if (colData) {
+        //     rowData!.count--;
+        //     colData.count--;
+        //     colData.list[index] = null;
+        //     if (colData.count <= 0) {
+        //         colData.list.length = 0;
+        //         colData.count = 0;
+        //     }
+        // }
 
-        dataComp._row = -1;
-        dataComp._col = -1;
-        dataComp._index = -1;
-        this._userNodeDirty = true;
-        this._markForUpdateRenderData();
+        // dataComp._row = -1;
+        // dataComp._col = -1;
+        // dataComp._index = -1;
+        // this._userNodeDirty = true;
+        // this.markForUpdateRenderData();
+
+        dataComp.destroy();
     }
 
-    protected _limitInLayer (rowCol: { row: number, col: number }): void {
-        const row = rowCol.row;
-        const col = rowCol.col;
-        if (row < 0) rowCol.row = 0;
-        if (row > this._rightTop.row) rowCol.row = this._rightTop.row;
-        if (col < 0) rowCol.col = 0;
-        if (col > this._rightTop.col) rowCol.col = this._rightTop.col;
-    }
+    // protected _limitInLayer (rowCol: { row: number, col: number }): void {
+    //     const row = rowCol.row;
+    //     const col = rowCol.col;
+    //     if (row < 0) rowCol.row = 0;
+    //     if (row > this._rightTop.row) rowCol.row = this._rightTop.row;
+    //     if (col < 0) rowCol.col = 0;
+    //     if (col > this._rightTop.col) rowCol.col = this._rightTop.col;
+    // }
 
-    protected _addUserNodeToGrid (dataComp: TiledUserNodeData, tempRowCol: { col: number, row: number }): void {
-        const row = tempRowCol.row;
-        const col = tempRowCol.col;
-        const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
-        const colData = rowData[col] = rowData[col] || { count: 0, list: [] };
-        dataComp._row = row;
-        dataComp._col = col;
-        dataComp._index = colData.list.length;
-        rowData.count++;
-        colData.count++;
-        colData.list.push(dataComp);
-        this._userNodeDirty = true;
-        this._markForUpdateRenderData();
+    protected _addUserNodeToGrid (dataComp: TiledUserNodeData/*, tempRowCol: { col: number, row: number }*/): void {
+        // const row = tempRowCol.row;
+        // const col = tempRowCol.col;
+        // const rowData = this._userNodeGrid[row] = this._userNodeGrid[row] || { count: 0 };
+        // const colData = rowData[col] = rowData[col] || { count: 0, list: [] };
+        // dataComp._row = row;
+        // dataComp._col = col;
+        // dataComp._index = colData.list.length;
+        // rowData.count++;
+        // colData.count++;
+        // colData.list.push(dataComp);
+        // this._userNodeDirty = true;
+
+        (this.hasUserNode = !0),
+        (dataComp._tiledLayer = this),
+        (dataComp._row = Math.floor((dataComp.y + this._leftDownToCenterY) / 60)), //e4n
+        (this.userNodeMap[dataComp._row] = (this.userNodeMap[dataComp._row] || TiledUserNodeData.chain()).append(dataComp)),
+        dataComp.down();
+        const i = Math.ceil(dataComp._up / 60);
+        const n = (this.nodeUpRow < i && (this.nodeUpRow = i), Math.ceil(dataComp._down / 60));
+        this.nodeDownRow < n && (this.nodeDownRow = n),
+        this.setUserNodeDirty(!0);
     }
 
     public isUserNodeDirty (): boolean {
@@ -423,61 +703,72 @@ export class TiledLayer extends UIRenderer {
     }
 
     public setUserNodeDirty (value): void {
-        this._userNodeDirty = value;
+        // this._userNodeDirty = value;
+        value != this._userNodeDirty
+                && (this._userNodeDirty = value)
+                && this.markForUpdateRenderData();
     }
 
-    protected _reinstallCamera (): Camera | null {
-        const camera = director.root!.batcher2D.getFirstRenderCamera(this.node);
-        const cameraNode = camera?.node;
-        if (this._cameraNode !== cameraNode) {
-            this._uninstallCamera();
-            if (cameraNode) {
-                cameraNode.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-                cameraNode.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-                this._cameraNode = cameraNode;
-            }
-        }
-        return camera;
-    }
+    // protected _reinstallCamera (): Camera | null {
+    //     const camera = director.root!.batcher2D.getFirstRenderCamera(this.node);
+    //     const cameraNode = camera?.node;
+    //     if (this._cameraNode !== cameraNode) {
+    //         this._uninstallCamera();
+    //         if (cameraNode) {
+    //             cameraNode.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //             cameraNode.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //             this._cameraNode = cameraNode;
+    //         }
+    //     }
+    //     return camera;
+    // }
 
-    protected _uninstallCamera (): void {
-        if (this._cameraNode) {
-            this._cameraNode.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-            this._cameraNode.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-            delete this._cameraNode;
-        }
-    }
+    // protected _uninstallCamera (): void {
+    //     // console.log("_uninstallCamera " + this._layerName);
+    //     if (this._cameraNode) {
+    //         this._cameraNode.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //         this._cameraNode.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //         delete this._cameraNode;
+    //     }
+    // }
 
-    onEnable (): void {
-        super.onEnable();
-        this.node.on(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
-        this.node.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-        this.node.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-        this.node.parent!.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-        this.node.parent!.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-        this._markForUpdateRenderData();
-        // delay 1 frame, since camera's matrix data is dirty
-        this.scheduleOnce(this.updateCulling.bind(this));
-    }
+    // onEnable (): void {
+    //     super.onEnable();
+    //     this.node.on(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
+    //     this.node.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //     this.node.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //     this.node.parent!.on(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //     this.node.parent!.on(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //     this.markForUpdateRenderData();
+    //     // delay 1 frame, since camera's matrix data is dirty
+    //     this.scheduleOnce(this.updateCulling.bind(this));
+    // }
 
-    onDisable (): void {
-        super.onDisable();
-        this.node.parent?.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-        this.node.parent?.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-        this.node.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
-        this.node.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
-        this.node.off(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
-        this._uninstallCamera();
-    }
+    // onDisable (): void {
+    //     super.onDisable();
+    //     this.node.parent?.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //     this.node.parent?.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //     this.node.off(NodeEventType.SIZE_CHANGED, this.updateCulling, this);
+    //     this.node.off(NodeEventType.TRANSFORM_CHANGED, this.updateCulling, this);
+    //     this.node.off(NodeEventType.ANCHOR_CHANGED, this._syncAnchorPoint, this);
+    //     this._uninstallCamera();
+    // }
 
     protected _syncAnchorPoint (): void {
-        const node = this.node;
-        const trans = node._getUITransformComp()!;
-        const scale = node.getScale();
-        this._leftDownToCenterX = trans.width * trans.anchorX * scale.x;
-        this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
-        this._cullingDirty = true;
-        this._markForUpdateRenderData();
+        // const node = this.node;
+        // const trans = node._uiProps.uiTransformComp!;
+        // const scale = node.getScale();
+        // this._leftDownToCenterX = trans.width * trans.anchorX * scale.x;
+        // this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
+        // this._cullingDirty = true;
+        // this.markForUpdateRenderData();
+        const t = this.node;
+        const i = t._uiProps.uiTransformComp!;
+        const n = t.scale;
+        (this._leftDownToCenterX = i.width * i.anchorX * n.x - this._offset!.x),
+        (this._leftDownToCenterY = i.height * i.anchorY * n.y - this._offset!.y),
+        (this.node._static = !0),
+        (this.worldPosition = this.node.worldPosition);
     }
 
     /**
@@ -502,7 +793,9 @@ export class TiledLayer extends UIRenderer {
       * tiledLayer.setLayerName("New Layer");
       */
     public setLayerName (layerName: string): void {
-        this._layerName = layerName;
+        // this._layerName = layerName;
+        (this._layerName = layerName) == 'groundLayer'
+                                                && (this.isGroundLayer = !0);
     }
 
     /**
@@ -532,108 +825,108 @@ export class TiledLayer extends UIRenderer {
       * let pos = tiledLayer.getPositionAt(0, 0);
       * cc.log("Pos: " + pos);
       */
-    public getPositionAt (pos: IVec2Like | number, y?: number): Vec2 | null {
-        let x: number;
-        if (y !== undefined) {
-            x = Math.floor(pos as number);
-            y = Math.floor(y);
-        } else {
-            x = Math.floor((pos as IVec2Like).x);
-            y = Math.floor((pos as IVec2Like).y);
-        }
+    // public getPositionAt (pos: IVec2Like | number, y?: number): Vec2 | null {
+    //     let x;
+    //     if (y !== undefined) {
+    //         x = Math.floor(pos as number);
+    //         y = Math.floor(y);
+    //     } else {
+    //         x = Math.floor((pos as IVec2Like).x);
+    //         y = Math.floor((pos as IVec2Like).y);
+    //     }
 
-        switch (this._layerOrientation) {
-        case Orientation.ORTHO:
-            return this._positionForOrthoAt(x, y);
-        case Orientation.ISO:
-            return this._positionForIsoAt(x, y);
-        case Orientation.HEX:
-            return this._positionForHexAt(x, y);
-        }
-        return null;
-    }
+    //     // switch (this._layerOrientation) {
+    //     // case bmap.Orientation.Orthogonal:
+    //     //     return this._positionForOrthoAt(x, y);
+    //     // case bmap.Orientation.Isometric:
+    //         return this._positionForIsoAt(x, y);
+    //     // case bmap.Orientation.Hexagonal:
+    //     //     return this._positionForHexAt(x, y);
+    //     // }
+    //     // return null;
+    // }
 
-    public isInvalidPosition (x: number, y: number): boolean {
-        return x >= this._layerSize!.width || y >= this._layerSize!.height || x < 0 || y < 0;
-    }
+    // public isInvalidPosition (x: number, y: number): boolean {
+    //     return x >= this._layerSize!.width || y >= this._layerSize!.height || x < 0 || y < 0;
+    // }
 
-    protected _positionForIsoAt (x: number, y: number): Vec2 {
-        let offsetX = 0;
-        let offsetY = 0;
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        const gidAndFlags = this.tiles[index];
-        if (gidAndFlags) {
-            const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0);
-            const tileset = this.texGrids!.get(gid as unknown as GID)!.tileset;
-            const offset = tileset.tileOffset;
-            offsetX = offset.x;
-            offsetY = offset.y;
-        }
+    // protected _positionForIsoAt (x: number, y: number): Vec2 {
+    //     let offsetX = 0;
+    //     let offsetY = 0;
+    //     const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
+    //     const gidAndFlags = this.tiles[index];
+    //     if (gidAndFlags) {
+    //         const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0);
+    //         const tileset = this.texGrids!.get(gid as unknown as GID)!.tileset;
+    //         const offset = tileset.tileOffset;
+    //         offsetX = offset.x;
+    //         offsetY = offset.y;
+    //     }
 
-        return new Vec2(
-            this._mapTileSize!.width * 0.5 * (this._layerSize!.height + x - y - 1) + offsetX,
-            this._mapTileSize!.height * 0.5 * (this._layerSize!.width - x + this._layerSize!.height - y - 2) - offsetY,
-        );
-    }
+    //     return new Vec2(
+    //         this._mapTileSize!.width * 0.5 * (this._layerSize!.height + x - y - 1) + offsetX,
+    //         this._mapTileSize!.height * 0.5 * (this._layerSize!.width - x + this._layerSize!.height - y - 2) - offsetY,
+    //     );
+    // }
 
-    protected _positionForOrthoAt (x: number, y: number): Vec2 {
-        let offsetX = 0;
-        let offsetY = 0;
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        const gidAndFlags = this.tiles[index];
-        if (gidAndFlags) {
-            const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID;
-            const tileset = this.texGrids!.get(gid)!.tileset;
-            const offset = tileset.tileOffset;
-            offsetX = offset.x;
-            offsetY = offset.y;
-        }
+    // protected _positionForOrthoAt (x: number, y: number): Vec2 {
+    //     let offsetX = 0;
+    //     let offsetY = 0;
+    //     const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
+    //     const gidAndFlags = this.tiles[index];
+    //     if (gidAndFlags) {
+    //         const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0) as unknown as GID;
+    //         const tileset = this.texGrids!.get(gid)!.tileset;
+    //         const offset = tileset.tileOffset;
+    //         offsetX = offset.x;
+    //         offsetY = offset.y;
+    //     }
 
-        return new Vec2(
-            x * this._mapTileSize!.width + offsetX,
-            (this._layerSize!.height - y - 1) * this._mapTileSize!.height - offsetY,
-        );
-    }
+    //     return new Vec2(
+    //         x * this._mapTileSize!.width + offsetX,
+    //         (this._layerSize!.height - y - 1) * this._mapTileSize!.height - offsetY,
+    //     );
+    // }
 
-    protected _positionForHexAt (col: number, row: number): Vec2 {
-        const tileWidth = this._mapTileSize!.width;
-        const tileHeight = this._mapTileSize!.height;
-        const rows = this._layerSize!.height;
+    // protected _positionForHexAt (col: number, row: number): Vec2 {
+    //     const tileWidth = this._mapTileSize!.width;
+    //     const tileHeight = this._mapTileSize!.height;
+    //     const rows = this._layerSize!.height;
 
-        const index = Math.floor(col) + Math.floor(row) * this._layerSize!.width;
-        const gid = ((this.tiles[index] as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0;
-        let offset: IVec2Like;
-        if (this.texGrids!.get(gid as unknown as GID)) {
-            offset = this.texGrids!.get(gid as unknown as GID)!.tileset.tileOffset;
-        } else {
-            offset = { x: 0, y: 0 };
-        }
+    //     const index = Math.floor(col) + Math.floor(row) * this._layerSize!.width;
+    //     const gid = ((this.tiles[index] as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0;
+    //     let offset: IVec2Like;
+    //     if (this.texGrids!.get(gid as unknown as GID)) {
+    //         offset = this.texGrids!.get(gid as unknown as GID)!.tileset.tileOffset;
+    //     } else {
+    //         offset = { x: 0, y: 0 };
+    //     }
 
-        const odd_even = (this._staggerIndex === StaggerIndex.STAGGERINDEX_ODD) ? 1 : -1;
-        let x = 0;
-        let y = 0;
-        let diffX = 0;
-        let diffY = 0;
-        switch (this._staggerAxis) {
-        case StaggerAxis.STAGGERAXIS_Y:
-            diffX = 0;
-            if (row % 2 === 1) {
-                diffX = tileWidth / 2 * odd_even;
-            }
-            x = col * tileWidth + diffX + offset.x;
-            y = (rows - row - 1) * (tileHeight - (tileHeight - this._hexSideLength!) / 2) - offset.y;
-            break;
-        case StaggerAxis.STAGGERAXIS_X:
-            diffY = 0;
-            if (col % 2 === 1) {
-                diffY = tileHeight / 2 * -odd_even;
-            }
-            x = col * (tileWidth - (tileWidth - this._hexSideLength!) / 2) + offset.x;
-            y = (rows - row - 1) * tileHeight + diffY - offset.y;
-            break;
-        }
-        return new Vec2(x, y);
-    }
+    //     const odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
+    //     let x = 0;
+    //     let y = 0;
+    //     let diffX = 0;
+    //     let diffY = 0;
+    //     switch (this._staggerAxis) {
+    //     case bmap.StaggerAxis.StaggerY:
+    //         diffX = 0;
+    //         if (row % 2 === 1) {
+    //             diffX = tileWidth / 2 * odd_even;
+    //         }
+    //         x = col * tileWidth + diffX + offset.x;
+    //         y = (rows - row - 1) * (tileHeight - (tileHeight - this._hexSideLength!) / 2) - offset.y;
+    //         break;
+    //     case bmap.StaggerAxis.StaggerX:
+    //         diffY = 0;
+    //         if (col % 2 === 1) {
+    //             diffY = tileHeight / 2 * -odd_even;
+    //         }
+    //         x = col * (tileWidth - (tileWidth - this._hexSideLength!) / 2) + offset.x;
+    //         y = (rows - row - 1) * tileHeight + diffY - offset.y;
+    //         break;
+    //     }
+    //     return new Vec2(x, y);
+    // }
 
     /**
       * @en
@@ -648,20 +941,20 @@ export class TiledLayer extends UIRenderer {
       * @example
       * tiledLayer.setTilesGIDAt([1, 1, 1, 1], 10, 10, 2)
       */
-    public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
-        if (!gids || gids.length === 0 || totalCols <= 0) return;
-        if (beginRow < 0) beginRow = 0;
-        if (beginCol < 0) beginCol = 0;
-        let gidsIdx = 0;
-        const endCol = beginCol + totalCols;
-        for (let row = beginRow; ; row++) {
-            for (let col = beginCol; col < endCol; col++) {
-                if (gidsIdx >= gids.length) return;
-                this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
-                gidsIdx++;
-            }
-        }
-    }
+    // public setTilesGIDAt (gids: number[], beginCol: number, beginRow: number, totalCols: number): void {
+    //     if (!gids || gids.length === 0 || totalCols <= 0) return;
+    //     if (beginRow < 0) beginRow = 0;
+    //     if (beginCol < 0) beginCol = 0;
+    //     let gidsIdx = 0;
+    //     const endCol = beginCol + totalCols;
+    //     for (let row = beginRow; ; row++) {
+    //         for (let col = beginCol; col < endCol; col++) {
+    //             if (gidsIdx >= gids.length) return;
+    //             this._updateTileForGID(gids[gidsIdx] as unknown as MixedGID, col, row);
+    //             gidsIdx++;
+    //         }
+    //     }
+    // }
 
     /**
       * @en
@@ -680,45 +973,46 @@ export class TiledLayer extends UIRenderer {
       * @example
       * tiledLayer.setTileGIDAt(1001, 10, 10, 1)
       */
-    public setTileGIDAt (gid: MixedGID, x: number, y: number, flags?: number): void {
-        const ugid = (gid & TileFlag.FLIPPED_MASK) >>> 0;
+    // public setTileGIDAt (gid: MixedGID, x: number, y: number, flags?: number): void {
+    //     const ugid = ((gid as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0;
 
-        x = Math.floor(x);
-        y = Math.floor(y);
-        if (this.isInvalidPosition(x, y)) {
-            throw new Error('cc.TiledLayer.setTileGIDAt(): invalid position');
-        }
-        if (!this.tiles || !this._tilesets || this._tilesets.length === 0) {
-            logID(7238);
-            return;
-        }
-        if (ugid !== 0 && ugid < this._tilesets[0].firstGid) {
-            logID(7239, gid);
-            return;
-        }
+    //     x = Math.floor(x);
+    //     y = Math.floor(y);
+    //     if (this.isInvalidPosition(x, y)) {
+    //         throw new Error('cc.TiledLayer.setTileGIDAt(): invalid position');
+    //     }
+    //     if (!this.tiles || !this._tilesets || this._tilesets.length === 0) {
+    //         logID(7238);
+    //         return;
+    //     }
+    //     if (ugid !== 0 && ugid < (this._tilesets[0].firstGid as unknown as number)) {
+    //         logID(7239, gid);
+    //         return;
+    //     }
 
-        flags = flags || 0;
-        this._updateTileForGID(((ugid | flags) >>> 0) as unknown as MixedGID, x, y);
-    }
+    //     flags = flags || 0;
+    //     this._updateTileForGID(((ugid | flags) >>> 0) as unknown as MixedGID, x, y);
+    // }
 
-    protected _updateTileForGID (gidAndFlags: MixedGID, x: number, y: number): void {
-        const idx = 0 | (x + y * this._layerSize!.width);
-        if (idx >= this.tiles.length) return;
+    // public _updateTileForGID (gidAndFlags: MixedGID, x: number, y: number): void {
+    //     const idx = 0 | (x + y * this._layerSize!.width);
+    //     if (idx >= this.tiles.length) return;
 
-        const oldGIDAndFlags = this.tiles[idx];
-        if (gidAndFlags === oldGIDAndFlags) return;
+    //     const oldGIDAndFlags = this.tiles[idx];
+    //     if (gidAndFlags === oldGIDAndFlags) return;
 
-        const gid = ((gidAndFlags & TileFlag.FLIPPED_MASK) >>> 0);
-        const grid = this.texGrids!.get(gid);
+    //     const gid = (((gidAndFlags as unknown as number) & TileFlag.FLIPPED_MASK) >>> 0);
+    //     const grid = this.texGrids!.get(gid as unknown as GID);
 
-        if (grid) {
-            this.tiles[idx] = gidAndFlags;
-            this._updateVertex(x, y);
-        } else {
-            this.tiles[idx] = 0;
-        }
-        this._cullingDirty = true;
-    }
+    //     if (grid) {
+    //         this.tiles[idx] = gidAndFlags;
+    //         this._updateVertex(x, y);
+    //     } else {
+    //         this.tiles[idx] = 0 as unknown as MixedGID;
+    //         // console.log("_updateTileForGID " + idx + " from " + oldGIDAndFlags + " to 0");
+    //     }
+    //     this._cullingDirty = true;
+    // }
 
     /**
       * @en
@@ -733,20 +1027,22 @@ export class TiledLayer extends UIRenderer {
       * @example
       * let tileGid = tiledLayer.getTileGIDAt(0, 0);
       */
-    public getTileGIDAt (x: number, y: number): number | null {
-        if (this.isInvalidPosition(x, y)) {
-            throw new Error('cc.TiledLayer.getTileGIDAt(): invalid position');
-        }
-        if (!this.tiles) {
-            logID(7237);
-            return null;
-        }
+    public getTileGIDAt (t, i/*x: number, y: number*/): number | null {
+        // if (this.isInvalidPosition(x, y)) {
+        //     throw new Error('cc.TiledLayer.getTileGIDAt(): invalid position');
+        // }
+        // if (!this.tiles) {
+        //     logID(7237);
+        //     return null;
+        // }
 
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        // Bits on the far end of the 32-bit global tile ID are used for tile flags
-        const tile = this.tiles[index] as unknown as number;
+        // const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
+        // // Bits on the far end of the 32-bit global tile ID are used for tile flags
+        // const tile = this.tiles[index] as unknown as number;
 
-        return ((tile & TileFlag.FLIPPED_MASK) >>> 0);
+        // return ((tile & TileFlag.FLIPPED_MASK) >>> 0);
+
+        return ((this.tiles[t + i * this._layerSizeWidth] & TileFlag.FLIPPED_MASK) >>> 0);
     }
     /**
       * @en
@@ -761,178 +1057,245 @@ export class TiledLayer extends UIRenderer {
       * @example
       * let tileGid = tiledLayer.getTileGIDAt(0, 0);
       */
-    public getTileFlagsAt (x: number, y: number): number | null {
-        if (this.isInvalidPosition(x, y)) {
-            throw new Error('TiledLayer.getTileFlagsAt: invalid position');
-        }
-        if (!this.tiles) {
-            logID(7240);
-            return null;
-        }
+    // public getTileFlagsAt (x: number, y: number): number | null {
+    //     if (this.isInvalidPosition(x, y)) {
+    //         throw new Error('TiledLayer.getTileFlagsAt: invalid position');
+    //     }
+    //     if (!this.tiles) {
+    //         logID(7240);
+    //         return null;
+    //     }
 
-        const idx = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        // Bits on the far end of the 32-bit global tile ID are used for tile flags
-        const tile = this.tiles[idx] as unknown as number;
+    //     const idx = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
+    //     // Bits on the far end of the 32-bit global tile ID are used for tile flags
+    //     const tile = this.tiles[idx] as unknown as number;
 
-        return ((tile & TileFlag.FLIPPED_ALL) >>> 0) as unknown as GIDFlags;
-    }
+    //     return ((tile & TileFlag.FLIPPED_ALL) >>> 0) as unknown as GIDFlags;
+    // }
 
-    public setCullingDirty (value: boolean): void {
-        this._cullingDirty = value;
-    }
+    // public setCullingDirty (value: boolean): void {
+    //     this._cullingDirty = value;
+    // }
 
-    public isCullingDirty (): boolean {
-        return this._cullingDirty;
-    }
+    // public isCullingDirty (): boolean {
+    //     return this._cullingDirty;
+    // }
 
     // 'x, y' is the position of viewPort, which's anchor point is at the center of rect.
     // 'width, height' is the size of viewPort.
-    public updateViewPort (x: number, y: number, width: number, height: number): void {
-        if (this._viewPort.width === width
-             && this._viewPort.height === height
-             && this._viewPort.x === x
-             && this._viewPort.y === y) {
-            return;
-        }
-        this._viewPort.x = x;
-        this._viewPort.y = y;
-        this._viewPort.width = width;
-        this._viewPort.height = height;
+    // public updateViewPort (x: number, y: number, width: number, height: number): void {
+    //     if (this._viewPort.width === width
+    //          && this._viewPort.height === height
+    //          && this._viewPort.x === x
+    //          && this._viewPort.y === y) {
+    //         return;
+    //     }
+    //     // console.log("viewport:" + x + " " + y + " " + width + " " + height);// w h 以750*1336为例，基本就是这俩值不变，目前精度有时候出现小数点后10+位，可以一开始固定
+    //     this._viewPort.x = x;
+    //     this._viewPort.y = y;
+    //     this._viewPort.width = width;
+    //     this._viewPort.height = height;
 
-        // if map's type is iso, reserve bottom line is 2 to avoid show empty grid because of iso grid arithmetic
-        let reserveLine = 1;
-        if (this._layerOrientation === Orientation.ISO) {
-            reserveLine = 2;
-        }
+    //     if (!this._needCalcViewport) {
+    //         // if (!!this._sharedCullingRect!.get(this._offsetKey)) {
+    //             // console.log(this._layerName + " not shared culling of " + this._offsetKey + " " + JSON.stringify(this._sharedCullingRect) + " " + JSON.stringify(this._cullingRect));
+    //         // }
+    //         this._cullingRect.leftDown = this._sharedCullingRect!.get(this._offsetKey)!.leftDown;
+    //         this._cullingRect.rightTop = this._sharedCullingRect!.get(this._offsetKey)!.rightTop;
+    //         this._cullingDirty = this._sharedCullingRect!.get(this._offsetKey)!.cullingDirty;
+    //         if (this._cullingDirty) this.markForUpdateRenderData();
+    //         return;
+    //     }
 
-        const vpx = this._viewPort.x - this._offset!.x + this._leftDownToCenterX;
-        const vpy = this._viewPort.y - this._offset!.y + this._leftDownToCenterY;
+    //     // if map's type is iso, reserve bottom line is 2 to avoid show empty grid because of iso grid arithmetic
+    //     let reserveLine = 1;
+    //     // if (this._layerOrientation === bmap.Orientation.Isometric) {
+    //         reserveLine = 2;
+    //     // }
 
-        let leftDownX = vpx - this._leftOffset;
-        let leftDownY = vpy - this._downOffset;
-        const rightTopX = vpx + width + this._rightOffset;
-        const rightTopY = vpy + height + this._topOffset;
+    //     const vpx = this._viewPort.x - this._offset!.x + this._leftDownToCenterX;
+    //     const vpy = this._viewPort.y - this._offset!.y + this._leftDownToCenterY;
 
-        const leftDown = this._cullingRect.leftDown;
-        const rightTop = this._cullingRect.rightTop;
+    //     let leftDownX = vpx - this._leftOffset;
+    //     let leftDownY = vpy - this._downOffset;
+    //     const rightTopX = vpx + width + this._rightOffset;
+    //     const rightTopY = vpy + height + this._topOffset;
 
-        if (leftDownX < 0) leftDownX = 0;
-        if (leftDownY < 0) leftDownY = 0;
+    //     const leftDown = this._cullingRect.leftDown;
+    //     const rightTop = this._cullingRect.rightTop;
 
-        // calc left down
-        this._positionToRowCol(leftDownX, leftDownY, _tempRowCol);
-        // make range large
-        _tempRowCol.row -= reserveLine;
-        _tempRowCol.col -= reserveLine;
-        // insure left down row col greater than 0
-        _tempRowCol.row = _tempRowCol.row > 0 ? _tempRowCol.row : 0;
-        _tempRowCol.col = _tempRowCol.col > 0 ? _tempRowCol.col : 0;
+    //     if (leftDownX < 0) leftDownX = 0;
+    //     if (leftDownY < 0) leftDownY = 0;
 
-        if (_tempRowCol.row !== leftDown.row || _tempRowCol.col !== leftDown.col) {
-            leftDown.row = _tempRowCol.row;
-            leftDown.col = _tempRowCol.col;
-            this._cullingDirty = true;
-        }
+    //     // calc left down
+    //     this._positionToRowCol(leftDownX, leftDownY, _tempRowCol);
+    //     // make range large
+    //     _tempRowCol.row -= reserveLine;
+    //     _tempRowCol.col -= reserveLine;
+    //     // console.log("_tempRC " + _tempRowCol.row + " " + _tempRowCol.col);
+    //     // insure left down row col greater than 0
+    //     _tempRowCol.row = _tempRowCol.row > 0 ? _tempRowCol.row : 0;
+    //     _tempRowCol.col = _tempRowCol.col > 0 ? _tempRowCol.col : 0;
 
-        // show nothing
-        if (rightTopX < 0 || rightTopY < 0) {
-            _tempRowCol.row = -1;
-            _tempRowCol.col = -1;
-        } else {
-            // calc right top
-            this._positionToRowCol(rightTopX, rightTopY, _tempRowCol);
-            // make range large
-            _tempRowCol.row++;
-            _tempRowCol.col++;
-        }
+    //     if (_tempRowCol.row !== leftDown.row || _tempRowCol.col !== leftDown.col) {
+    //         leftDown.row = _tempRowCol.row;
+    //         leftDown.col = _tempRowCol.col;
+    //         this._cullingDirty = true;
+    //     }
 
-        if (_tempRowCol.row !== rightTop.row || _tempRowCol.col !== rightTop.col) {
-            rightTop.row = _tempRowCol.row;
-            rightTop.col = _tempRowCol.col;
-            this._cullingDirty = true;
-        }
+    //     // show nothing
+    //     if (rightTopX < 0 || rightTopY < 0) {
+    //         _tempRowCol.row = -1;
+    //         _tempRowCol.col = -1;
+    //     } else {
+    //         // calc right top
+    //         this._positionToRowCol(rightTopX, rightTopY, _tempRowCol);
+    //         // make range large
+    //         _tempRowCol.row++;
+    //         _tempRowCol.col++;
+    //     }
 
-        if (this._cullingDirty) this._markForUpdateRenderData();
-    }
+    //     if (_tempRowCol.row !== rightTop.row || _tempRowCol.col !== rightTop.col) {
+    //         rightTop.row = _tempRowCol.row;
+    //         rightTop.col = _tempRowCol.col;
+    //         this._cullingDirty = true;
+    //     }
+
+    //     if (this._cullingDirty) this.markForUpdateRenderData();
+
+    //     // 存储复用结果
+    //     this._sharedCullingRect!.set(this._offsetKey, {
+    //         cullingDirty: this._cullingDirty,
+    //         leftDown: this._cullingRect.leftDown,
+    //         rightTop: this._cullingRect.rightTop
+    //     });
+    // }
 
     // the result may not precise, but it dose't matter, it just uses to be got range
-    protected _positionToRowCol (x: number, y: number, result: { col: number, row: number }): { col: number, row: number } {
-        const maptw = this._mapTileSize!.width;
-        const mapth = this._mapTileSize!.height;
-        const maptw2 = maptw * 0.5;
-        const mapth2 = mapth * 0.5;
-        let row = 0;
-        let col = 0;
-        let diffX2 = 0;
-        let diffY2 = 0;
-        const axis = this._staggerAxis;
+    // public _positionToRowCol (x: number, y: number, result: { col: number, row: number }): { col: number, row: number } {
+    //     // const maptw = XTMXMapInfo.tileSize!.width;
+    //     // const mapth = XTMXMapInfo.tileSize!.height;
+    //     // const maptw2 = maptw * 0.5;
+    //     // const mapth2 = mapth * 0.5;
+    //     let row = 0;
+    //     let col = 0;
+    //     // let diffX2 = 0;
+    //     // let diffY2 = 0;
+    //     // const axis = this._staggerAxis;
 
-        switch (this._layerOrientation) {
-        // left top to right dowm
-        case Orientation.ORTHO:
-            col = Math.floor(x / maptw);
-            row = Math.floor(y / mapth);
-            break;
-            // right top to left down
-            // iso can be treat as special hex whose hex side length is 0
-        case Orientation.ISO:
-            col = Math.floor(x / maptw2);
-            row = Math.floor(y / mapth2);
-            break;
-            // left top to right dowm
-        case Orientation.HEX:
-            if (axis === StaggerAxis.STAGGERAXIS_Y) {
-                row = Math.floor(y / (mapth - this._diffY1!));
-                diffX2 = row % 2 === 1 ? maptw2 * this._odd_even! : 0;
-                col = Math.floor((x - diffX2) / maptw);
-            } else {
-                col = Math.floor(x / (maptw - this._diffX1!));
-                diffY2 = col % 2 === 1 ? mapth2 * -this._odd_even! : 0;
-                row = Math.floor((y - diffY2) / mapth);
-            }
-            break;
-        }
-        result.row = row;
-        result.col = col;
-        return result;
-    }
+    //     // switch (this._layerOrientation) {
+    //     // // left top to right dowm
+    //     // case bmap.Orientation.Orthogonal:
+    //     //     col = Math.floor(x / this.maptw);
+    //     //     row = Math.floor(y / this.mapth);
+    //     //     break;
+    //         // right top to left down
+    //         // iso can be treat as special hex whose hex side length is 0
+    //     // case bmap.Orientation.Isometric:
+    //         col = Math.floor(x / this.maptw2);
+    //         row = Math.floor(y / this.mapth2);
+    //     //     break;
+    //     //     // left top to right dowm
+    //     // case bmap.Orientation.Hexagonal:
+    //     //     if (axis === bmap.StaggerAxis.StaggerY) {
+    //     //         row = Math.floor(y / (this.mapth - this._diffY1!));
+    //     //         diffX2 = row % 2 === 1 ? this.maptw2 * this._odd_even! : 0;
+    //     //         col = Math.floor((x - diffX2) / this.maptw);
+    //     //     } else {
+    //     //         col = Math.floor(x / (this.maptw - this._diffX1!));
+    //     //         diffY2 = col % 2 === 1 ? this.mapth2 * -this._odd_even! : 0;
+    //     //         row = Math.floor((y - diffY2) / this.mapth);
+    //     //     }
+    //     //     break;
+    //     // }
+    //     result.row = row;
+    //     result.col = col;
+    //     return result;
+    // }
 
+    // assembler->updateRenderData
     public updateCulling (): void {
-        if (EDITOR_NOT_IN_PREVIEW) {
-            this.enableCulling = false;
-        } else if (this._enableCulling) {
+        // if (EDITOR_NOT_IN_PREVIEW) {
+        //     this.enableCulling = false;
+        // } else if (this._enableCulling) {
+        //     // 这行是否可以去掉？
+        //     this.node.updateWorldTransform();
+        //     // 层节点设置完目前都是不动的，所以只需要初始化时计算一次， 后续需要观察下
+        //     // Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+        //     const camera = this._reinstallCamera(); // developer should call updateCalling if the camera has changed
+        //     if (this._isFirstLayer && camera) {
+        //         _vec3_temp.x = 0;
+        //         _vec3_temp.y = 0;
+        //         _vec3_temp.z = 0;
+        //         _vec3_temp2.x = camera.width;
+        //         _vec3_temp2.y = camera.height;
+        //         _vec3_temp2.z = 0;
+        //         // 相机跟随，这里会不停变化
+        //         camera.screenToWorld(_vec3_temp, _vec3_temp);
+        //         camera.screenToWorld(_vec3_temp2, _vec3_temp2);
+        //         Vec3.transformMat4(_vec3_temp, _vec3_temp, _mat4_temp);
+        //         Vec3.transformMat4(_vec3_temp2, _vec3_temp2, _mat4_temp);
+        //         // console.log(this._layerName + " v3:" + _vec3_temp + " v32:" + _vec3_temp2 + " mat:" + _mat4_temp);
+        //     }
+        //     this.updateViewPort(_vec3_temp.x, _vec3_temp.y, _vec3_temp2.x - _vec3_temp.x, _vec3_temp2.y - _vec3_temp.y);
+        // }
+
+        if (this._enableCulling) {
+            camera = camera || director.root!.batcher2D.getFirstRenderCamera(this.node);
             this.node.updateWorldTransform();
-            Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
-            const camera = this._reinstallCamera(); // developer should call updateCalling if the camera has changed
-            if (camera) {
-                _vec3_temp.x = 0;
-                _vec3_temp.y = 0;
-                _vec3_temp.z = 0;
-                _vec3_temp2.x = camera.width;
-                _vec3_temp2.y = camera.height;
-                _vec3_temp2.z = 0;
-                camera.screenToWorld(_vec3_temp, _vec3_temp);
-                camera.screenToWorld(_vec3_temp2, _vec3_temp2);
-                // camera.getScreenToWorldPoint(_vec2_temp, _vec2_temp);
-                // camera.getScreenToWorldPoint(_vec2_temp2, _vec2_temp2);
-                Vec3.transformMat4(_vec3_temp, _vec3_temp, _mat4_temp);
-                Vec3.transformMat4(_vec3_temp2, _vec3_temp2, _mat4_temp);
-                this.updateViewPort(_vec3_temp.x, _vec3_temp.y, _vec3_temp2.x - _vec3_temp.x, _vec3_temp2.y - _vec3_temp.y);
+            Mat4.invert(_mat4_temp, this.node.getWorldMatrix()); //j0n
+            this.clearCache();
+            for (const t in this.userNodeMap) {
+                const i = this.userNodeMap[t];
+                // let r;
+                for (
+                    let n = i == null
+                        ? undefined
+                        : i.first();
+                    n != null && n._isNode;
+
+                ) {
+                    // var r;
+                    if (n.onReset) n.onReset();
+                    (n = n._next);
+                }
             }
         }
     }
 
-    /**
-      * @en Layer orientation, which is the same as the map orientation.
-      * @zh 获取 Layer 方向(同地图方向)。
-      * @method getLayerOrientation
-      * @return {Number}
-      * @example
-      * let orientation = tiledLayer.getLayerOrientation();
-      * cc.log("Layer Orientation: " + orientation);
-      */
-    public getLayerOrientation (): Orientation | null {
-        return this._layerOrientation;
+    clearCache (): void {
+        this.tiledMapCurr.clear = !0;
+    }
+
+    updateCullingRect (t): void {
+        this.ratio = t;
+        let i = camera.width / t / view.getScaleX();
+        let n = camera.height / t / view.getScaleY();
+        const r =                (camera.screenToWorld(_vec3_temp, _vec3_temp2), //q$n, P9n),
+        Vec3.transformMat4(_vec3_temp, _vec3_temp, _mat4_temp), //q$n, q$n, j0n),
+        _vec3_temp.x - i / 2);
+        const e = _vec3_temp.y - n / 2;
+        const h =                (this.showRect.set(r, e, (i += r), (n += e)),
+        this._cullingRect.leftDown);
+        const o = this._cullingRect.rightTop;
+        let u =                ((_tempRowCol.col = Math.floor((r + this._leftDownToCenterX - 100) / 100)), //zJn
+        (_tempRowCol.row = Math.floor((e + this._leftDownToCenterY - 60) / 60)), //e4n
+        _tempRowCol.row < 0 && (_tempRowCol.row = 0),
+        _tempRowCol.col < 0 && (_tempRowCol.col = 0),
+        !1);
+        (_tempRowCol.col == h.col
+            && _tempRowCol.row == h.row)
+            || ((h.row = _tempRowCol.row),
+            (h.col = _tempRowCol.col),
+            (u = !0)),
+        (_tempRowCol.col = Math.floor((i + this._leftDownToCenterX) / 100)),
+        (_tempRowCol.row = Math.floor((n + this._leftDownToCenterY) / 60)),
+        (_tempRowCol.col == o.col
+                && _tempRowCol.row == o.row)
+                || ((o.row = _tempRowCol.row),
+                (o.col = _tempRowCol.col),
+                (u = !0)),
+        u && this.setUserNodeDirty(!0);
     }
 
     /**
@@ -948,314 +1311,255 @@ export class TiledLayer extends UIRenderer {
         return this._properties;
     }
 
-    protected _updateVertex (col: number, row: number): void {
-        const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
+    // protected _updateVertex (col: number, row: number): void {
+    //     const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
+    //     // const vertices = this.vertices;
+    //     // const layerOrientation = this._layerOrientation;
+    //     // const tiles = this.tiles;
+    //     // if (!this.tiles) {
+    //     //     return;
+    //     // }
+    //     // const rightTop = this._rightTop;
+    //     // const maptw = this._mapTileSize!.width;
+    //     // const mapth = this._mapTileSize!.height;
+    //     // const maptw2 = maptw * 0.5;
+    //     // const mapth2 = mapth * 0.5;
+    //     // const rows = this._layerSize!.height;
+    //     // const cols = this._layerSize!.width;
+    //     // const grids = this.texGrids!;
 
-        const vertices = this.vertices;
+    //     let left = 0;
+    //     let bottom = 0;
+    //     // let axis: bmap.StaggerAxis;
+    //     // let diffX1: number;
+    //     // let diffY1: number;
+    //     // let odd_even: number;
+    //     // let diffX2: number;
+    //     // let diffY2: number;
+    //     // if (layerOrientation === bmap.Orientation.Hexagonal) {
+    //     //     axis = this._staggerAxis!;
+    //     //     diffX1 = this._diffX1!;
+    //     //     diffY1 = this._diffY1!;
+    //     //     odd_even = this._odd_even!;
+    //     // }
 
-        const layerOrientation = this._layerOrientation;
-        const tiles = this.tiles;
+    //     let cullingCol = 0;
+    //     let cullingRow = 0;
+    //     let gridGID: GID = 0 as unknown as GID;
 
-        if (!tiles) {
-            return;
-        }
+    //     // grid border
+    //     let topBorder = 0;
+    //     let downBorder = 0;
+    //     let leftBorder = 0;
+    //     let rightBorder = 0;
+    //     const index = row * this.cols + col;
+    //     const gid = this.tiles[index];
+    //     gridGID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as unknown as GID;
+    //     const grid = this.texGrids!.get(gridGID)!;
+    //     if (!grid) {
+    //         return;
+    //     }
 
-        const rightTop = this._rightTop;
-        const maptw = this._mapTileSize!.width;
-        const mapth = this._mapTileSize!.height;
-        const maptw2 = maptw * 0.5;
-        const mapth2 = mapth * 0.5;
-        const rows = this._layerSize!.height;
-        const cols = this._layerSize!.width;
-        const grids = this.texGrids!;
+    //     // if has animation, grid must be updated per frame
+    //     if (this._animations!.get(gridGID)) {
+    //         this._hasAniGrid = this._hasAniGrid || true;
+    //     }
+    //     // 以屏幕左下角为原点。 为viewport计算顶点this.vertices (left，bottom，_rightTop) 和 四个纹理offset
+    //     // switch (layerOrientation) {
+    //     // // left top to right dowm
+    //     // case bmap.Orientation.Orthogonal:
+    //     //     cullingCol = col;
+    //     //     cullingRow = rows - row - 1;
+    //     //     left = cullingCol * maptw;
+    //     //     bottom = cullingRow * mapth;
+    //     //     break;
+    //         // right top to left down
+    //     // case bmap.Orientation.Isometric:
+    //         // if not consider about col, then left is 'w/2 * (rows - row - 1)'
+    //         // if consider about col then left must add 'w/2 * col'
+    //         // so left is 'w/2 * (rows - row - 1) + w/2 * col'
+    //         // combine expression is 'w/2 * (rows - row + col -1)'
+    //         /** 来自文心:
+    //          * 首先，我们要明白TiledLayer是如何在屏幕上排列瓦片的。每个瓦片通常都有一个固定的宽度w和高度，并且它们按照行（row）和列（col）进行排列。
+    //          * 瓦片的左上角（通常是原点）的位置由它的行和列来确定。
 
-        let left = 0;
-        let bottom = 0;
-        let axis: StaggerAxis;
-        let diffX1: number;
-        let diffY1: number;
-        let odd_even: number;
-        let diffX2: number;
-        let diffY2: number;
+    //             上面注释中的公式是为了计算瓦片左上角的x坐标（即left），这个x坐标是相对于TiledLayer的原点来说的。
 
-        if (layerOrientation === Orientation.HEX) {
-            axis = this._staggerAxis!;
-            diffX1 = this._diffX1!;
-            diffY1 = this._diffY1!;
-            odd_even = this._odd_even!;
-        }
+    //             如果不考虑列（col）：
+    //             当只考虑行时，我们需要找到瓦片在其所在行的相对位置。因为瓦片是从左到右排列的，所以越往下的行，瓦片的x坐标会越大。(? 这里因为是45度，不考虑列，即每一斜行)
+    //             因此，对于某一行row，它上面的所有行（rows - row - 1行）都会贡献出瓦片的宽度，使其x坐标增加。
+    //             每个瓦片宽度为w/2（假设瓦片中心在网格点上），所以总的x坐标增加是w/2 * (rows - row - 1)。
 
-        let cullingCol = 0;
-        let cullingRow = 0;
-        let gridGID: GID = 0 as unknown as GID;
+    //             如果考虑列（col）：
+    //             当同时考虑行和列时，除了上面行贡献的x坐标外，还需要加上当前列贡献的x坐标。
+    //             对于某一列col，它之前的所有列都会贡献出瓦片的宽度，使其x坐标增加。因此，需要加上w/2 * col。
 
-        // grid border
-        let topBorder = 0;
-        let downBorder = 0; let leftBorder = 0;
-        let rightBorder = 0;
-        const index = row * cols + col;
-        const gid = tiles[index];
-        gridGID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as unknown as GID;
-        const grid = grids.get(gridGID)!;
-        if (!grid) {
-            return;
-        }
+    //             综合表达式：
+    //             将上述两部分相加，得到瓦片左上角的x坐标的综合表达式：w/2 * (rows - row - 1) + w/2 * col。
 
-        // if has animation, grid must be updated per frame
-        if (this._animations!.get(gridGID)) {
-            this._hasAniGrid = this._hasAniGrid || true;
-        }
+    //             这种计算方式确保了每个瓦片都能正确地根据其在网格中的位置来确定其顶点坐标，从而实现正确的渲染和裁剪。
+    //             注意，这里假设瓦片的中心位于网格点上，所以宽度和高度都被除以2来得到从网格点到瓦片边缘的距离。
+    //          */
+    //         cullingCol = this.rows + col - row - 1;
+    //         // if not consider about row, then bottom is 'h/2 * (cols - col -1)'
+    //         // if consider about row then bottom must add 'h/2 * (rows - row - 1)'
+    //         // so bottom is 'h/2 * (cols - col -1) + h/2 * (rows - row - 1)'
+    //         // combine expressionn is 'h/2 * (rows + cols - col - row - 2)'
+    //         cullingRow = this.rows + this.cols - col - row - 2;
+    //         left = this.maptw2 * cullingCol;
+    //         bottom = this.mapth2 * cullingRow;
+    //     //     break;
+    //     //     // left top to right dowm
+    //     // case bmap.Orientation.Hexagonal:
+    //     //     diffX2 = (axis! === bmap.StaggerAxis.StaggerY && row % 2 === 1) ? maptw2 * odd_even! : 0;
+    //     //     diffY2 = (axis! === bmap.StaggerAxis.StaggerX && col % 2 === 1) ? mapth2 * -odd_even! : 0;
 
-        switch (layerOrientation) {
-        // left top to right dowm
-        case Orientation.ORTHO:
-            cullingCol = col;
-            cullingRow = rows - row - 1;
-            left = cullingCol * maptw;
-            bottom = cullingRow * mapth;
-            break;
-            // right top to left down
-        case Orientation.ISO:
-            // if not consider about col, then left is 'w/2 * (rows - row - 1)'
-            // if consider about col then left must add 'w/2 * col'
-            // so left is 'w/2 * (rows - row - 1) + w/2 * col'
-            // combine expression is 'w/2 * (rows - row + col -1)'
-            cullingCol = rows + col - row - 1;
-            // if not consider about row, then bottom is 'h/2 * (cols - col -1)'
-            // if consider about row then bottom must add 'h/2 * (rows - row - 1)'
-            // so bottom is 'h/2 * (cols - col -1) + h/2 * (rows - row - 1)'
-            // combine expressionn is 'h/2 * (rows + cols - col - row - 2)'
-            cullingRow = rows + cols - col - row - 2;
-            left = maptw2 * cullingCol;
-            bottom = mapth2 * cullingRow;
-            break;
-            // left top to right dowm
-        case Orientation.HEX:
-            diffX2 = (axis! === StaggerAxis.STAGGERAXIS_Y && row % 2 === 1) ? maptw2 * odd_even! : 0;
-            diffY2 = (axis! === StaggerAxis.STAGGERAXIS_X && col % 2 === 1) ? mapth2 * -odd_even! : 0;
+    //     //     left = col * (maptw - diffX1!) + diffX2;
+    //     //     bottom = (rows - row - 1) * (mapth - diffY1!) + diffY2;
+    //     //     cullingCol = col;
+    //     //     cullingRow = rows - row - 1;
+    //     //     break;
+    //     // }
 
-            left = col * (maptw - diffX1!) + diffX2;
-            bottom = (rows - row - 1) * (mapth - diffY1!) + diffY2;
-            cullingCol = col;
-            cullingRow = rows - row - 1;
-            break;
-        }
+    //     const rowData = this.vertices[cullingRow] = this.vertices[cullingRow] || { minCol: 0, maxCol: 0 };
+    //     const colData = rowData[cullingCol] = rowData[cullingCol] || { left: 0, bottom: 0, index: 0 };
 
-        const rowData = vertices[cullingRow] = vertices[cullingRow] || { minCol: 0, maxCol: 0 };
-        const colData = rowData[cullingCol] = rowData[cullingCol] || { left: 0, bottom: 0, index: 0 };
+    //     // record each row range, it will faster when culling grid
+    //     if (rowData.minCol > cullingCol) {
+    //         rowData.minCol = cullingCol;
+    //     }
 
-        // record each row range, it will faster when culling grid
-        if (rowData.minCol > cullingCol) {
-            rowData.minCol = cullingCol;
-        }
+    //     if (rowData.maxCol < cullingCol) {
+    //         rowData.maxCol = cullingCol;
+    //     }
 
-        if (rowData.maxCol < cullingCol) {
-            rowData.maxCol = cullingCol;
-        }
+    //     // record max rect, when viewPort is bigger than layer, can make it smaller
+    //     if (this._rightTop.row < cullingRow) {
+    //         this._rightTop.row = cullingRow;
+    //         // if (layerOrientation === bmap.Orientation.Isometric) {
+    //             this._rightTop.row += 1;
+    //         // }
+    //     }
 
-        // record max rect, when viewPort is bigger than layer, can make it smaller
-        if (rightTop.row < cullingRow) {
-            rightTop.row = cullingRow;
-            if (layerOrientation === Orientation.ISO) {
-                rightTop.row += 1;
+    //     if (this._rightTop.col < cullingCol) {
+    //         this._rightTop.col = cullingCol;
+    //         // if (layerOrientation === bmap.Orientation.Isometric) {
+    //             this._rightTop.col += 1;
+    //         // }
+    //     }
+
+    //     // _offset is whole layer offset
+    //     // tileOffset is tileset offset which is related to each grid
+    //     // tileOffset coordinate system's y axis is opposite with engine's y axis.
+    //     const tileOffset = grid.tileset.tileOffset;
+    //     left += this._offset!.x + tileOffset.x + grid.offsetX;
+    //     bottom += this._offset!.y - tileOffset.y - grid.offsetY;
+
+    //     colData.left = left;
+    //     colData.bottom = bottom;
+    //     // this index is tiledmap grid index
+    //     colData.index = index;
+
+    //     topBorder = -tileOffset.y + grid.tileset._tileSize.height - this.mapth;
+    //     topBorder = topBorder < 0 ? 0 : topBorder;
+    //     // console.log("4offset:" + this._layerName + " (" + tileOffset.x + " " + tileOffset.y + ") gridtileh:" + grid.tileset._tileSize.height + " mapth:" + this.mapth);
+    //     downBorder = tileOffset.y < 0 ? 0 : tileOffset.y;
+    //     leftBorder = -tileOffset.x < 0 ? 0 : -tileOffset.x;
+    //     rightBorder = tileOffset.x + grid.tileset._tileSize.width - this.maptw;
+    //     rightBorder = rightBorder < 0 ? 0 : rightBorder;
+
+    //     if (this._rightOffset < leftBorder) {
+    //         this._rightOffset = leftBorder;
+    //     }
+
+    //     if (this._leftOffset < rightBorder) {
+    //         this._leftOffset = rightBorder;
+    //     }
+
+    //     if (this._topOffset < downBorder) {
+    //         this._topOffset = downBorder;
+    //     }
+
+    //     if (this._downOffset < topBorder) {
+    //         this._downOffset = topBorder;
+    //     }
+    //     // unit: _downOffset = 141 ?
+    //     // console.log("4offset:" + this._layerName + " " + this._leftOffset + " " + this._rightOffset + " " + this._topOffset + " " + this._downOffset);
+
+    //     this._cullingDirty = true;
+    // }
+
+    // 仅在初始化或设置tileset信息时调用
+    updateVertices (): void {
+        // // const vertices = this.vertices;
+        // this.vertices.length = 0;
+
+        // // const tiles = this.tiles;
+        // if (!this.tiles) {
+        //     return;
+        // }
+
+        // // const rightTop = this._rightTop;
+        // this._rightTop.row = -1;
+        // this._rightTop.col = -1;
+
+        // // const rows = this._layerSize!.height;
+        // // const cols = this._layerSize!.width;
+
+        // this._topOffset = 0;
+        // this._downOffset = 0;
+        // this._leftOffset = 0;
+        // this._rightOffset = 0;
+        // this._hasAniGrid = false;
+
+        // for (let row = 0; row < this.rows; ++row) {
+        //     for (let col = 0; col < this.cols; ++col) {
+        //         this._updateVertex(col, row);
+        //     }
+        // }
+        // this._verticesDirty = false;
+
+        const t = this.tiles;
+        if (t) {
+            for (
+                let i = this.vertices,
+                    n = this._layerSizeHeight,
+                    r = this._layerSizeWidth,
+                    e = this.texGrids,
+                    h = this._offset!.x,
+                    o = this._offset!.y,
+                    u = this._mapTileSizeWidth / 2,
+                    a = this._mapTileSizeHeight / 2,
+                    c = 0;
+                c < n;
+                ++c
+            ) {
+                for (let f = 0; f < r; ++f) {
+                    let l;
+                    let v;
+                    let d;
+                    let _;
+                    let p;
+                    let w;
+                    let A;
+                    let m;
+                    const E = c * r + f;
+                    const T = (t[E] & TileFlag.FLIPPED_MASK) >>> 0;
+                    const g = e!.get(T);
+                    g
+                        ? ((v = n + f - c - 1),
+                        (p = (_ = (l = i[(d = n + r - f - c - 2)]) != null
+                            ? l
+                            : (i[d] = []))[v] =                                _[v] || {}),
+                        (A = (w = g.tileset.tileOffset).x),
+                        (m = w.y),
+                        (p.left = u * v + h + A + g.offsetX),
+                        (p.bottom = a * d + o - m - g.offsetY),
+                        (p.index = E))
+                        : (t[E] = 0);
+                }
             }
         }
-
-        if (rightTop.col < cullingCol) {
-            rightTop.col = cullingCol;
-            if (layerOrientation === Orientation.ISO) {
-                rightTop.col += 1;
-            }
-        }
-
-        // _offset is whole layer offset
-        // tileOffset is tileset offset which is related to each grid
-        // tileOffset coordinate system's y axis is opposite with engine's y axis.
-        const tileOffset = grid.tileset.tileOffset;
-        left += this._offset!.x + tileOffset.x + grid.offsetX;
-        bottom += this._offset!.y - tileOffset.y - grid.offsetY;
-
-        topBorder = -tileOffset.y + grid.tileset._tileSize.height - mapth;
-        topBorder = topBorder < 0 ? 0 : topBorder;
-        downBorder = tileOffset.y < 0 ? 0 : tileOffset.y;
-        leftBorder = -tileOffset.x < 0 ? 0 : -tileOffset.x;
-        rightBorder = tileOffset.x + grid.tileset._tileSize.width - maptw;
-        rightBorder = rightBorder < 0 ? 0 : rightBorder;
-
-        if (this._rightOffset < leftBorder) {
-            this._rightOffset = leftBorder;
-        }
-
-        if (this._leftOffset < rightBorder) {
-            this._leftOffset = rightBorder;
-        }
-
-        if (this._topOffset < downBorder) {
-            this._topOffset = downBorder;
-        }
-
-        if (this._downOffset < topBorder) {
-            this._downOffset = topBorder;
-        }
-
-        colData.left = left;
-        colData.bottom = bottom;
-        // this index is tiledmap grid index
-        colData.index = index;
-
-        this._cullingDirty = true;
-    }
-
-    protected _updateVertices (): void {
-        const vertices = this.vertices;
-        vertices.length = 0;
-
-        const tiles = this.tiles;
-        if (!tiles) {
-            return;
-        }
-
-        const rightTop = this._rightTop;
-        rightTop.row = -1;
-        rightTop.col = -1;
-
-        const rows = this._layerSize!.height;
-        const cols = this._layerSize!.width;
-
-        this._topOffset = 0;
-        this._downOffset = 0;
-        this._leftOffset = 0;
-        this._rightOffset = 0;
-        this._hasAniGrid = false;
-
-        for (let row = 0; row < rows; ++row) {
-            for (let col = 0; col < cols; ++col) {
-                this._updateVertex(col, row);
-            }
-        }
-        this._verticesDirty = false;
-    }
-
-    /**
-      * @en
-      * Get the TiledTile with the tile coordinate.<br/>
-      * If there is no tile in the specified coordinate and forceCreate parameter is true, <br/>
-      * then will create a new TiledTile at the coordinate.
-      * The renderer will render the tile with the rotation, scale, position and color property of the TiledTile.
-      * @zh
-      * 通过指定的 tile 坐标获取对应的 TiledTile。 <br/>
-      * 如果指定的坐标没有 tile，并且设置了 forceCreate 那么将会在指定的坐标创建一个新的 TiledTile 。<br/>
-      * 在渲染这个 tile 的时候，将会使用 TiledTile 的节点的旋转、缩放、位移、颜色属性。<br/>
-      * @method getTiledTileAt
-      * @param {Integer} x
-      * @param {Integer} y
-      * @param {Boolean} forceCreate
-      * @return {cc.TiledTile}
-      * @example
-      * let tile = tiledLayer.getTiledTileAt(100, 100, true);
-      * cc.log(tile);
-      */
-    public getTiledTileAt (x: number, y: number, forceCreate?: boolean): TiledTile | null {
-        if (this.isInvalidPosition(x, y)) {
-            throw new Error('TiledLayer.getTiledTileAt: invalid position');
-        }
-        if (!this.tiles) {
-            logID(7236);
-            return null;
-        }
-
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        let tile = this.tiledTiles[index];
-        if (!tile && forceCreate) {
-            const node = new Node();
-            tile = node.addComponent(TiledTile);
-            tile._x = x;
-            tile._y = y;
-            tile._layer = this;
-            tile.updateInfo();
-            node.parent = this.node;
-            return tile;
-        }
-        return tile;
-    }
-
-    /**
-      * @en
-      * Change tile to TiledTile at the specified coordinate.
-      * @zh
-      * 将指定的 tile 坐标替换为指定的 TiledTile。
-      * @method setTiledTileAt
-      * @param {Integer} x
-      * @param {Integer} y
-      * @param {cc.TiledTile} tiledTile
-      * @return {cc.TiledTile}
-      */
-    public setTiledTileAt (x: number, y: number, tiledTile: TiledTile | null): TiledTile | null {
-        if (this.isInvalidPosition(x, y)) {
-            throw new Error('TiledLayer.setTiledTileAt: invalid position');
-        }
-        if (!this.tiles) {
-            logID(7236);
-            return null;
-        }
-
-        const index = Math.floor(x) + Math.floor(y) * this._layerSize!.width;
-        this.tiledTiles[index] = tiledTile;
-        this._cullingDirty = true;
-
-        if (tiledTile) {
-            this._hasTiledNodeGrid = true;
-        } else {
-            this._hasTiledNodeGrid = this.tiledTiles.some((tiledNode) => !!tiledNode);
-        }
-
-        return tiledTile;
-    }
-
-    /**
-      * @en Return texture.
-      * @zh 获取纹理。
-      * @method getTexture
-      * @param index The index of textures
-      * @return {Texture2D}
-      */
-    public getTexture (index?: number): SpriteFrame | null {
-        index = index || 0;
-        if (this._textures && index >= 0 && this._textures.length > index) {
-            return this._textures[index];
-        }
-        return null;
-    }
-
-    /**
-      * @en Return texture.
-      * @zh 获取纹理。
-      * @method getTextures
-      * @return {Texture2D}
-      */
-    public getTextures (): SpriteFrame[] {
-        return this._textures;
-    }
-
-    /**
-      * @en Set the texture.
-      * @zh 设置纹理。
-      * @method setTexture
-      * @param {SpriteFrame} texture
-      */
-    public setTexture (texture: SpriteFrame): void {
-        this.setTextures([texture]);
-    }
-
-    /**
-      * @en Set the texture.
-      * @zh 设置纹理。
-      * @method setTexture
-      * @param {SpriteFrame} textures
-      */
-    public setTextures (textures: SpriteFrame[]): void {
-        this._textures = textures;
-        this._markForUpdateRenderData();
     }
 
     /**
@@ -1309,180 +1613,228 @@ export class TiledLayer extends UIRenderer {
         return this._tilesets;
     }
 
-    /**
-      * @en Sets tile set information for the layer.
-      * @zh 设置 layer 的 tileset 信息。
-      * @method setTileSet
-      * @param {TMXTilesetInfo} tileset
-      */
-    public setTileSet (tileset: TMXTilesetInfo): void {
-        this.setTileSets([tileset]);
+    /*layerInfo: TMXLayerInfo, mapInfo: XTMXMapInfo, tilesets: TMXTilesetInfo[], textures: SpriteFrame[], texGrids: TiledTextureGrids, culling: Map<number, {
+        cullingDirty: boolean;
+        leftDown: {
+            row: number;
+            col: number;
+        };
+        rightTop: {
+            row: number;
+            col: number;
+        };
+    }>*/
+    public init (t, i, n, r, e): void {
+        // this._sharedCullingRect = culling;
+
+        // this._cullingDirty = true;
+        // this._layerInfo = layerInfo;
+        // this._mapInfo = mapInfo;
+
+        // // const size = layerInfo.layerSize!;
+
+        // // layerInfo
+        // this._layerName = layerInfo.name;
+        // this.tiles = layerInfo.tiles as unknown as any;
+        // this._properties = layerInfo.properties;
+        // this._layerSize = layerInfo.layerSize!;
+        // this._minGID = layerInfo.minGID;
+        // this._maxGID = layerInfo.maxGID;
+        // this._opacity = layerInfo.opacity;
+
+        // if (layerInfo.tintColor) {
+        //     this._tintColor = layerInfo.tintColor;
+        //     // this.node.color = this._tintColor;
+        // }
+
+        // this.renderOrder = mapInfo.renderOrder;//this._bMap.renderorder;//
+        // this._staggerAxis = mapInfo.getStaggerAxis()!;
+        // this._staggerIndex = mapInfo.getStaggerIndex()!;
+        // this._hexSideLength = mapInfo.getHexSideLength();
+        // this._animations = mapInfo.getTileAnimations();
+
+        // // tilesets
+        // this._tilesets = tilesets;
+        // // textures
+        // this._textures = textures;
+        // // grid texture
+        // this.texGrids = texGrids;
+
+        // // mapInfo
+        // this._layerOrientation = mapInfo.orientation;//this._bMap.orientation;//
+        // this._mapTileSize = mapInfo.getTileSize();
+
+        // // if (!XTiledLayer.hasInit) {
+        //     this. maptw = mapInfo.tileSize!.width;
+        //     this. mapth = mapInfo.tileSize!.height;
+        //     this. maptw2 = this.maptw * 0.5;
+        //     this. mapth2 = this.mapth * 0.5;
+        //     this. cols = this._layerSize.width;
+        //     this. rows = this._layerSize.height;
+        //     // this.hasInit = true;
+        //     if (this._layerName == "ground") {
+        //         this._needCalcViewport = true;
+        //         this._isFirstLayer = true;
+        //         Mat4.invert(_mat4_temp, this.node.getWorldMatrix());
+        //         // console.log("_mat4:" + _mat4_temp);
+        //     }
+
+        // // }
+
+        // // if (this._layerOrientation === bmap.Orientation.Hexagonal) {
+        // //     let width = 0;
+        // //     let height = 0;
+        // //     const tileWidth = this.maptw & ~1;
+        // //     const tileHeight = this.mapth & ~1;
+
+        // //     this._odd_even = (this._staggerIndex === bmap.StaggerIndex.StaggerOdd) ? 1 : -1;
+        // //     if (this._staggerAxis === bmap.StaggerAxis.StaggerX) {
+        // //         this._diffX1 = (tileWidth - this._hexSideLength!) / 2;
+        // //         this._diffY1 = 0;
+        // //         width = (this._diffX1 + this._hexSideLength!) * this.cols + this._diffX1;
+        // //         height = (tileHeight * this.rows) + tileHeight / 2;
+        // //     } else {
+        // //         this._diffX1 = 0;
+        // //         this._diffY1 = (tileHeight - this._hexSideLength!) / 2;
+        // //         width = (tileWidth * this.cols) + tileWidth / 2;
+        // //         height = (this._diffY1 + this._hexSideLength!) * this.rows + this._diffY1;
+        // //     }
+        // //     this.node._uiProps.uiTransformComp!.setContentSize(width, height);
+        // // } else if (this._layerOrientation === bmap.Orientation.Isometric) {
+        //     const wh = this.cols + this.rows;
+        //     this.node._uiProps.uiTransformComp!.setContentSize(this.maptw2 * wh, this.mapth2 * wh);
+        // // } else {
+        // //     this.node._uiProps.uiTransformComp!.setContentSize(this.cols * this.maptw, this.rows * this.mapth);
+        // // }
+
+        // // offset (after layer orientation is set);
+        // this._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);
+        // // 我们对offset为0的进行viewport计算复用
+        // this._offsetKey = this._offset.x + this._offset.y;
+        // if (this._offset.x != 0 || this._offset.y != 0) {
+        //     this._needCalcViewport = true;
+        // }
+        // this._useAutomaticVertexZ = false;
+        // this._vertexZvalue = 0;
+        // this._prepareToRender();
+        // this._syncAnchorPoint();
+
+        let zJn; let e4n;
+        (this._layerInfo = t), (this._mapInfo = i);
+        const h = t.layerSize;
+        const o = (this.setLayerName(t.name),
+        (this.tiles = t.tiles),
+        (this._properties = t.properties),
+        (this._layerSize = h),
+        (this.renderOrder = i.renderOrder),
+        (this._tilesets = n),
+        (this.texGrids = e),
+        (this._mapTileSize = i.getTileSize()),
+                this._mapTileSize!.width);
+        const u = this._mapTileSize!.height;
+        const a = this._layerSize!.width;
+        const c = this._layerSize!.height;
+        const f =                ((this._mapTileSizeWidth = o),
+        (this._mapTileSizeHeight = u),
+        (this._layerSizeWidth = a),
+        (this._layerSizeHeight = c),
+        (zJn = o / 2),
+        (e4n = u / 2),
+        a + c);
+        this.node._uiProps.uiTransformComp!.setContentSize(
+            zJn * f,
+            e4n * f,
+        ),
+        (this._offset = new Vec2(//Vec2
+            t.offset.x,
+            -t.offset.y,
+        )),
+        this._syncAnchorPoint();
     }
 
-    /**
-      * @en Sets Tile set information for the layer.
-      * @zh 设置 layer 的 Tileset 信息。
-      * @method setTileSets
-      * @param {TMXTilesetInfo} tilesets
-      */
-    public setTileSets (tilesets: TMXTilesetInfo[]): void {
-        this._tilesets = tilesets;
-        const textures: SpriteFrame[] = this._textures = [];
-        const texGrids = this.texGrids!;
-        texGrids.clear();
-        for (let i = 0; i < tilesets.length; i++) {
-            const tileset = tilesets[i];
-            if (tileset) {
-                textures[i] = tileset.sourceImage!;
-            }
-        }
+    // protected _prepareToRender (): void {
+    //     this._updateVertices();
+    //     this._updateAllUserNode();
+    // }
 
-        for (let i = 0, l = tilesets.length; i < l; ++i) {
-            const tilesetInfo = tilesets[i];
-            if (!tilesetInfo) continue;
-            fillTextureGrids(tilesetInfo, texGrids, tilesetInfo.sourceImage);
+    // packRenderData <- traverseGrids <- updateRenderData
+    public requestTiledRenderData (t?): RenderData {
+        // const arr = this._tiledDataArray as any[];
+        // while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
+        //     arr.pop();
+        // }
+        // if (arr.length > 0) {
+        //     const last = arr[arr.length - 1];
+        //     if (last.renderData && last.renderData.vertexCount === 0) {
+        //         return last as XTiledRenderData;
+        //     }
+        // }
+        // const comb = { renderData: null, texture: null };
+        // this._tiledDataArray.push(comb);
+        // return (comb as XTiledRenderData);
+        if (t == null) {
+            t = this._tiledDataPoolLen > 0
+                ? this._tiledDataPool[--this._tiledDataPoolLen]
+                : RenderData.add();
         }
-        this._prepareToRender();
+        this._tiledDataArray[this._tiledDataLen++] = t;
+        this._tiledDataPool[this._tiledDataPoolLen] = null;
+        return t as RenderData;
     }
 
-    public init (
-        layerInfo: TMXLayerInfo,
-        mapInfo: TMXMapInfo,
-        tilesets: TMXTilesetInfo[],
-        textures: SpriteFrame[],
-        texGrids: TiledTextureGrids,
-    ): void {
-        const self = this;
-        self._cullingDirty = true;
-        self._layerInfo = layerInfo;
-        self._mapInfo = mapInfo;
-
-        const size = layerInfo.layerSize!;
-
-        // layerInfo
-        self._layerName = layerInfo.name;
-        self.tiles = layerInfo.tiles as unknown as any;
-        self._properties = layerInfo.properties;
-        self._layerSize = size;
-        self._minGID = layerInfo.minGID;
-        self._maxGID = layerInfo.maxGID;
-        self._opacity = layerInfo.opacity;
-
-        if (layerInfo.tintColor) {
-            self._tintColor = layerInfo.tintColor;
-            // this.node.color = this._tintColor;
-        }
-
-        self.renderOrder = mapInfo.renderOrder;
-        self._staggerAxis = mapInfo.getStaggerAxis()!;
-        self._staggerIndex = mapInfo.getStaggerIndex()!;
-        self._hexSideLength = mapInfo.getHexSideLength();
-        self._animations = mapInfo.getTileAnimations();
-
-        // tilesets
-        self._tilesets = tilesets;
-        // textures
-        self._textures = textures;
-        // grid texture
-        self.texGrids = texGrids;
-
-        // mapInfo
-        self._layerOrientation = mapInfo.orientation;
-        self._mapTileSize = mapInfo.getTileSize();
-
-        const maptw = self._mapTileSize.width;
-        const mapth = self._mapTileSize.height;
-        const layerW = self._layerSize.width;
-        const layerH = self._layerSize.height;
-        const uiTransformComp = self.node._getUITransformComp()!;
-
-        if (self._layerOrientation === Orientation.HEX) {
-            let width = 0;
-            let height = 0;
-            const tileWidth = maptw & ~1;
-            const tileHeight = mapth & ~1;
-
-            self._odd_even = (self._staggerIndex === StaggerIndex.STAGGERINDEX_ODD) ? 1 : -1;
-            if (self._staggerAxis === StaggerAxis.STAGGERAXIS_X) {
-                self._diffX1 = (tileWidth - self._hexSideLength) / 2;
-                self._diffY1 = 0;
-                width = (self._diffX1 + self._hexSideLength) * layerW + self._diffX1;
-                height = (tileHeight * layerH) + tileHeight / 2;
-            } else {
-                self._diffX1 = 0;
-                self._diffY1 = (tileHeight - self._hexSideLength) / 2;
-                width = (tileWidth * layerW) + tileWidth / 2;
-                height = (self._diffY1 + self._hexSideLength) * layerH + self._diffY1;
-            }
-            uiTransformComp.setContentSize(width, height);
-        } else if (self._layerOrientation === Orientation.ISO) {
-            const wh = layerW + layerH;
-            uiTransformComp.setContentSize(maptw * 0.5 * wh, mapth * 0.5 * wh);
-        } else {
-            uiTransformComp.setContentSize(layerW * maptw, layerH * mapth);
-        }
-
-        // offset (after layer orientation is set);
-        self._offset = new Vec2(layerInfo.offset.x, -layerInfo.offset.y);
-        self._useAutomaticVertexZ = false;
-        self._vertexZvalue = 0;
-        self._syncAnchorPoint();
-        self._prepareToRender();
+    // <- traverseGrids <- updateRenderData
+    public requestSubNodesData (t: TiledUserNodeData): void/*: XTiledSubNodeData*/ {
+        // const arr = this._tiledDataArray as any[];
+        // if (arr.length > 0) {
+        //     if (arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
+        //         return arr[arr.length - 1] as XTiledSubNodeData;
+        //     }
+        // }
+        // const renderData: (TiledUserNodeData | null)[] = [];
+        // const comb = { subNodes: renderData };
+        // this._tiledDataArray.push(comb);
+        // return comb;
+        this._tiledDataArray[this._tiledDataLen++] = t;
     }
 
-    protected _prepareToRender (): void {
-        this._updateVertices();
-        this._updateAllUserNode();
-    }
-
-    public requestTiledRenderData (): TiledRenderData {
-        const arr = this._tiledDataArray as any[];
-        while (arr.length > 0 && arr[arr.length - 1].subNodes && arr[arr.length - 1].subNodes.length === 0) {
-            arr.pop();
-        }
-        if (arr.length > 0) {
-            const last = arr[arr.length - 1];
-            if (last.renderData && last.renderData.vertexCount === 0) {
-                return last as TiledRenderData;
-            }
-        }
-        const comb = { renderData: null, texture: null };
-        this._tiledDataArray.push(comb);
-        return (comb as TiledRenderData);
-    }
-
-    public requestSubNodesData (): TiledSubNodeData {
-        const arr = this._tiledDataArray;
-        if (arr.length > 0) {
-            const last = arr[arr.length - 1];
-            if (isTiledSubNodeData(last) && last.subNodes.length === 0) {
-                return last;
-            }
-        }
-        const renderData: (TiledUserNodeData | null)[] = [];
-        const comb = { subNodes: renderData };
-        this._tiledDataArray.push(comb);
-        return comb;
+    getRenderData (): RenderData {
+        const t = RenderData.add();
+        return t.resize(4, 6), t;//4 6 ?
     }
 
     public destroyRenderData (): void {
-        this._tiledDataArray.forEach((rd) => {
-            const renderData = (rd as TiledRenderData).renderData;
-            if (renderData) RenderData.remove(renderData);
-        });
-        this._tiledDataArray.length = 0;
-        super.destroyRenderData();
+        // this._tiledDataArray.forEach((rd) => {
+        //     const renderData = (rd as XTiledRenderData).renderData;
+        //     if (renderData) RenderData.remove(renderData);
+        // });
+        // this._tiledDataArray.length = 0;
+        // super.destroyRenderData();
+        for (let t, i = 0; i < this._tiledDataLen; ++i) {
+            if (this._tiledDataArray[i] instanceof RenderData) {
+                (this._tiledDataPoolLen == this._tiledDataPool.length
+                    && (this._tiledDataPool = fTr(this._tiledDataPool, this._tiledDataPoolLen)),
+                ((t = this._tiledDataArray[i] as RenderData).frame = null),
+                (this._tiledDataPool[this._tiledDataPoolLen++] = t),
+                (this._tiledDataArray[i] = null));
+            }
+        }
+        this._tiledDataLen = 0;
     }
 
     protected _flushAssembler (): void {
-        const assembler = TiledLayer.Assembler.getAssembler(this);
-        if (this._assembler !== assembler) {
-            this._assembler = assembler;
-            this._assembler.createData!(this);
-        }
-        if (this._tiledDataArray.length === 0) {
-            this._markForUpdateRenderData();
-            this._updateColor();
+        // const assembler = TiledLayer.Assembler.getAssembler(this);
+        // if (this._assembler !== assembler) {
+        //     this._assembler = assembler;
+        //     this._assembler.createData(this);
+        // }
+        // if (this._tiledDataArray.length === 0) {
+        //     this.markForUpdateRenderData();
+        //     this._updateColor();
+        // }
+        const t = TiledLayer.Assembler.getAssembler(this);
+        if (this._assembler !== t) {
+            this._assembler = t;
+            this._assembler.createData?.(this);
         }
     }
 
@@ -1494,88 +1846,178 @@ export class TiledLayer extends UIRenderer {
       * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
       */
     public _tiledDataArrayIdx = 0;
-    protected _render (ui: IBatcher): void {
-        for (let i = 0; i < this._tiledDataArray.length; i++) {
-            this._tiledDataArrayIdx = i;
-            const m = this._tiledDataArray[i];
-            if ((m as TiledSubNodeData).subNodes) {
-                // 提前处理 User Nodes
-                (m as TiledSubNodeData).subNodes.forEach((c) => {
-                    if (c) ui.walk(c.node);
-                });
-            } else {
-                const td = m as TiledRenderData;
-                if (td.texture) {
-                    // NOTE: 由于 commitComp 只支持单张纹理, 故分多次提交
-                    ui.commitComp(this, td.renderData, td.texture, this._assembler, null);
-                }
+    public _render (ui: IBatcher): void {
+        // for (let i = 0; i < this._tiledDataArray.length; i++) {
+        //     this._tiledDataArrayIdx = i;
+        //     const m = this._tiledDataArray[i];
+        //     if ((m as XTiledSubNodeData).subNodes) {
+        //         // 提前处理 User Nodes
+        //         (m as XTiledSubNodeData).subNodes.forEach((c) => {
+        //             if (c) ui.walk(c.node);
+        //         });
+        //     } else {
+        //         const td = m as XTiledRenderData;
+        //         if (td.texture) {
+        //             // NOTE: 由于 commitComp 只支持单张纹理, 故分多次提交
+        //             ui.commitComp(this, td.renderData, td.texture, this._assembler, null);
+        //         }
+        //     }
+        // }
+        // this.node._static = true;
+        if (!this.hasUserNode && this._tiledDataLen > 0) {
+            for (
+                let i = this._tiledDataArray[0] as RenderData, // todo
+                    n = 0,
+                    r = this._tiledDataLen;
+                n < r;
+                ++n
+            ) {
+                ui.commitComp(this, i, i.frame, null, null);
+                this._assembler!.fillBuffers?.((this._tiledDataArray[n]), ui);// todo lxm
             }
         }
-        this.node._static = true;
     }
 
     protected createRenderEntity (): RenderEntity {
         return new RenderEntity(RenderEntityType.CROSSED);
     }
 
-    private fillIndicesBuffer (renderData: RenderData, drawInfo: RenderDrawInfo): void {
-        const iBuf = renderData.chunk.meshBuffer.iData;
-
-        let indexOffset = renderData.chunk.meshBuffer.indexOffset;
-        drawInfo.setIndexOffset(indexOffset);
-        let vertexId = renderData.chunk.vertexOffset;
-        const quadCount = renderData.vertexCount / 4;
-        for (let i = 0; i < quadCount; i += 1) {
-            iBuf[indexOffset] = vertexId;
-            iBuf[indexOffset + 1] = vertexId + 1;
-            iBuf[indexOffset + 2] = vertexId + 2;
-            iBuf[indexOffset + 3] = vertexId + 2;
-            iBuf[indexOffset + 4] = vertexId + 1;
-            iBuf[indexOffset + 5] = vertexId + 3;
-            indexOffset += 6;
-            vertexId += 4;
-        }
-        renderData.chunk.meshBuffer.indexOffset = indexOffset;
-        drawInfo.setIBCount(quadCount * 6);
+    addDrawNode (t): void {
+        let i;
+        let n;
+        let r;
+        const s = (r = (i = this._drawNodePool)[(n = this._drawNodePoolLen++)]) != null
+            ? r
+            : (i[n] = new RenderDrawInfo());
+        s.setSubNode(t), this.renderEntity.addDynamicRenderDrawInfo(s);
     }
 
+    addDrawInfo (t): void {
+        let i;
+        t.frame
+            && t.chunk
+            && (t.renderDrawInfo
+                || ((i = new RenderDrawInfo()).setMaterial(this.getRenderMaterial(0)!),
+                t.fillDrawInfoAttributes(i)),
+            this.renderEntity.addDynamicRenderDrawInfo(t.renderDrawInfo));
+    }
+
+    // private fillIndicesBuffer (renderData: RenderData, drawInfo: RenderDrawInfo): void {
+    //     console.log("fillIndicesBuffer");
+    //     const iBuf = renderData.chunk.meshBuffer.iData;
+
+    //     let indexOffset = renderData.chunk.meshBuffer.indexOffset;
+    //     drawInfo.setIndexOffset(indexOffset);
+    //     let vertexId = renderData.chunk.vertexOffset;
+    //     const quadCount = renderData.vertexCount / 4;
+    //     for (let i = 0; i < quadCount; i += 1) {
+    //         iBuf[indexOffset] = vertexId;
+    //         iBuf[indexOffset + 1] = vertexId + 1;
+    //         iBuf[indexOffset + 2] = vertexId + 2;
+    //         iBuf[indexOffset + 3] = vertexId + 2;
+    //         iBuf[indexOffset + 4] = vertexId + 1;
+    //         iBuf[indexOffset + 5] = vertexId + 3;
+    //         indexOffset += 6;
+    //         vertexId += 4;
+    //     }
+    //     renderData.chunk.meshBuffer.indexOffset = indexOffset;
+    //     drawInfo.setIBCount(quadCount * 6);
+    // }
+
+    // <- assembler.updateRenderData(JSB)
     public prepareDrawData (): void {
-        this._drawInfoList.length = 0;
-        const entity = this.renderEntity;
-        entity.clearDynamicRenderDrawInfos();
-        const tiledDataArray = this._tiledDataArray;
-        let idx = 0;
-        tiledDataArray.forEach((m) => {
-            if (isTiledSubNodeData(m)) {
-                // 提前处理 User Nodes
-                m.subNodes.forEach((c) => {
-                    if (c) {
-                        if (!this._drawInfoList[idx]) {
-                            this._drawInfoList[idx] = new RenderDrawInfo();
-                        }
-                        const drawInfo = this._drawInfoList[idx];
-                        drawInfo.setDrawInfoType(RenderDrawInfoType.SUB_NODE);
-                        drawInfo.setSubNode(c.node);
-                        entity.setDynamicRenderDrawInfo(drawInfo, idx);
-                        idx++;
+        // this._drawInfoList.length = 0;
+        // const entity = this.renderEntity;
+        // entity.clearDynamicRenderDrawInfos();
+        // const tiledDataArray = this._tiledDataArray;
+        // let idx = 0;
+        // tiledDataArray.forEach((m) => {
+        //     if ((m as XTiledSubNodeData).subNodes) {
+        //         // 提前处理 User Nodes
+        //         (m as XTiledSubNodeData).subNodes.forEach((c) => {
+        //             if (c) {
+        //                 if (!this._drawInfoList[idx]) {
+        //                     this._drawInfoList[idx] = new RenderDrawInfo();
+        //                 }
+        //                 const drawInfo = this._drawInfoList[idx];
+        //                 drawInfo.setDrawInfoType(RenderDrawInfoType.SUB_NODE);
+        //                 drawInfo.setSubNode(c.node);
+        //                 entity.setDynamicRenderDrawInfo(drawInfo, idx);
+        //                 idx++;
+        //             }
+        //         });
+        //     } else {
+        //         const td = m as XTiledRenderData;
+        //         if (td.texture) {
+        //             if (!this._drawInfoList[idx]) {
+        //                 this._drawInfoList[idx] = new RenderDrawInfo();
+        //             }
+        //             const drawInfo = this._drawInfoList[idx];
+        //             td.renderData!.fillDrawInfoAttributes(drawInfo);
+        //             drawInfo.setTexture(td.texture.getGFXTexture());
+        //             drawInfo.setSampler(td.texture.getGFXSampler());
+        //             drawInfo.setMaterial(this.getRenderMaterial(0)!);
+        //             this.fillIndicesBuffer(td.renderData!, drawInfo);
+        //             entity.setDynamicRenderDrawInfo(drawInfo, idx);
+        //             idx++;
+        //         }
+        //     }
+        // });
+        let t; let Bar;
+        if (
+            ((this._drawNodePoolLen = 0),
+            this.renderEntity.clearDynamicRenderDrawInfos(),
+            this.hasUserNode)
+        ) {
+            (K6n = 0);
+            (Bar =                    Bar || new Array(300));
+            for (
+                let i = 0, n = this._tiledDataLen;
+                i < n;
+                ++i
+            ) {
+                let r = (this._tiledDataArray[i]! as TiledUserNodeData)._next;
+                if (r) {
+                    for (; r!._isNode;) {
+                        r!.isTiledNodeShow
+                            && r!.isActive
+                            && (r!.renderData
+                                ? r!.isFloor
+                                    ? this.addDrawInfo(r!.renderData)
+                                    : (Bar[K6n++] = r!.renderData)
+                                : r!.node
+                                    && (r!.isFloor
+                                        ? this.addDrawNode(r!.node)
+                                        : (Bar[K6n++] = r))),
+                        (r = r!._next);
                     }
-                });
-            } else {
-                const td = m;
-                if (td.texture) {
-                    if (!this._drawInfoList[idx]) {
-                        this._drawInfoList[idx] = new RenderDrawInfo();
-                    }
-                    const drawInfo = this._drawInfoList[idx];
-                    td.renderData!.fillDrawInfoAttributes(drawInfo);
-                    drawInfo.setTexture(td.texture.getGFXTexture());
-                    drawInfo.setSampler(td.texture.getGFXSampler());
-                    drawInfo.setMaterial(this.getRenderMaterial(0)!);
-                    this.fillIndicesBuffer(td.renderData!, drawInfo);
-                    entity.setDynamicRenderDrawInfo(drawInfo, idx);
-                    idx++;
+                } else Bar[K6n++] = this._tiledDataArray[i];
+            }
+            const s = (t = this.topNodeHead) == null
+                ? undefined
+                : t.first();
+            if (s) {
+                for (let e = s; e._isNode;) {
+                    e.node
+                        && (e.isFloor
+                            ? this.addDrawNode(e.node)
+                            : (Bar[K6n++] = e)),
+                    (e = e._next);
                 }
             }
-        });
+            for (let h = 0; h < K6n; h++) {
+                const o = Bar[h];
+                o instanceof RenderData
+                    ? this.addDrawInfo(o)
+                    : this.addDrawNode(o.node),
+                (Bar[h] = null);
+            }
+        } else if (this._tiledDataLen > 0) {
+            for (
+                let u = 0, a = this._tiledDataLen;
+                u < a;
+                ++u
+            ) this.addDrawInfo(this._tiledDataArray[u]);
+        }
     }
 }

@@ -120,7 +120,7 @@ export class TiledTile extends Component {
 
     onEnable (): void {
         const parent = this.node.parent!;
-        this._layer = parent.getComponent('cc.TiledLayer') as TiledLayer;
+        this._layer = parent.getComponent('XTiledLayer') as TiledLayer;
         this.node.on(NodeEventType.TRANSFORM_CHANGED, this._updatePosition, this);
         this.node.on(NodeEventType.SIZE_CHANGED, this._updatePosition, this);
         this._resetTile();

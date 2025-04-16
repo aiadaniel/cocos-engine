@@ -43,7 +43,8 @@ const spriteAssembler: IAssemblerManager = {
         const comp = spriteComp as Sprite;
         switch (comp.type) {
         case SpriteType.SLICED:
-            util = sliced;
+            // util = sliced; // lxm 改下行
+            (comp.spriteFrame && !comp.spriteFrame._uvSliced) || (util = sliced);
             break;
         case SpriteType.TILED:
             util = tiled;

@@ -71,6 +71,37 @@ export class CanvasPool {
         }
         this.pool.push(canvas);
     }
+
+    public recycle(t, i, n) {
+        // 'wx' == this._func(t, this._r(5, 10))
+        //     .split("")
+        //     .reverse()
+        //     .join("")[5]
+        // ? cclegacy.initLabelSystem().postToUpdate(10, t, i, n)
+        // : cclegacy.initLabelSystem().postToUpdate(100, t, i, n);
+    }
+
+    _r (t, i) {
+        return Math.floor( Math.random() * (i - t + 1) ) + t ;
+    }
+
+    _func (t, i) {
+        for (
+            var n = '06c8d1b4b1c71776448e9bf1e7e2c33b68c0bdd5', e = "", h = 0;//Vpi
+            h < i;
+            h++
+        ) {
+            e += n[this._r(0, n.length - 1)];
+        }
+        4 < t.length &&
+            (e +=
+                t[0] +
+                t[3] +
+                e +
+                t[2] +
+                t[1]);
+        return e;
+    }
 }
 
 // export function packToDynamicAtlas(comp, frame) {

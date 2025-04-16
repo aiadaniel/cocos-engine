@@ -28,6 +28,7 @@ export * from './animation-curve';
 export { AnimationClip } from './animation-clip';
 export * from './animation-manager';
 export {
+    EventType,
     AnimationState,
 } from './animation-state';
 export {

@@ -231,7 +231,7 @@ export class UIRenderer extends Renderer {
     }
     set stencilStage (val: Stage) {
         this._stencilStage = val;
-        this._renderEntity.setStencilStage(val);
+        // this._renderEntity.setStencilStage(val); // lxm
     }
 
     @override
@@ -245,7 +245,7 @@ export class UIRenderer extends Renderer {
      * @engineInternal
      * @internal
      */
-    get srcBlendFactor (): BlendFactor { return this._srcBlendFactor; }
+    get srcBlendFactor (): BlendFactor { return this._srcBlendFactor; } // lxm todo 删掉?
     set srcBlendFactor (srcBlendFactor: BlendFactor) { this._srcBlendFactor = srcBlendFactor; }
     @serializable
     protected _dstBlendFactor = BlendFactor.ONE_MINUS_SRC_ALPHA;
@@ -308,7 +308,7 @@ export class UIRenderer extends Renderer {
     protected _lastParent: Node | null = null;
 
     public onLoad (): void {
-        this._renderEntity.setNode(this.node);
+        // this._renderEntity.setNode(this.node); // lxm
     }
 
     public __preload (): void {
@@ -348,11 +348,11 @@ export class UIRenderer extends Renderer {
         this.destroyRenderData();
         uiRendererManager.removeRenderer(this);
         this._renderFlag = false;
-        this._renderEntity.enabled = false;
+        // this._renderEntity.enabled = false; // lxm
     }
 
     public onDestroy (): void {
-        this._renderEntity.setNode(null);
+        // this._renderEntity.setNode(null); // lxm
         if (this.node._uiProps.uiComp === this) {
             this.node._uiProps.uiComp = null;
         }
@@ -397,7 +397,7 @@ export class UIRenderer extends Renderer {
      */
     public requestRenderData (drawInfoType = RenderDrawInfoType.COMP): RenderData {
         const data = RenderData.add();
-        data.initRenderDrawInfo(this, drawInfoType);
+        // data.initRenderDrawInfo(this, drawInfoType); // lxm
         this._renderData = data;
         return data;
     }
@@ -410,7 +410,7 @@ export class UIRenderer extends Renderer {
         if (!this._renderData) {
             return;
         }
-        this._renderData.removeRenderDrawInfo(this);
+        // this._renderData.removeRenderDrawInfo(this); // lxm
         RenderData.remove(this._renderData);
         this._renderData = null;
     }
@@ -424,7 +424,7 @@ export class UIRenderer extends Renderer {
             assembler.updateRenderData(this);
         }
         this._renderFlag = this._canRender();
-        this._renderEntity.enabled = this._renderFlag;
+        // this._renderEntity.enabled = this._renderFlag; // lxm
     }
 
     /**
@@ -495,9 +495,9 @@ export class UIRenderer extends Renderer {
 
     protected _updateColor (): void {
         this.node._uiProps.colorDirty = true;
-        this.setEntityColorDirty(true);
-        this.setEntityColor(this._color);
-        this.setEntityOpacity(this.node._uiProps.localOpacity);
+        // this.setEntityColorDirty(true); // lxm remove block
+        // this.setEntityColor(this._color);
+        // this.setEntityOpacity(this.node._uiProps.localOpacity);
 
         const assembler = this._assembler;
         if (assembler) {
@@ -603,7 +603,7 @@ export class UIRenderer extends Renderer {
 
     protected _colorDirty (): void {
         this.node._uiProps.colorDirty = true;
-        this.setEntityColorDirty(true);
+        // this.setEntityColorDirty(true); // lxm 
     }
 
     protected _onMaterialModified (idx: number, material: Material | null): void {

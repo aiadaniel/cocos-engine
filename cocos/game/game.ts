@@ -1013,6 +1013,7 @@ export class Game extends EventTarget {
         return Promise.all(preloadBundles.map(({ bundle, version }): Promise<void> => new Promise<void>((resolve, reject): void => {
             const opts: Record<string, any> = {};
             if (version) opts.version = version;
+            // console.log(bundle + "=================================================loadBundle");
             assetManager.loadBundle(bundle, opts, (err): void => {
                 if (err) {
                     reject(err);

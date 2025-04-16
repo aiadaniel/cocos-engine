@@ -28,14 +28,14 @@ import { simple } from './simple';
 
 // Inline all type switch to avoid jit deoptimization during inlined function change
 
-const tiledLayerAssembler: IAssemblerManager = {
+const xtiledLayerAssembler: IAssemblerManager = {
     getAssembler () {
         return simple;
     },
 };
 
-TiledLayer.Assembler = tiledLayerAssembler;
+TiledLayer.Assembler = xtiledLayerAssembler;
 
 export {
-    tiledLayerAssembler,
+    xtiledLayerAssembler,
 };

@@ -160,6 +160,11 @@ export class TTF extends TTFUtils implements IAssembler {
     updateColor (comp: Label): void {
         // no needs to update color
     }
+
+    // lxm add
+    updateSpriteFrame (sf: Label): void {
+        this.updateUVs(sf);
+    }
 }
 
 export const ttf = new TTF();

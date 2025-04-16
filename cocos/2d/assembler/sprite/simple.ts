@@ -45,29 +45,36 @@ class Simple implements IAssembler {
         const renderData = sprite.requestRenderData();
         renderData.dataLength = 4;
         renderData.resize(4, 6);
-        renderData.chunk.setIndexBuffer(QUAD_INDICES);
+        // renderData.chunk.setIndexBuffer(QUAD_INDICES);// lxm
         return renderData;
     }
 
     updateRenderData (sprite: Sprite): void {
         const frame = sprite.spriteFrame;
 
-        dynamicAtlasManager.packToDynamicAtlas(sprite, frame);
-        this.updateUVs(sprite);// dirty need
-        //this.updateColor(sprite);// dirty need
+        // dynamicAtlasManager.packToDynamicAtlas(sprite, frame);// lxm
+        if (frame && frame.uv) { //lxm
+            this.updateUVs(sprite);// dirty need
+            //this.updateColor(sprite);// dirty need
 
-        const renderData = sprite.renderData;
-        if (renderData && frame) {
-            if (renderData.vertDirty) {
-                this.updateVertexData(sprite);
+            const renderData = sprite.renderData;
+            if (renderData /*&& frame*/) { //lxm
+                if (renderData.vertDirty) {
+                    this.updateVertexData(sprite);
+                }
+                renderData.updateRenderData(sprite, frame);
             }
-            renderData.updateRenderData(sprite, frame);
         }
     }
 
-    private updateWorldVerts (sprite: Sprite, chunk: StaticVBChunk): void {
-        const renderData = sprite.renderData;
-        if (!renderData) return;
+    //lxm add
+    updateSpriteFrame (sf: Sprite): void {
+        this.updateUVs(sf);
+        this.updateVertexData(sf);//todo
+    }
+
+    updateWorldVerts (sprite: Sprite, chunk: StaticVBChunk): void {
+        const renderData = sprite.renderData!;
         const vData = chunk.vb;
 
         const dataList: IRenderData[] = renderData.data;

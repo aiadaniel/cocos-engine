@@ -30,11 +30,13 @@ import { Label } from '../2d/components/label';
 import { BlendFactor } from '../gfx';
 
 import { TMXMapInfo } from './tmx-xml-parser';
-import { TiledTextureGrids, GID, TileFlag, Orientation, StaggerAxis, TMXObjectType, PropertiesInfo, TiledAnimationType, TMXObject, TMXObjectGroupInfo } from './tiled-types';
+import { TiledTextureGrids, GID, TileFlag, TMXObjectType, PropertiesInfo, TiledAnimationType, TMXObject, TMXObjectGroupInfo } from './tiled-types';
 import { UITransform } from '../2d/framework/ui-transform';
 import { CCBoolean, Vec2, Color, CCObjectFlags } from '../core';
 import { SpriteFrame } from '../2d/assets';
 import { Node } from '../scene-graph/node';
+import { BoxCollider2D, Collider2D } from '../physics-2d/framework';
+import { PhysicsGroup } from '../physics/framework';
 
 /**
  * @en Renders the TMX object group.
@@ -117,14 +119,15 @@ export class TiledObjectGroup extends Component {
      * let object = tMXObjectGroup.getObject("Group");
      */
     public getObject (objectName: string): TMXObject | null {
-        for (let i = 0, len = this._objects.length; i < len; i++) {
-            const obj = this._objects[i];
-            if (obj && obj.name === objectName) {
-                return obj;
-            }
-        }
-        // object not found
-        return null;
+        return this._objects[objectName];
+        // for (let i = 0, len = this._objects.length; i < len; i++) {
+        //     const obj = this._objects[i];
+        //     if (obj && obj.name === objectName) {
+        //         return obj;
+        //     }
+        // }
+        // // object not found
+        // return null;
     }
 
     /**
@@ -135,7 +138,7 @@ export class TiledObjectGroup extends Component {
      * @example
      * let objects = tMXObjectGroup.getObjects();
      */
-    public getObjects (): TMXObject[] {
+    public getObjects (): Record<number, TMXObject> {
         return this._objects;
     }
 
@@ -156,7 +159,16 @@ export class TiledObjectGroup extends Component {
         imgNode: Node,
         gridGID: GID
     }[];
-    protected _objects: TMXObject[] = [];
+    protected _objects: Record<number|string, TMXObject> = {};
+
+    tagMap = {
+        staticObj: 1,
+        blockObj: 2,
+        otherObj: 3,
+        matObj: 4,
+        monsterObj: 5,
+        questObj: 6,
+    };
 
     /**
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
@@ -165,6 +177,8 @@ export class TiledObjectGroup extends Component {
         const FLIPPED_MASK = TileFlag.FLIPPED_MASK;
         const FLAG_HORIZONTAL = TileFlag.HORIZONTAL;
         const FLAG_VERTICAL = TileFlag.VERTICAL;
+
+        // this._bMap = bm;
 
         this._groupName = groupInfo.name;
         this._positionOffset = groupInfo.offset;
@@ -178,7 +192,7 @@ export class TiledObjectGroup extends Component {
         }
 
         this._texGrids = texGrids;
-        this._animations = mapInfo.getTileAnimations();
+        // this._animations = mapInfo.getTileAnimations();
         this.aniObjects = [];
         this._hasAniObj = false;
 
@@ -188,24 +202,24 @@ export class TiledObjectGroup extends Component {
         let height = 0;
         const colorVal = new Color();
 
-        const iso = Orientation.ISO === mapInfo.orientation;
+        // const iso = bmap.Orientation.Isometric === mapInfo.orientation; //this._bMap.orientation;//
 
-        if (mapInfo.orientation === Orientation.HEX) {
-            if (mapInfo.getStaggerAxis() === StaggerAxis.STAGGERAXIS_X) {
-                height = tileSize.height * (mapSize.height + 0.5);
-                width = (tileSize.width + mapInfo.getHexSideLength()) * Math.floor(mapSize.width / 2) + tileSize.width * (mapSize.width % 2);
-            } else {
-                width = tileSize.width * (mapSize.width + 0.5);
-                height = (tileSize.height + mapInfo.getHexSideLength()) * Math.floor(mapSize.height / 2) + tileSize.height * (mapSize.height % 2);
-            }
-        } else if (iso) {
-            const wh = mapSize.width + mapSize.height;
-            width = tileSize.width * 0.5 * wh;
-            height = tileSize.height * 0.5 * wh;
-        } else {
-            width = mapSize.width * tileSize.width;
-            height = mapSize.height * tileSize.height;
-        }
+        // if (mapInfo.orientation === bmap.Orientation.Hexagonal) {
+        //     if (mapInfo.getStaggerAxis() === bmap.StaggerAxis.StaggerY) {
+        //         height = tileSize.height * (mapSize.height + 0.5);
+        //         width = (tileSize.width + mapInfo.getHexSideLength()) * Math.floor(mapSize.width / 2) + tileSize.width * (mapSize.width % 2);
+        //     } else {
+        //         width = tileSize.width * (mapSize.width + 0.5);
+        //         height = (tileSize.height + mapInfo.getHexSideLength()) * Math.floor(mapSize.height / 2) + tileSize.height * (mapSize.height % 2);
+        //     }
+        // } else if (iso) {
+        const wh = mapSize.width + mapSize.height;
+        width = tileSize.width * 0.5 * wh;
+        height = tileSize.height * 0.5 * wh;
+        // } else {
+        //     width = mapSize.width * tileSize.width;
+        //     height = mapSize.height * tileSize.height;
+        // }
 
         const transComp = this.node._getUITransformComp()!;
         transComp.setContentSize(width, height);
@@ -227,65 +241,67 @@ export class TiledObjectGroup extends Component {
                 }
             }
 
-            if (iso) {
-                const posIdxX = object.x / tileSize.height;
-                const posIdxY = object.y / tileSize.height;
-                object.x = tileSize.width * 0.5 * (mapSize.height + posIdxX - posIdxY);
-                object.y = tileSize.height * 0.5 * (mapSize.width + mapSize.height - posIdxX - posIdxY);
-            } else {
-                object.y = height - object.y;
-            }
+            // if (iso) {
+            const posIdxX = object.x / tileSize.height;
+            const posIdxY = object.y / tileSize.height;
+            object.x = tileSize.width * 0.5 * (mapSize.height + posIdxX - posIdxY);
+            object.y = tileSize.height * 0.5 * (mapSize.width + mapSize.height - posIdxX - posIdxY);
+            // } else {
+            //     object.y = height - object.y;
+            // }
 
-            if (objType === TMXObjectType.TEXT) {
-                const textName = `text${object.id}`;
-                aliveNodes[textName] = true;
+            // 放到应用层去做：1是合批不被打断，2是i18n需要
+            // if (objType === TMXObjectType.TEXT) {
+            //     const textName = `text${object.id}`;
+            //     aliveNodes[textName] = true;
 
-                let textNode = this.node.getChildByName(textName);
-                if (!textNode) {
-                    textNode = new Node();
-                }
+            //     let textNode = this.node.getChildByName(textName);
+            //     if (!textNode) {
+            //         textNode = new Node();
+            //     }
 
-                textNode.setRotationFromEuler(0, 0, -object.rotation);
-                textNode.setPosition(object.x - leftTopX, object.y - leftTopY);
-                textNode.name = textName;
-                textNode.parent = this.node;
-                textNode.setSiblingIndex(i);
-                textNode.layer = this.node.layer;
+            //     textNode.setRotationFromEuler(0, 0, -object.rotation);
+            //     textNode.setPosition(object.x - leftTopX, object.y - leftTopY);
+            //     textNode.name = textName;
+            //     textNode.parent = this.node;
+            //     textNode.setSiblingIndex(i);
+            //     textNode.layer = this.node.layer;
 
-                let label = textNode.getComponent(Label);
-                if (!label) {
-                    label = textNode.addComponent(Label);
-                }
+            //     let label = textNode.getComponent(Label);
+            //     if (!label) {
+            //         label = textNode.addComponent(Label);
+            //     }
 
-                const textTransComp = textNode._getUITransformComp()!;
-                textNode.active = object.visible;
-                textTransComp.anchorX = 0;
-                textTransComp.anchorY = 1;
+            //     const textTransComp = textNode._getUITransformComp()!;
+            //     textNode.active = object.visible;
+            //     textTransComp.anchorX = 0;
+            //     textTransComp.anchorY = 1;
 
-                if (this._tintColor) {
-                    colorVal.set(this._tintColor);
-                    colorVal.a *= this._opacity / 255;
-                    label.color.set(colorVal);
-                } else {
-                    const c = label.color as Color;
-                    c.a *= this._opacity / 255;
-                }
+            //     if (this._tintColor) {
+            //         colorVal.set(this._tintColor);
+            //         colorVal.a *= this._opacity / 255;
+            //         label.color.set(colorVal);
+            //     } else {
+            //         const c = label.color as Color;
+            //         c.a *= this._opacity / 255;
+            //     }
 
-                label.overflow = Label.Overflow.SHRINK;
-                label.lineHeight = object.height;
-                label.string = object.text;
-                label.horizontalAlign = object.halign;
-                label.verticalAlign = object.valign;
-                label.fontSize = object.pixelsize;
+            //     label.overflow = Label.Overflow.SHRINK;
+            //     label.lineHeight = object.height;
+            //     label.string = object.text;
+            //     label.horizontalAlign = object.halign;
+            //     label.verticalAlign = object.valign;
+            //     label.fontSize = object.pixelsize;
 
-                textTransComp.setContentSize(object.width, object.height);
-            } else if (objType === TMXObjectType.IMAGE) {
+            //     textTransComp.setContentSize(object.width, object.height);
+            // } else
+            if (objType === TMXObjectType.IMAGE) {
                 const gid = object.gid;
                 const gridGID: GID = (((gid as unknown as number) & FLIPPED_MASK) >>> 0) as any;
                 const grid = texGrids.get(gridGID);
                 if (!grid) continue;
                 const tileset = grid.tileset;
-                const imgName = `img${object.id}`;
+                const imgName = `${object.id}`;//img
                 aliveNodes[imgName] = true;
                 let imgNode = this.node.getChildByName(imgName);
                 object.width = object.width || grid.width;
@@ -304,14 +320,14 @@ export class TiledObjectGroup extends Component {
                     imgNode = new Node();
                 }
 
-                if (this._animations.get(gridGID)) {
-                    this.aniObjects.push({
-                        object,
-                        imgNode,
-                        gridGID,
-                    });
-                    this._hasAniObj = true;
-                }
+                // if (this._animations.get(gridGID)) {
+                //     this.aniObjects.push({
+                //         object,
+                //         imgNode,
+                //         gridGID,
+                //     });
+                //     this._hasAniObj = true;
+                // }
 
                 const tileOffsetX = tileset.tileOffset.x;
                 const tileOffsetY = tileset.tileOffset.y;
@@ -329,13 +345,13 @@ export class TiledObjectGroup extends Component {
                 }
 
                 const imgTrans = imgNode._getUITransformComp()!;
-                if (iso) {
-                    imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
-                    imgTrans.anchorY = tileOffsetY / object.height;
-                } else {
-                    imgTrans.anchorX = tileOffsetX / object.width;
-                    imgTrans.anchorY = tileOffsetY / object.height;
-                }
+                // if (iso) {
+                imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
+                imgTrans.anchorY = tileOffsetY / object.height;
+                // } else {
+                //     imgTrans.anchorX = tileOffsetX / object.width;
+                //     imgTrans.anchorY = tileOffsetY / object.height;
+                // }
 
                 if (this._tintColor) {
                     colorVal.set(this._tintColor);
@@ -348,8 +364,8 @@ export class TiledObjectGroup extends Component {
 
                 sprite.sizeMode = Sprite.SizeMode.CUSTOM;
 
-                // HACK: we should support _premultiplyAlpha when group had material
-                const srcBlendFactor = this._premultiplyAlpha ? BlendFactor.ONE : BlendFactor.SRC_ALPHA;
+                // HACK: we should support _premultiplyAlpha when group had material    todo: gfx此时可能空！
+                const srcBlendFactor = this._premultiplyAlpha ? 1 : 2;//gfx.BlendFactor.ONE : gfx.BlendFactor.SRC_ALPHA;
                 if (sprite.srcBlendFactor !== srcBlendFactor) {
                     sprite.srcBlendFactor = srcBlendFactor;
                     if (sprite.material) {
@@ -359,8 +375,10 @@ export class TiledObjectGroup extends Component {
 
                 let spf = grid.spriteFrame;
                 if (!spf) {
+                    // console.log("grid hasnot spf");
                     spf = new SpriteFrame();
                 } else {
+                    // console.log("grid has spf");
                     spf = spf.clone();
                 }
                 if (((gid as unknown as number) & FLAG_HORIZONTAL) >>> 0) {
@@ -377,8 +395,10 @@ export class TiledObjectGroup extends Component {
 
                 sprite._markForUpdateRenderData();
             }
+
+            this._objects[object.id] = object;
         }
-        this._objects = objects;
+        // this._objects = objects;
 
         // destroy useless node
         const children = this.node.children;
@@ -398,7 +418,7 @@ export class TiledObjectGroup extends Component {
 
         const aniObjects = this.aniObjects!;
         const _texGrids = this._texGrids!;
-        const iso = Orientation.ISO === this._mapInfo!.orientation;
+        // const iso = bmap.Orientation.Isometric ===  this._mapInfo!.orientation;//this._bMap.orientation;//
 
         for (let i = 0, len = aniObjects.length; i < len; i++) {
             const aniObj = aniObjects[i];
@@ -415,13 +435,13 @@ export class TiledObjectGroup extends Component {
             const tileOffsetX = tileset.tileOffset.x;
             const tileOffsetY = tileset.tileOffset.y;
             const imgTrans = imgNode._getUITransformComp()!;
-            if (iso) {
-                imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
-                imgTrans.anchorY = tileOffsetY / object.height;
-            } else {
-                imgTrans.anchorX = tileOffsetX / object.width;
-                imgTrans.anchorY = tileOffsetY / object.height;
-            }
+            // if (iso) {
+            imgTrans.anchorX = 0.5 + tileOffsetX / object.width;
+            imgTrans.anchorY = tileOffsetY / object.height;
+            // } else {
+            //     imgTrans.anchorX = tileOffsetX / object.width;
+            //     imgTrans.anchorY = tileOffsetY / object.height;
+            // }
 
             const sp = imgNode.getComponent(Sprite)!;
             const spf = sp.spriteFrame!;

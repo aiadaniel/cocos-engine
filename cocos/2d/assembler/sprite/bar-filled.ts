@@ -41,7 +41,7 @@ const QUAD_INDICES = Uint16Array.from([0, 1, 2, 1, 3, 2]);
 class BarFilled implements IAssembler {
     updateRenderData (sprite: Sprite): void {
         const frame = sprite.spriteFrame;
-        dynamicAtlasManager.packToDynamicAtlas(sprite, frame);
+        // dynamicAtlasManager.packToDynamicAtlas(sprite, frame);//lxm
         // TODO update material and uv
 
         const renderData = sprite.renderData;
@@ -167,21 +167,23 @@ class BarFilled implements IAssembler {
         let r = width - appX;
         let t = height - appY;
 
-        let progressStart = 0;
+        // let progressStart = 0; // lxm change 下面一起
         let progressEnd = 0;
         switch (sprite.fillType) {
         case FillType.HORIZONTAL:
-            progressStart = l + (r - l) * fillStart;
+            // progressStart = l + (r - l) * fillStart;
             progressEnd = l + (r - l) * fillEnd;
+            l += (r - l) * fillStart;// lxm add
 
-            l = progressStart;
+            // l = progressStart;
             r = progressEnd;
             break;
         case FillType.VERTICAL:
-            progressStart = b + (t - b) * fillStart;
+            // progressStart = b + (t - b) * fillStart;
             progressEnd = b + (t - b) * fillEnd;
+            b += (t - b) * fillStart;// lxm add
 
-            b = progressStart;
+            // b = progressStart;
             t = progressEnd;
             break;
         default:
@@ -220,6 +222,8 @@ class BarFilled implements IAssembler {
         const dataList = sprite.renderData!.data;
         const vData = chunk.vb;
 
+        const u = renderData.atlasIndex;// lxm add
+
         let offset = 0;
         for (let i = 0; i < 4; i++) {
             const local = dataList[i];
@@ -231,7 +235,7 @@ class BarFilled implements IAssembler {
             offset = i * stride;
             vData[offset] = (m.m00 * x + m.m04 * y + m.m12) * rhw;
             vData[offset + 1] = (m.m01 * x + m.m05 * y + m.m13) * rhw;
-            vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw;
+            vData[offset + 2] = u;//(m.m02 * x + m.m06 * y + m.m14) * rhw; //lxm
         }
     }
 
@@ -254,7 +258,7 @@ class BarFilled implements IAssembler {
         ib[indexOffset++] = vid + 2;
         ib[indexOffset++] = vid + 2;
         ib[indexOffset++] = vid + 1;
-        ib[indexOffset++] = vid + 3;
+        ib[indexOffset] = vid + 3;// lxm 这里不用++，因为没有后续循环
         meshBuffer.indexOffset += 6;
     }
 

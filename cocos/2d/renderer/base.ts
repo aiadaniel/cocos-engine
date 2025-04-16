@@ -43,6 +43,8 @@ export interface IAssembler {
     update? (comp: UIRenderer, dt: number): void;
     resetAssemblerData? (data: any): void;
     removeData? (data: BaseRenderData): void;
+
+    updateSpriteFrame? (comp: UIRenderer): void;// lxm add
 }
 
 /**

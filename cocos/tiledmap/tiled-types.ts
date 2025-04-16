@@ -21,7 +21,6 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 */
-
 import { Color, Rect, Size, Vec2 } from '../core';
 import { SpriteFrame } from '../2d/assets';
 import { ccenum } from '../core/value-types/enum';
@@ -36,43 +35,6 @@ export interface TiledAnimation {
     dt: number;
     frameIdx: number;
 }
-
-/**
- * @en The orientation of tiled map.
- * @zh Tiled Map 地图方向。
- * @enum TiledMap.Orientation
- * @static
- */
-export enum Orientation {
-    /**
-     * @en Orthogonal orientation.
-     * @zh 直角鸟瞰地图（90°地图）。
-     * @property ORTHO
-     * @type {Number}
-     * @static
-     */
-    ORTHO = 0,
-
-    /**
-     * @en Hexagonal orientation.
-     * @zh 六边形地图
-     * @property HEX
-     * @type {Number}
-     * @static
-     */
-    HEX = 1,
-
-    /**
-     * Isometric orientation.
-     * 等距斜视地图（斜45°地图）。
-     * @property ISO
-     * @type {Number}
-     * @static
-     */
-    ISO = 2
-}
-
-ccenum(Orientation);
 
 /**
  * The property type of tiled map.
@@ -168,88 +130,6 @@ export enum TileFlag {
 }
 
 ccenum(TileFlag);
-
-/**
- * @en The stagger axis of Hex tiled map.
- * @zh 六边形地图的 stagger axis 值
- * @enum TiledMap.StaggerAxis
- * @static
- */
-export enum StaggerAxis {
-    /**
-     * @property STAGGERAXIS_X
-     * @type {Number}
-     * @static
-     */
-    STAGGERAXIS_X = 0,
-
-    /**
-     * @property STAGGERAXIS_Y
-     * @type {Number}
-     * @static
-     */
-    STAGGERAXIS_Y = 1
-}
-
-ccenum(StaggerAxis);
-
-/**
- * @en The stagger index of Hex tiled map.
- * @zh 六边形地图的 stagger index 值
- * @enum TiledMap.RenderOrder
- * @static
- */
-export enum StaggerIndex {
-    /**
-     * @property STAGGERINDEX_ODD
-     * @type {Number}
-     * @static
-     */
-    STAGGERINDEX_ODD = 0,
-
-    /**
-     * @property STAGGERINDEX_EVEN
-     * @type {Number}
-     * @static
-     */
-    STAGGERINDEX_EVEN = 1
-}
-ccenum(StaggerIndex);
-
-/**
- * @en The render order of tiled map.
- * @zh 地图的渲染顺序
- * @enum TiledMap.RenderOrder
- * @static
- */
-export enum RenderOrder {
-    /**
-     * @property RightDown
-     * @type {Number}
-     * @static
-     */
-    RightDown = 0,
-    /**
-     * @property RightUp
-     * @type {Number}
-     * @static
-     */
-    RightUp = 1,
-    /**
-     * @property LeftDown
-     * @type {Number}
-     * @static
-     */
-    LeftDown = 2,
-    /**
-     * @property LeftUp
-     * @type {Number}
-     * @static
-     */
-    LeftUp = 3,
-}
-
-ccenum(RenderOrder);
 
 /**
  * @en TiledMap Object Type
@@ -368,7 +248,7 @@ export class TMXTilesetInfo {
 
     imageName: string | null = null;
 
-    imageOffset: Vec2 | null = null;
+    // imageOffset: Vec2 | null = null;
 
     imageSize = new Size(0, 0);
 
@@ -385,14 +265,14 @@ export class TMXTilesetInfo {
         let gid = gid_ as unknown as number;
         gid &= TileFlag.FLIPPED_MASK;
         gid -= (this.firstGid as unknown as number);
-        if (this.imageOffset) {
-            rect.x = this.imageOffset.x;
-            rect.y = this.imageOffset.y;
-        } else {
-            const max_x = Math.floor((this.imageSize.width - this.margin * 2 + this.spacing) / (this._tileSize.width + this.spacing));
-            rect.x = Math.round((gid % max_x) * (this._tileSize.width + this.spacing) + this.margin);
-            rect.y = Math.round(Math.floor(gid / max_x) * (this._tileSize.height + this.spacing) + this.margin);
-        }
+        // if (this.imageOffset) {
+        //     rect.x = this.imageOffset.x;
+        //     rect.y = this.imageOffset.y;
+        // } else {
+        const max_x = Math.floor((this.imageSize.width - this.margin * 2 + this.spacing) / (this._tileSize.width + this.spacing));
+        rect.x = Math.round((gid % max_x) * (this._tileSize.width + this.spacing) + this.margin);
+        rect.y = Math.round(Math.floor(gid / max_x) * (this._tileSize.height + this.spacing) + this.margin);
+        // }
         return rect;
     }
 }
@@ -484,11 +364,11 @@ export class TMXLayerInfo {
     tiles: number[] | Uint32Array = [];
     visible = true;
     opacity = 0;
-    ownTiles = true;
-    minGID: GID = 100000 as unknown as GID;
-    maxGID: GID = 0 as unknown as GID;
+    // ownTiles = true;
+    // minGID: GID = 100000 as unknown as GID;
+    // maxGID: GID = 0 as unknown as GID;
     offset: Vec2 = new Vec2(0, 0);
-    tintColor: Color | null = null;
+    // tintColor: Color | null = null;
 
     /**
      * Gets the Properties.
@@ -580,8 +460,8 @@ export interface TiledGrid {
     offsetY: number;
     rotated: boolean;
     gid: GID;
-    spriteFrame: SpriteFrame;
-    texture: Texture2D;
+    spriteFrame: SpriteFrame|undefined;
+    // texture: Texture2D;
 
     _name?: string;
     _rect?: Rect;

@@ -22,7 +22,7 @@
  THE SOFTWARE.
 */
 
-import { ccclass, executeInEditMode, executionOrder, help, menu, type, serializable, editable } from 'cc.decorator';
+import { ccclass, executeInEditMode, executionOrder, help, menu, type, serializable, editable, boolean } from 'cc.decorator';
 import { EDITOR_NOT_IN_PREVIEW, TEST } from 'internal:constants';
 import { Component } from '../scene-graph/component';
 import { Eventify, warnID, js, cclegacy } from '../core';
@@ -50,6 +50,17 @@ import { CrossFade } from './cross-fade';
 @executeInEditMode
 @menu('Animation/Animation')
 export class Animation extends Eventify(Component) {
+    // lxm add
+    @serializable
+    @editable
+    _recorderMode = false;
+    get recorderMode() {
+        return this._recorderMode;
+    }
+    set recorderMode(v) {
+        this.recorderMode = v;
+    }
+
     /**
      * @en
      * Gets or sets clips this component governs.

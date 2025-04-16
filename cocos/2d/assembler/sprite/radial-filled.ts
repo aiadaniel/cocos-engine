@@ -247,7 +247,7 @@ class RadialFilled implements IAssembler {
 
     updateRenderData (sprite: Sprite): void {
         const frame = sprite.spriteFrame;
-        dynamicAtlasManager.packToDynamicAtlas(sprite, frame);
+        // dynamicAtlasManager.packToDynamicAtlas(sprite, frame); // lxm
         // TODO update material and uv
         this.updateUVs(sprite);
 
@@ -374,7 +374,7 @@ class RadialFilled implements IAssembler {
                 renderData.dataLength = 0;
             }
             renderData.resize(offset, offset);
-            if (JSB) {
+            if (JSB) { //todo lxm
                 const indexCount = renderData.indexCount;
                 this.createQuadIndices(indexCount);
                 renderData.chunk.setIndexBuffer(QUAD_INDICES!);
@@ -404,22 +404,35 @@ class RadialFilled implements IAssembler {
         if (comp._flagChangedVersion !== node.flagChangedVersion || renderData.vertDirty) {
             this.updateWorldVertexAndUVData(comp, chunk);
             renderData.vertDirty = false;
+            this.updateColorLate(comp);// lxm add 移动上来
             comp._flagChangedVersion = node.flagChangedVersion;
         }
 
         // forColor
-        this.updateColorLate(comp);
+        // this.updateColorLate(comp); // lxm 移动上去
 
         const bid = chunk.bufferId;
-        const vid = chunk.vertexOffset;
+        let vid = chunk.vertexOffset;
         const meshBuffer = chunk.meshBuffer;
         const ib = chunk.meshBuffer.iData;
-        const indexOffset = meshBuffer.indexOffset;
-        for (let i = 0; i < renderData.indexCount; i++) {
-            ib[indexOffset + i] = vid + i;
+        let indexOffset = meshBuffer.indexOffset;
+
+        // lxm 替换下面整部分
+        const u = indexOffset + renderData.indexCount;
+        if (renderData.meshBufferOffset !== indexOffset || renderData.meshFinishOffset !== u || ib[indexOffset] !== vid) {
+            renderData.meshBufferOffset = indexOffset;
+            renderData.meshFinishOffset = u;
+            for (;indexOffset < u;) {
+                ib[indexOffset++] = vid++;
+            }
+            meshBuffer.indexOffset = u;
         }
-        meshBuffer.indexOffset += renderData.indexCount;
-        meshBuffer.setDirty();
+
+        // for (let i = 0; i < renderData.indexCount; i++) {
+        //     ib[indexOffset + i] = vid + i;
+        // }
+        // meshBuffer.indexOffset += renderData.indexCount;
+        // meshBuffer.setDirty();
     }
 
     private updateWorldUVData (sprite: Sprite): void {
@@ -445,6 +458,8 @@ class RadialFilled implements IAssembler {
         const vData = chunk.vb;
         const vertexCount = renderData.vertexCount;
 
+        const u = renderData.indexCount;// lxm add
+
         let vertexOffset = 0;
         for (let i = 0; i < vertexCount; i++) {
             const vert = dataList[i];
@@ -455,7 +470,7 @@ class RadialFilled implements IAssembler {
 
             vData[vertexOffset + 0] = (m.m00 * x + m.m04 * y + m.m12) * rhw;
             vData[vertexOffset + 1] = (m.m01 * x + m.m05 * y + m.m13) * rhw;
-            vData[vertexOffset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw;
+            vData[vertexOffset + 2] = u;//(m.m02 * x + m.m06 * y + m.m14) * rhw; // lxm
             vData[vertexOffset + 3] = vert.u;
             vData[vertexOffset + 4] = vert.v;
             vertexOffset += stride;

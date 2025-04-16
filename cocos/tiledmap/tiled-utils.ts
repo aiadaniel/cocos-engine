@@ -34,15 +34,16 @@ export function enableTexelOffsetUtils (enable: boolean): void {
 }
 
 export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextureGrids, spFrame?: SpriteFrame): void {
-    const spf: SpriteFrame = spFrame || tileset.sourceImage!;
-    const tex: Texture2D = spf.texture as Texture2D;
+    // console.log(JSON.stringify(tileset));
+    const spf: SpriteFrame|undefined = spFrame || tileset.sourceImage;
+    // const tex: Texture2D = spf.texture as Texture2D;
 
     const collection = tileset.collection;
 
     if (!tileset.imageSize.width || !tileset.imageSize.height) {
-        const sourceImage = tileset.sourceImage!;
-        tileset.imageSize.width = sourceImage.width;
-        tileset.imageSize.height = sourceImage.height;
+        const sourceImage = tileset.sourceImage;
+        tileset.imageSize.width = sourceImage!.width;
+        tileset.imageSize.height = sourceImage!.height;
     }
 
     const imageWidth = tileset.imageSize.width;
@@ -50,8 +51,8 @@ export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextur
 
     const tw = tileset._tileSize.width;
     const th = tileset._tileSize.height;
-    const texWidth = spf.width;
-    const texHeight = spf.height;
+    const texWidth = spf?.width || imageWidth;
+    const texHeight = spf?.height || imageHeight;
     const spacing = tileset.spacing;
     const margin = tileset.margin;
 
@@ -96,12 +97,12 @@ export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextur
             rotated: false,
             gid: gid as unknown as GID,
             spriteFrame: spf,
-            texture: tex,
+            // texture: tex,
         };
 
         tileset.rectForGID(gid as unknown as GID, grid);
 
-        if (!spFrame || count > 1 || tileset.imageOffset) {
+        if (!spFrame || count > 1 /*|| tileset.imageOffset*/) {
             if (spFrame) {
                 grid._name = spFrame.name;
                 const lm = spFrame.unbiasUV[0];
@@ -148,4 +149,96 @@ export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextur
 
         texGrids.set(gid as unknown as GID, grid);
     }
+
+    // var sourceImg,
+    //     cols,
+    //     rows,
+    //     spf = spFrame || tileset.sourceImage!,
+    //     collection = tileset.collection,
+    //     imageWidth =
+    //         ((tileset.imageSize.width && tileset.imageSize.height) ||
+    //             ((sourceImg = tileset.sourceImage),
+    //             (tileset.imageSize.width = sourceImg.width),
+    //             (tileset.imageSize.height = sourceImg.height)),
+    //         tileset.imageSize.width),
+    //     imageHeight = tileset.imageSize.height,
+    //     tw = tileset._tileSize.width,
+    //     th = tileset._tileSize.height,
+    //     texWidth = (null == spf ? void 0 : spf.width) || imageWidth,
+    //     texHeight = (null == spf ? void 0 : spf.height) || imageHeight,
+    //     spacing = tileset.spacing,
+    //     margin = tileset.margin,
+    //     count = 1;
+    // collection || (
+    //     (cols = Math.floor( (imageWidth - 2 * margin + spacing) / (tw + spacing) )),//s = 2
+    //     (rows = Math.floor( (imageHeight - 2 * margin + spacing) / (th + spacing) )),
+    //     (count = Math.max( 1, rows * cols )));
+    // for (
+    //     var lm,
+    //         bm,
+    //         firstGid = tileset.firstGid,
+    //         grid,
+    //         override = !!texGrids.get( firstGid ),
+    //         maxGid = tileset.firstGid + count,
+    //         gid = firstGid;
+    //     gid < maxGid &&
+    //         ((override = !( override && !texGrids.get( gid ) ) && override) ||
+    //             !texGrids.get( gid ));
+    //     ++gid
+    // ) {
+    //     // var C;
+    //     grid = {
+    //         tileset: tileset,
+    //         x: 0,
+    //         y: 0,
+    //         width: tw,
+    //         height: th,
+    //         t: 0,
+    //         l: 0,
+    //         r: 0,
+    //         b: 0,
+    //         cx: 0,
+    //         cy: 0,
+    //         offsetX: 0,
+    //         offsetY: 0,
+    //         rotated: false,
+    //         gid: gid,// gid as unknown as GID,
+    //         spriteFrame: spf
+    //         // texture: tex,
+    //     };//TiledGrid
+    //     tileset.rectForGID( gid, grid );
+    //     !spFrame || 1 < count
+    //             ? (spFrame
+    //                 ? ((grid._name = spFrame.name),
+    //                     (lm = spFrame.unbiasUV[0]),
+    //                     (bm = spFrame.rotated
+    //                             ? spFrame.unbiasUV[1]
+    //                             : spFrame.unbiasUV[ 5 ]),
+    //                     (grid.l = lm + (grid.x + 0.5) / texWidth),
+    //                     (grid.t = bm + (grid.y + 0.5) / texHeight),
+    //                     (grid.r = lm + (grid.x + grid.width - 0.5) / texWidth),
+    //                     (grid.b = bm + (grid.y + grid.height - 0.5) / texHeight))
+    //                 : ((grid.l = grid.x / texWidth),
+    //                     (grid.t = grid.y / texHeight),
+    //                     (grid.r = (grid.x + grid.width) / texWidth),
+    //                     (grid.b = (grid.y + grid.height) / texHeight)),
+    //             (grid._rect = new Rect( grid.x, grid.y, grid.width, grid.height )))
+    //             : spFrame.rotated
+    //             ? ((grid._rotated = !0),
+    //             (grid._name = spFrame.name),
+    //             (grid._rect = spFrame.getRect()),
+    //             (grid.l = spFrame.unbiasUV[0]),
+    //             (grid.t = spFrame.unbiasUV[1]),
+    //             (grid.r = spFrame.unbiasUV[ 4 ]),
+    //             (grid.b = spFrame.unbiasUV[ 3 ]))
+    //             : ((grid._name = spFrame.name),
+    //             (grid._rect = spFrame.getRect()),
+    //             (grid.l = spFrame.unbiasUV[0]),
+    //             (grid.t = spFrame.unbiasUV[ 5 ]),
+    //             (grid.r = spFrame.unbiasUV[ 2 ]),
+    //             (grid.b = spFrame.unbiasUV[1])),
+    //         (grid.cx = (grid.l + grid.r) / 2),
+    //         (grid.cy = (grid.t + grid.b) / 2),
+    //         texGrids.set( gid, grid );
+    // }
 }
