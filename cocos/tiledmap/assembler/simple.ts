@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /*
  Copyright (c) 2017-2023 Xiamen Yaji Software Co., Ltd.
 
@@ -66,7 +67,7 @@ let _fillCount = 0;
 
 let _curTexture: TextureBase | undefined;
 
-let KZr = 0;
+let maxTexs = 0;
 let textureList: any[] = [];
 
 // let _fillCount = 0;
@@ -81,7 +82,7 @@ const textureMat = {
     mat: null,
 };
 
-let s$r;
+let _texMap: { [key: string]: number };
 
 let flipTexture: (grid: TiledGrid, gid: MixedGID) => void;
 
@@ -95,7 +96,7 @@ export class Simple implements IAssembler {
         if (!_accessor) {
             const device = director.root!.device;
             // const batcher = director.root!.batcher2D;
-            _accessor = new StaticVBAccessor(device, vfmtPosUvColor, this.vCount);
+            _accessor = new StaticVBAccessor(device, vfmtPosUvColor/*, this.vCount*/);
             //batcher.registerBufferAccessor(Number.parseInt('TILED-MAP', 36), _accessor);
             director.on(Director.EVENT_BEFORE_DRAW, () => {
                 _accessor.reset();
@@ -104,10 +105,12 @@ export class Simple implements IAssembler {
     }
 
     createData (layer: TiledLayer): BaseRenderData {
-        (_tiledGrid = null), //TiledGrid
-        !(KZr = globalThis.multMat_maxUnits)
-                || textureList
-                || ((textureList = []), director.on(Director.EVENT_BEFORE_DRAW, reset));
+        _tiledGrid = null;//TiledGrid
+        maxTexs = globalThis.multMat_maxUnits;
+        if (maxTexs && !textureList) {
+            textureList = [];
+            director.on(Director.EVENT_BEFORE_DRAW, reset);
+        }
         if (JSB) {
             log('createData in tileassembler');
             this.ensureAccessor();
@@ -115,8 +118,8 @@ export class Simple implements IAssembler {
         return null as unknown as BaseRenderData;
     }
 
-    //02 batch2d.ts(commitComp->assembler.fillBiffers) <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk) <== root.ts(framemove)
-    fillBuffers (t: TiledLayer /*layer: TiledLayer, renderer: IBatcher*/): void {
+    //batch2d.ts(commitComp->assembler.fillBiffers) <=组件的_render(此处是tiledlayer) <==ui-renderer.ts/ui-mesh-renderer.ts(fillBuffers) <===batcher-2d.ts(walk) <== root.ts(framemove)
+    fillBuffers (layer: TiledLayer /*layer: TiledLayer, renderer: IBatcher*/): void {
         // if (!layer || layer.tiledDataArray.length === 0) return;
 
         // const dataArray = layer.tiledDataArray;
@@ -140,28 +143,27 @@ export class Simple implements IAssembler {
         //     vertexId += 4;
         // }
         // renderData.chunk.meshBuffer.indexOffset = indexOffset;
-        let i; let n; let r; let s; let e; let h;
-        if (
-            ((s = (h = (i = t.currRenderData).chunk.meshBuffer).indexOffset),
-            (r = h.indexOffset + 1.5 * i.vertexCount),
-            (e = h.iData),
-            (n = i.chunk.vertexOffset),
-            i.meshBufferOffset != s || i.meshFinishOffset != r || e[s] != n)
-        ) {
-            for (i.meshBufferOffset = s, i.meshFinishOffset = r; s < r;) {
-                (e[s++] = n),
-                (e[s++] = ++n),
-                (e[s++] = ++n),
-                (e[s++] = n),
-                (e[s++] = n++ - 1),
-                (e[s++] = n++);
+        const renderData = layer.currRenderData;
+        const meshBuffer = renderData.chunk.meshBuffer;
+        let indexOffset = meshBuffer.indexOffset;
+        const r = meshBuffer.indexOffset + 1.5 * renderData.vertexCount;
+        const iBuf = meshBuffer.iData;
+        let vertexId = renderData.chunk.vertexOffset;
+        if (renderData.meshBufferOffset !== indexOffset || renderData.meshFinishOffset !== r || iBuf[indexOffset] !== vertexId) {
+            for (renderData.meshBufferOffset = indexOffset, renderData.meshFinishOffset = r; indexOffset < r;) {
+                iBuf[indexOffset++] = vertexId;
+                iBuf[indexOffset++] = ++vertexId;
+                iBuf[indexOffset++] = ++vertexId;
+                iBuf[indexOffset++] = vertexId;
+                iBuf[indexOffset++] = vertexId++ - 1;
+                iBuf[indexOffset++] = vertexId++;
             }
         }
-        h.indexOffset = r;
+        meshBuffer.indexOffset = r;
     }
 
     //01 ui-renderer.ts updateRenderer <= ui-renderer-manager.ts
-    updateRenderData (t: TiledLayer): void {
+    updateRenderData (layer: TiledLayer): void {
         // comp.updateCulling();
         // _moveX = comp.leftDownToCenterX;
         // _moveY = comp.leftDownToCenterY;
@@ -206,31 +208,31 @@ export class Simple implements IAssembler {
         // if (JSB) {
         //     comp.prepareDrawData();
         // }
-        if (t.isUserNodeDirty()) {
-            let i; let n; let r;
-            switch (
-                ((_moveX = t.leftDownToCenterX),
-                (_moveY = t.leftDownToCenterY),
-                (n = (r = t.cullingRect).leftDown),
-                (i = r.rightTop),
-                t.destroyRenderData(),
-                (_curLayer = t).renderOrder)
-            ) {
+        if (layer.isUserNodeDirty()) {
+            const cullingRect = layer.cullingRect;
+            _moveX = layer.leftDownToCenterX;
+            _moveY = layer.leftDownToCenterY;
+            const leftDown = cullingRect.leftDown;
+            const rightTop = cullingRect.rightTop;
+            layer.destroyRenderData();
+            _curLayer = layer;
+            switch (_curLayer.renderOrder) {
             case bmap.RenderOrder.RightDown:
-                traverseGrids(n, i, -1, 1, t);
+                traverseGrids(leftDown, rightTop, -1, 1, layer);
                 break;
             case bmap.RenderOrder.LeftDown:
-                traverseGrids(n, i, -1, -1, t);
+                traverseGrids(leftDown, rightTop, -1, -1, layer);
                 break;
             case bmap.RenderOrder.RightUp:
-                traverseGrids(n, i, 1, 1, t);
+                traverseGrids(leftDown, rightTop, 1, 1, layer);
                 break;
             default:
-                traverseGrids(n, i, 1, -1, t);
+                traverseGrids(leftDown, rightTop, 1, -1, layer);
             }
-            (_curLayer = null), t.setUserNodeDirty(!1);
+            _curLayer = null;
+            layer.setUserNodeDirty(!1);
             if (JSB) {
-                t.prepareDrawData();
+                layer.prepareDrawData();
             }
         }
     }
@@ -611,74 +613,101 @@ b     c
 //     }
 //     packRenderData();
 // }
+
+function _Index (tex: TextureBase): number { //返回 旧值 或 textureEnd自增前的值
+    const n = tex.getId();
+    const i: number = _texMap[n];
+    if (i != null) {
+        return i;
+    } else {
+        textureList[textureEnd] = tex;
+        if (textureEnd % maxTexs === 0) {
+            _texMap = {};
+        }
+        _texMap[n] = textureEnd;
+        return textureEnd++;
+    }
+}
 function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: number, row: number}, rowMoveDir: number, colMoveDir: number, _tiledLayer: TiledLayer): void {
-    let col: number; let cols: number; let row: number; let rows: number;
+    let col: number; let row: number;
     let bottom = 0; let left = 0; let right = 0; let top = 0;
     let gid: MixedGID = 0 as unknown as any;
-    let d; let C;
+    let C;
     let tileSize: Size;
     let grid: TiledGrid | undefined;
-    (_fillCount = 0),
-    _tiledLayer.tiledMapCurr?.clear && ((_tiledLayer.tiledMapCurr = {}), (_tiledLayer.tiledMapPool = {})),
-    (d = (_tiledLayer._offset == null ? undefined : _tiledLayer._offset.y) != 0 ? 1 : 0),
-    (C = 0),
-    (rows = rowMoveDir === -1
+    _fillCount = 0;
+    if (_tiledLayer.tiledMapCurr?.clear) {
+        _tiledLayer.tiledMapCurr = {};
+        _tiledLayer.tiledMapPool = {};
+    }
+    const d = (_tiledLayer._offset == null ? undefined : _tiledLayer._offset.y) !== 0 ? 1 : 0;
+    C = 0;
+    const rows = rowMoveDir === -1
         ? ((row = rightTop.row + d), leftDown.row - _tiledLayer.downRow + d)
-        : ((row = leftDown.row - _tiledLayer.downRow + d), rightTop.row + d)),
-    (cols = (colMoveDir === 1
+        : ((row = leftDown.row - _tiledLayer.downRow + d), rightTop.row + d);
+    const cols = (colMoveDir === 1
         ? ((col = leftDown.col), rightTop)
-        : ((col = rightTop.col), leftDown)).col);
-    if (_tiledLayer.hasUserNode) for (let B = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) dealUserNode(_tiledLayer.getSorttedNodesByRow(B));
+        : ((col = rightTop.col), leftDown)).col;
+    if (_tiledLayer.hasUserNode) {
+        for (let B = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) {
+            dealUserNode(_tiledLayer.getSorttedNodesByRow(B));
+        }
+    }
     for (; (rows - row) * rowMoveDir >= 0; row += rowMoveDir) {
         const rowData = _tiledLayer.vertices[row];
         if (rowData) {
             for (let R = col; R <= cols; R += colMoveDir) {
                 const colData = rowData[R];
                 if (colData) {
-                    let N; let U; let k; let G; let V; let H; let W; let j; let X; let z; let q; let J;
+                    let N; let U; let k; let G; let V; let H; let W; let j; let X; let z; let J;
                     let tex: TextureBase | undefined;
                     gid = _tiledLayer.tiles[colData.index];
-                    if (gid == 0) continue;
+                    if (gid === 0) continue;
                     grid = _tiledLayer.texGrids!.get((gid & TileFlag.FLIPPED_MASK) >>> 0);
                     if (!grid) continue;
-                    if (!(tex = grid.spriteFrame == null ? void 0 : grid.spriteFrame.texture)) {
+                    tex = grid.spriteFrame == null ? undefined : grid.spriteFrame.texture;
+                    if (!tex) {
                         _tiledLayer.loadTileMapImage(grid.tileset, _tiledLayer.texGrids!, _tiledLayer.hasUserNode);
                         if (!_tiledGrid) continue;
-                        (tex = _tiledGrid.spriteFrame?.texture),
-                        (grid = _tiledGrid);
+                        tex = _tiledGrid.spriteFrame?.texture;
+                        grid = _tiledGrid;
                     }
                     if (_curTexture !== tex) {
-                        if (!_tiledLayer.hasUserNode && KZr) {
-                            (C == KZr - 1 && (packRenderData(!1), reset()),
-                            (C = (function (t: TextureBase) { //返回 旧值 或 textureEnd自增前的值
-                                let i; const n = t.getId();
-                                return (
-                                    (i = s$r[n]) != null
-                                        ? i
-                                        : ((textureList[textureEnd] = t), ((s$r = textureEnd % KZr == 0 ? {} : s$r)[n] = textureEnd++))
-                                );
-                            }(tex as TextureBase))));
+                        if (!_tiledLayer.hasUserNode && maxTexs) {
+                            if (C === maxTexs - 1) {
+                                packRenderData(!1);
+                                reset();
+                            }
+                            C = _Index(tex as TextureBase);
                         } else {
                             packRenderData(!0);
                         }
-                        (_curTexture = tex),
-                        (_tiledLayer.isGroundLayer) && (_tiledGrid = grid);
+                        _curTexture = tex;
+                        if (_tiledLayer.isGroundLayer) _tiledGrid = grid;
                     }
-                    (q = 10000 * row + R);
-                    if (!(X = _tiledLayer.tiledMapCurr[q]) && _tiledLayer.tiledMapPool[q]) {
-                        (X = _tiledLayer.tiledMapPool[q]),
-                        (_tiledLayer.tiledMapCurr[q] = X),
-                        (_tiledLayer.tiledMapPool[q] = null),
+                    const q = 10000 * row + R;
+                    X = _tiledLayer.tiledMapCurr[q];
+                    if (!X && _tiledLayer.tiledMapPool[q]) {
+                        X = _tiledLayer.tiledMapPool[q];
+                        _tiledLayer.tiledMapCurr[q] = X;
+                        _tiledLayer.tiledMapPool[q] = null;
                         delete _tiledLayer.tiledMapPool[q];
                     }
                     if (X) {
-                        X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C)),
-                        (n$r[_fillCount++] = q);
+                        if (X[2] !== C) {
+                            X[2] = C;
+                            X[11] = C;
+                            X[20] = C;
+                            X[29] = C;
+                        }
+                        n$r[_fillCount++] = q;
                         continue;
                     }
+                    // lxm这里报错循环没有第二次
+                    // eslint-disable-next-line no-unreachable-loop
                     for (z in _tiledLayer.tiledMapPool) {
-                        (X = _tiledLayer.tiledMapPool[z]),
-                        (_tiledLayer.tiledMapPool[z] = null),
+                        X = _tiledLayer.tiledMapPool[z];
+                        _tiledLayer.tiledMapPool[z] = null;
                         delete _tiledLayer.tiledMapPool[z];
                         break;
                     }
@@ -698,30 +727,80 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
                     X[19] = top;
                     X[27] = right;
                     X[28] = bottom;
-                    X[2] != C && ((X[2] = C), (X[11] = C), (X[20] = C), (X[29] = C));
-                    if ((X[8] != 1)) {
+                    if (X[2] !== C) {
+                        X[2] =  C;
+                        X[11] = C;
+                        X[20] = C;
+                        X[29] = C;
+                    }
+                    if ((X[8] !== 1)) {
                         for (let Z = 5; Z < 36; Z += 5) {
-                            (X[Z++] = 1),
-                            (X[Z++] = 1),
-                            (X[Z++] = 1),
-                            (X[Z++] = 1);
+                            X[Z++] = 1;
+                            X[Z++] = 1;
+                            X[Z++] = 1;
+                            X[Z++] = 1;
                         }
                     }
-                    (V = grid.r),
-                    (J = grid.t),
-                    (U = j = grid.l),
-                    (N = k = grid.b),
-                    (W = V),
-                    (H = J),
-                    (G = undefined),
-                    (gid & TileFlag.HORIZONTAL) >>> 0 && ((G = j), (j = W), (W = G), (G = J), (J = H), (H = G), (G = U), (U = V), (V = G), (G = N), (N = k), (k = G)),
-                    (gid & TileFlag.VERTICAL) >>> 0 && ((G = j), (j = U), (U = G), (G = J), (J = N), (N = G), (G = W), (W = V), (V = G), (G = H), (H = k), (k = G)),
-                    grid._rotated ? ((X[3] = W), (X[4] = H), (X[12] = j), (X[13] = J), (X[21] = V), (X[22] = k), (X[30] = U), (X[31] = N))
-                        : ((X[3] = j), (X[4] = J), (X[12] = U), (X[13] = N), (X[21] = W), (X[22] = H), (X[30] = V), (X[31] = k));
+                    (V = grid.r);
+                    (J = grid.t);
+                    (U = j = grid.l);
+                    (N = k = grid.b);
+                    (W = V);
+                    (H = J);
+                    (G = undefined);
+                    if ((gid & TileFlag.HORIZONTAL) >>> 0) {
+                        G = j;
+                        j = W;
+                        W = G;
+                        G = J;
+                        J = H;
+                        H = G;
+                        G = U;
+                        U = V;
+                        V = G;
+                        G = N;
+                        N = k;
+                        k = G;
+                    }
+                    if ((gid & TileFlag.VERTICAL) >>> 0) {
+                        G = j;
+                        j = U;
+                        U = G;
+                        G = J;
+                        J = N;
+                        N = G;
+                        G = W;
+                        W = V;
+                        V = G;
+                        G = H;
+                        H = k;
+                        k = G;
+                    }
+                    if (grid._rotated) {
+                        X[3] =  W;
+                        X[4] =  H;
+                        X[12] = j;
+                        X[13] = J;
+                        X[21] = V;
+                        X[22] = k;
+                        X[30] = U;
+                        X[31] = N;
+                    } else {
+                        X[3] =  j;
+                        X[4] =  J;
+                        X[12] = U;
+                        X[13] = N;
+                        X[21] = W;
+                        X[22] = H;
+                        X[30] = V;
+                        X[31] = k;
+                    }
                 }
             }
         }
-        _tiledLayer.hasUserNode && dealUserNode(_tiledLayer.getSorttedNodesByRow(row, !0));
+        if (_tiledLayer.hasUserNode) {
+            dealUserNode(_tiledLayer.getSorttedNodesByRow(row, !0));
+        }
     }
     if (_tiledLayer.hasUserNode) {
         for (
@@ -828,39 +907,51 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
 // }
 
 function dealUserNode (t: TiledUserNodeData | null): void {
-    t && (packRenderData(!0), _curLayer!.requestSubNodesData(t));
+    if (t) {
+        packRenderData(!0);
+        _curLayer!.requestSubNodesData(t);
+    }
 }
 function packRenderData (hasUserNode: boolean): void {
     if (_fillCount > 0 && _curTexture) {
         const rd = _curLayer!.requestTiledRenderData();
         rd.reuse(_fillCount);
-        KZr ? (rd.frame = _curTexture) : (rd.updateTexture(_curTexture), rd.updateHash());
-        hasUserNode || !KZr
-            ? textureEnd > 0 && reset()
-            : (
-                (rd.textureInfo = { textureList, textureStart, textureEnd: textureEnd - 1, textureMat }), //todo
-                (textureStart = textureEnd)
-            );
+        if (maxTexs) {
+            rd.frame = _curTexture;
+        } else {
+            rd.updateTexture(_curTexture);
+            rd.updateHash();
+        }
+        if (hasUserNode || !maxTexs) {
+            if (textureEnd > 0) reset();
+        } else {
+            rd.textureInfo = { textureList, textureStart, textureEnd: textureEnd - 1, textureMat }; //todo
+            textureStart = textureEnd;
+        }
         _curTexture = null!;
         let r = 0;
-        const s = _curLayer!.tiledMapCurr;
-        const e = _curLayer!.tiledMapPool;
+        const currMap = _curLayer!.tiledMapCurr;
+        const mapPool = _curLayer!.tiledMapPool;
         for (let h = 0; h < _fillCount; ++h) {
-            for (let u = 0; u < 36; ++u) rd.chunk.vb[r++] = s[n$r[h]][u];
+            for (let u = 0; u < 36; ++u) rd.chunk.vb[r++] = currMap[n$r[h]][u];
         }
         for (let a = 0; a < _fillCount; ++a) {
             const c = n$r.length;
-            (e[c] = s[c]),
-            (s[c] = null),
-            delete s[c];
+            mapPool[c] = currMap[c];
+            currMap[c] = null;
+            delete currMap[c];
         }
-        (_curLayer!.tiledMapCurr = e),
-        (_curLayer!.tiledMapPool = s),
-        (_fillCount = 0);
+        _curLayer!.tiledMapCurr = mapPool;
+        _curLayer!.tiledMapPool = currMap;
+        _fillCount = 0;
     }
 }
 
 function reset (): void {
-    (textureMat.mat = null),
-    textureEnd > 0 && ((textureList.length = 0), (s$r = {}), (textureStart = textureEnd = 0));
+    textureMat.mat = null;
+    if (textureEnd > 0) {
+        textureList.length = 0;
+        _texMap = {};
+        textureStart = textureEnd = 0;
+    }
 }

@@ -682,7 +682,7 @@ export class TiledMap extends Component {
                     if (layerInfo instanceof TMXLayerInfo) {
                         layer = child.getComponent(TiledLayer)!;
                         layer = layer || child.addComponent(TiledLayer);
-                        layer.init(layerInfo, mapInfo, tilesets, [], texGrids);
+                        layer.init(layerInfo, mapInfo!, tilesets, [], texGrids);
                         layer.enableCulling = this._enableCulling;
                         layer.updateLayers = this.updateLayers.bind(this);
                         o.push(layer);
