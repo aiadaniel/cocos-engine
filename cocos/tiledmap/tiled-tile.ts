@@ -69,14 +69,14 @@ export class TiledTile extends Component {
         return this._x;
     }
     set x (value) {
-        if (value === this._x) return;
-        if (this._layer && this._layer.isInvalidPosition(value, this._y)) {
-            warn(`Invalid x, the valid value is between [%s] ~ [%s]`, 0, this._layer.layerSize.width);
-            return;
-        }
-        this._resetTile();
-        this._x = value;
-        this.updateInfo();
+        // if (value === this._x) return;
+        // if (this._layer && this._layer.isInvalidPosition(value, this._y)) {
+        //     warn(`Invalid x, the valid value is between [%s] ~ [%s]`, 0, this._layer.layerSize.width);
+        //     return;
+        // }
+        // this._resetTile();
+        // this._x = value;
+        // this.updateInfo();
     }
 
     /**
@@ -90,14 +90,14 @@ export class TiledTile extends Component {
         return this._y;
     }
     set y (value: number) {
-        if (value === this._y) return;
-        if (this._layer && this._layer.isInvalidPosition(this._x, value)) {
-            warn(`Invalid y, the valid value is between [%s] ~ [%s]`, 0, this._layer.layerSize.height);
-            return;
-        }
-        this._resetTile();
-        this._y = value;
-        this.updateInfo();
+        // if (value === this._y) return;
+        // if (this._layer && this._layer.isInvalidPosition(this._x, value)) {
+        //     warn(`Invalid y, the valid value is between [%s] ~ [%s]`, 0, this._layer.layerSize.height);
+        //     return;
+        // }
+        // this._resetTile();
+        // this._y = value;
+        // this.updateInfo();
     }
     /**
      * @en Specify the TiledTile gid.
@@ -113,9 +113,9 @@ export class TiledTile extends Component {
         return 0;
     }
     set grid (value: number) {
-        if (this._layer) {
-            this._layer.setTileGIDAt(value, this._x, this._y);
-        }
+        // if (this._layer) {
+        //     this._layer.setTileGIDAt(value, this._x, this._y);
+        // }
     }
 
     onEnable (): void {
@@ -134,24 +134,24 @@ export class TiledTile extends Component {
     }
 
     private _resetTile (): void {
-        if (this._layer && this._layer.getTiledTileAt(this._x, this._y) === this) {
-            this._layer.setTiledTileAt(this._x, this._y, null);
-        }
+        // if (this._layer && this._layer.getTiledTileAt(this._x, this._y) === this) {
+        //     this._layer.setTiledTileAt(this._x, this._y, null);
+        // }
     }
 
     public updateInfo (): void {
-        if (!this._layer) return;
+        // if (!this._layer) return;
 
-        const x = this._x;
-        const y = this._y;
-        if (this._layer.getTiledTileAt(x, y)) {
-            warn('There is already a TiledTile at [%s, %s]', x, y);
-            return;
-        }
-        const p = this._layer.getPositionAt(x, y);
-        this.node.setPosition(p!.x, p!.y);
-        this._layer.setTiledTileAt(x, y, this);
-        this._layer._markForUpdateRenderData();
+        // const x = this._x;
+        // const y = this._y;
+        // if (this._layer.getTiledTileAt(x, y)) {
+        //     warn('There is already a TiledTile at [%s, %s]', x, y);
+        //     return;
+        // }
+        // const p = this._layer.getPositionAt(x, y);
+        // this.node.setPosition(p!.x, p!.y);
+        // this._layer.setTiledTileAt(x, y, this);
+        // this._layer._markForUpdateRenderData();
     }
 
     private _updatePosition (): void {

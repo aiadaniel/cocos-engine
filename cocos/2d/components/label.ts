@@ -1003,17 +1003,17 @@ export class Label extends UIRenderer {
      * @param force @en Whether to force an immediate update. @zh 是否立马强制更新渲染数据。
      */
     public updateRenderData (force = false): void {
-        this._string == ''
-            ? this.destroyRenderData()
-            : !this._renderData || force
-                ? (this._flushAssembler(),
-                this._renderData
-                        && (this._renderData.vertDirty = true),
-                void this._applyFontTexture(true))
-                : void (
-                    this._assembler
-                        && this._assembler.updateRenderData(this)
-                );
+        if (this._string === '') {
+            this.destroyRenderData();
+        } else if (!this._renderData || force) {
+            this._flushAssembler();
+            if (this._renderData) {
+                this._renderData.vertDirty = true;
+            }
+            this._applyFontTexture(true);
+        } else if (this._assembler) {
+            this._assembler.updateRenderData?.(this);
+        }
         // lxm
         // if (force) {
         //     this._flushAssembler();

@@ -257,6 +257,8 @@ export class Simple implements IAssembler {
     }
 }
 
+export const simple = new Simple();
+
 /*
 texture coordinate
 a c
@@ -614,8 +616,8 @@ b     c
 //     packRenderData();
 // }
 
-function _Index (tex: TextureBase): number { //返回 旧值 或 textureEnd自增前的值
-    const n = tex.getId();
+function _Index (tex: TextureBase|undefined): number { //返回 旧值 或 textureEnd自增前的值
+    const n = tex!.getId();
     const i: number = _texMap[n];
     if (i != null) {
         return i;
@@ -649,7 +651,7 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
         ? ((col = leftDown.col), rightTop)
         : ((col = rightTop.col), leftDown)).col;
     if (_tiledLayer.hasUserNode) {
-        for (let B = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) {
+        for (let B: number = rightTop.row + _tiledLayer.nodeDownRow; B > rightTop.row; --B) {
             dealUserNode(_tiledLayer.getSorttedNodesByRow(B));
         }
     }
@@ -678,7 +680,7 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
                                 packRenderData(!1);
                                 reset();
                             }
-                            C = _Index(tex as TextureBase);
+                            C = _Index(tex);
                         } else {
                             packRenderData(!0);
                         }
