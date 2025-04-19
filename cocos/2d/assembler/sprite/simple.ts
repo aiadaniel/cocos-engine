@@ -80,6 +80,8 @@ export const simple: IAssembler = {
         const dataList: IRenderData[] = renderData.data;
         const node = sprite.node;
         const m = node.worldMatrix;
+    
+        const u = renderData.atlasIndex;// lxm
 
         const stride = renderData.floatStride;
         let offset = 0;
@@ -94,7 +96,8 @@ export const simple: IAssembler = {
             offset = i * stride;
             vData[offset + 0] = (m.m00 * x + m.m04 * y + m.m12) * rhw;
             vData[offset + 1] = (m.m01 * x + m.m05 * y + m.m13) * rhw;
-            vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw;
+            // vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw; // lxm
+            vData[offset + 2] = u;
         }
     },
 
