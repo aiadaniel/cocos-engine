@@ -603,7 +603,7 @@ export class UIRenderer extends Renderer {
 
     protected _colorDirty (): void {
         this.node._uiProps.colorDirty = true;
-        // this.setEntityColorDirty(true); // lxm 
+        // this.setEntityColorDirty(true); // lxm
     }
 
     protected _onMaterialModified (idx: number, material: Material | null): void {

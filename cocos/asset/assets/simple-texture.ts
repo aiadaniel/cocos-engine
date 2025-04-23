@@ -148,14 +148,21 @@ export class SimpleTexture extends TextureBase {
      * @param level @en Mipmap level to upload the image to. @zh 要上传的 mipmap 层级。
      * @param arrayIndex @en The array index. @zh 要上传的数组索引。
      */
+    // lxm
     public uploadData (source: HTMLCanvasElement | HTMLImageElement | ArrayBufferView | ImageBitmap, level = 0, arrayIndex = 0): void {
-        if (!this._gfxTexture || this._mipmapLevel <= level) {
+        if (/*!this._gfxTexture ||*/ this._mipmapLevel <= level) { // lxm delete
             return;
         }
 
         const gfxDevice = this._getGFXDevice();
         if (!gfxDevice) {
             return;
+        }
+
+        // lxm add
+        if (!this._gfxTexture) {
+            this._createTexture(gfxDevice);
+            this._gfxTextureView = this._createTextureView(gfxDevice);
         }
 
         const region = _regions[0];
@@ -174,9 +181,9 @@ export class SimpleTexture extends TextureBase {
         }
 
         if (ArrayBuffer.isView(source)) {
-            gfxDevice.copyBuffersToTexture([source], this._gfxTexture, _regions);
+            gfxDevice.copyBuffersToTexture([source], this._gfxTexture!, _regions);//lxm
         } else {
-            gfxDevice.copyTexImagesToTexture([source], this._gfxTexture, _regions);
+            gfxDevice.copyTexImagesToTexture([source], this._gfxTexture!, _regions);//lxm
         }
     }
 
@@ -187,6 +194,9 @@ export class SimpleTexture extends TextureBase {
     protected _assignImage (image: ImageAsset, level: number, arrayIndex?: number): void {
         const data = image.data;
         if (!data) {
+            return;
+        }
+        if (this._width === 0 || this._height === 0) { // lxm add
             return;
         }
         this.uploadData(data, level, arrayIndex);
@@ -294,15 +304,16 @@ export class SimpleTexture extends TextureBase {
     protected _tryReset (): void {
         this._tryDestroyTextureView();
         this._tryDestroyTexture();
-        if (this._mipmapLevel === 0) {
-            return;
-        }
-        const device = this._getGFXDevice();
-        if (!device) {
-            return;
-        }
-        this._createTexture(device);
-        this._gfxTextureView = this._createTextureView(device);
+        // lxm delete
+        // if (this._mipmapLevel === 0) {
+        //     return;
+        // }
+        // const device = this._getGFXDevice();
+        // if (!device) {
+        //     return;
+        // }
+        // this._createTexture(device);
+        // this._gfxTextureView = this._createTextureView(device);
     }
 
     /**
@@ -318,7 +329,7 @@ export class SimpleTexture extends TextureBase {
      * @mangle
      */
     protected _createTexture (device: Device): void {
-        if (this._width === 0 || this._height === 0) { return; }
+        // if (this._width === 0 || this._height === 0) { return; } // lxm delete
         let flags = TextureFlagBit.NONE;
         if (this._mipFilter !== TextureFilter.NONE && canGenerateMipmap(device, this._width, this._height)) {
             this._mipmapLevel = getMipLevel(this._width, this._height);

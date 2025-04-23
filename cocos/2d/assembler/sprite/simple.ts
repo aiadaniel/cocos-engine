@@ -81,6 +81,8 @@ class Simple implements IAssembler {
         const node = sprite.node;
         const m = node.worldMatrix;
 
+        const u = renderData.atlasIndex;// lxm
+
         const m00 = m.m00; const m01 = m.m01; const m02 = m.m02; const m03 = m.m03;
         const m04 = m.m04; const m05 = m.m05; const m06 = m.m06; const m07 = m.m07;
         const m12 = m.m12; const m13 = m.m13; const m14 = m.m14; const m15 = m.m15;
@@ -98,7 +100,7 @@ class Simple implements IAssembler {
             offset = i * stride;
             vData[offset + 0] = (m00 * x + m04 * y + m12) * rhw;
             vData[offset + 1] = (m01 * x + m05 * y + m13) * rhw;
-            vData[offset + 2] = (m02 * x + m06 * y + m14) * rhw;
+            vData[offset + 2] = u;// lxm (m02 * x + m06 * y + m14) * rhw;
         }
     }
 

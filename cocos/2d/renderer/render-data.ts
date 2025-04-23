@@ -592,8 +592,8 @@ export class RenderData extends BaseRenderData {
         this.textureHash = 0;
         this.dataHash = 0;
         // lxm add
-        (this.atlasIndex = 0),
-        (this.meshBufferOffset = -1),
+        (this.atlasIndex = 0);
+        (this.meshBufferOffset = -1);
         (this.meshFinishOffset = -1);
 
         if (JSB && this._renderDrawInfo) {

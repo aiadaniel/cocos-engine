@@ -30,7 +30,7 @@ import { FormatInfos } from '../../gfx';
 
 const _col = new Vec4();
 
-export function fillMeshVertices3D(node: Node, renderer: IBatcher, renderData: RenderData, color: Color): void {
+export function fillMeshVertices3D (node: Node, renderer: IBatcher, renderData: RenderData, color: Color): void {
     const chunk = renderData.chunk;
     const dataList = renderData.data;
     const vData = chunk.vb;
@@ -53,31 +53,48 @@ export function fillMeshVertices3D(node: Node, renderer: IBatcher, renderData: R
         rhw = rhw ? 1 / rhw : 1;
         vData[vertexOffset + 0] = (m00 * x + m04 * y + m12) * rhw;
         vData[vertexOffset + 1] = (m01 * x + m05 * y + m13) * rhw;
-        vData[vertexOffset + 2] = (m02 * x + m06 * y + m14) * rhw;
+        vData[vertexOffset + 2] = renderData.atlasIndex;//(m02 * x + m06 * y + m14) * rhw; lxm
         Vec4.toArray(vData, _col, vertexOffset + 5);
         vertexOffset += renderData.floatStride;
     }
 
     // fill index data
     const bid = chunk.bufferId;
-    const vid = chunk.vertexOffset;
+    let vid = chunk.vertexOffset;
     const meshBuffer = chunk.meshBuffer;
     const ib = chunk.meshBuffer.iData;
     let indexOffset = meshBuffer.indexOffset;
-    for (let i = 0, count = vertexCount / 4; i < count; i++) {
-        const start = vid + i * 4;
-        ib[indexOffset++] = start;
-        ib[indexOffset++] = start + 1;
-        ib[indexOffset++] = start + 2;
-        ib[indexOffset++] = start + 1;
-        ib[indexOffset++] = start + 3;
-        ib[indexOffset++] = start + 2;
+    // lxm 替换以下部分
+    const u = indexOffset + 1.5 * vertexCount;
+    if (renderData.meshBufferOffset !== indexOffset
+        || renderData.meshFinishOffset !== u
+        || ib[indexOffset] !== vid) {
+        renderData.meshBufferOffset = indexOffset;
+        renderData.meshFinishOffset = u;
+        for (;indexOffset < u;) {
+            ib[indexOffset++] = vid;
+            ib[indexOffset++] = ++vid;
+            ib[indexOffset++] = ++vid;
+            ib[indexOffset++] = vid;
+            ib[indexOffset++] = vid++ - 1;
+            ib[indexOffset++] = vid++;
+        }
     }
-    meshBuffer.indexOffset += renderData.indexCount;
-    meshBuffer.setDirty();
+    meshBuffer.indexOffset = u;
+    // for (let i = 0, count = vertexCount / 4; i < count; i++) {
+    //     const start = vid + i * 4;
+    //     ib[indexOffset++] = start;
+    //     ib[indexOffset++] = start + 1;
+    //     ib[indexOffset++] = start + 2;
+    //     ib[indexOffset++] = start + 1;
+    //     ib[indexOffset++] = start + 3;
+    //     ib[indexOffset++] = start + 2;
+    // }
+    // meshBuffer.indexOffset += renderData.indexCount;
+    // meshBuffer.setDirty();
 }
 
-export function updateOpacity(renderData: RenderData, opacity: number): void {
+export function updateOpacity (renderData: RenderData, opacity: number): void {
     const vfmt = renderData.vertexFormat;
     const vb = renderData.chunk.vb;
     let attr; let format; let stride;

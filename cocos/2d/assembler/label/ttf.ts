@@ -98,7 +98,7 @@ export class TTF extends TTFUtils implements IAssembler {
             offset = i * stride;
             vData[offset + 0] = (m.m00 * x + m.m04 * y + m.m12) * rhw;
             vData[offset + 1] = (m.m01 * x + m.m05 * y + m.m13) * rhw;
-            vData[offset + 2] = (m.m02 * x + m.m06 * y + m.m14) * rhw;
+            vData[offset + 2] = renderData.atlasIndex;//(m.m02 * x + m.m06 * y + m.m14) * rhw; // lxm
         }
 
         // quick version
@@ -106,12 +106,16 @@ export class TTF extends TTFUtils implements IAssembler {
         const meshBuffer = chunk.meshBuffer;
         const ib = chunk.meshBuffer.iData;
         let indexOffset = meshBuffer.indexOffset;
-        ib[indexOffset++] = vid;
-        ib[indexOffset++] = vid + 1;
-        ib[indexOffset++] = vid + 2;
-        ib[indexOffset++] = vid + 2;
-        ib[indexOffset++] = vid + 1;
-        ib[indexOffset++] = vid + 3;
+        // lxm add if adjust
+        if (renderData.meshBufferOffset !== indexOffset || ib[indexOffset] !== vid) {
+            renderData.meshBufferOffset = indexOffset;
+            ib[indexOffset++] = vid;
+            ib[indexOffset++] = vid + 1;
+            ib[indexOffset++] = vid + 2;
+            ib[indexOffset++] = vid + 2;
+            ib[indexOffset++] = vid + 1;
+            ib[indexOffset++] = vid + 3;
+        }
         meshBuffer.indexOffset += 6;
         // slow version
         // const chunk = renderData.chunk;
