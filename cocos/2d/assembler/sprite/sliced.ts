@@ -173,7 +173,9 @@ class Sliced implements IAssembler {
 
         // lxm add
         const n = indexOffset + renderData.indexCount;
-        if (renderData.meshBufferOffset != indexOffset || renderData.meshFinishOffset != n || ib[indexOffset] != vid) {
+        if (renderData.meshBufferOffset !== indexOffset
+            || renderData.meshFinishOffset !== n
+            || ib[indexOffset] !== vid) {
             renderData.meshBufferOffset = indexOffset;
             renderData.meshFinishOffset = n;
             // lxm 把循环移动到if里面了

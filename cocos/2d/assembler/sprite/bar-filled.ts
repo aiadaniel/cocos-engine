@@ -253,12 +253,16 @@ class BarFilled implements IAssembler {
         const meshBuffer = chunk.meshBuffer;
         const ib = chunk.meshBuffer.iData;
         let indexOffset = meshBuffer.indexOffset;
-        ib[indexOffset++] = vid;
-        ib[indexOffset++] = vid + 1;
-        ib[indexOffset++] = vid + 2;
-        ib[indexOffset++] = vid + 2;
-        ib[indexOffset++] = vid + 1;
-        ib[indexOffset] = vid + 3;// lxm 这里不用++，因为没有后续循环
+        // lxm add if
+        if (renderData.meshBufferOffset !== indexOffset || bid !== ib[indexOffset]) {
+            renderData.meshBufferOffset = indexOffset;// lxm add
+            ib[indexOffset++] = vid;
+            ib[indexOffset++] = vid + 1;
+            ib[indexOffset++] = vid + 2;
+            ib[indexOffset++] = vid + 2;
+            ib[indexOffset++] = vid + 1;
+            ib[indexOffset] = vid + 3;// lxm 这里不用++，因为没有后续循环
+        }
         meshBuffer.indexOffset += 6;
     }
 

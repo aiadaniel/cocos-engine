@@ -127,19 +127,23 @@ class Simple implements IAssembler {
 
         const vid = vidOrigin;
 
-        // left bottom
-        ib[indexOffset++] = vid;
-        // right bottom
-        ib[indexOffset++] = vid + 1;
-        // left top
-        ib[indexOffset++] = vid + 2;
+        // lxm add if
+        if (renderData.meshBufferOffset !== indexOffset || ib[indexOffset] !== vid) {
+            renderData.meshBufferOffset = indexOffset;// lxm add
+            // left bottom
+            ib[indexOffset++] = vid;
+            // right bottom
+            ib[indexOffset++] = vid + 1;
+            // left top
+            ib[indexOffset++] = vid + 2;
 
-        // right bottom
-        ib[indexOffset++] = vid + 1;
-        // right top
-        ib[indexOffset++] = vid + 3;
-        // left top
-        ib[indexOffset++] = vid + 2;
+            // right bottom
+            ib[indexOffset++] = vid + 1;
+            // right top
+            ib[indexOffset++] = vid + 3;
+            // left top
+            ib[indexOffset++] = vid + 2;
+        }
 
         // IndexOffset should add 6 when vertices of a rect are visited.
         meshBuffer.indexOffset += 6;

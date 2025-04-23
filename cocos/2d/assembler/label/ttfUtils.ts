@@ -208,7 +208,7 @@ export class TTFUtils {
     _calDynamicAtlas (comp: Label, outputLayoutData: TextOutputLayoutData): void {
         if (comp.cacheMode !== CacheMode.BITMAP || outputLayoutData.canvasSize.width <= 0 || outputLayoutData.canvasSize.height <= 0) return;
         const frame = comp.ttfSpriteFrame!;
-        dynamicAtlasManager.packToDynamicAtlas(comp, frame);
+        dynamicAtlasManager.packToDynamicAtlas(/*comp, */frame); // lxm change
         // TODO update material and uv
     }
 

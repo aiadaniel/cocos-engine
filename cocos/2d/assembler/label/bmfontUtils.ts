@@ -294,7 +294,7 @@ export class BmfontUtils {
             }
         }
 
-        dynamicAtlasManager.packToDynamicAtlas(comp, _spriteFrame);
+        dynamicAtlasManager.packToDynamicAtlas(/*comp,*/ _spriteFrame); // lxm change
         // TODO update material and uv
     }
 

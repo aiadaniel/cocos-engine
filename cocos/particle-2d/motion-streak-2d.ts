@@ -191,16 +191,17 @@ export class MotionStreak extends UIRenderer {
             this._assembler = assembler;
         }
 
-        if (!this._renderData) {
-            if (this._assembler && this._assembler.createData) {
-                this._renderData = this._assembler.createData(this) as RenderData;
-                this._renderData.material = this.material;
-                if (JSB) {
-                    this._renderData.renderDrawInfo.setVertexPositionInWorld(true);
-                }
-                this._updateColor();
-            }
-        }
+        // lxm delete
+        // if (!this._renderData) {
+        //     if (this._assembler && this._assembler.createData) {
+        //         this._renderData = this._assembler.createData(this) as RenderData;
+        //         this._renderData.material = this.material;
+        //         if (JSB) {
+        //             this._renderData.renderDrawInfo.setVertexPositionInWorld(true);
+        //         }
+        //         this._updateColor();
+        //     }
+        // }
     }
 
     public onFocusInEditor (): void {
@@ -224,7 +225,9 @@ export class MotionStreak extends UIRenderer {
      */
     public reset (): void {
         this._points.length = 0;
-        if (this._renderData) this._renderData.clear();
+        // lxm change below
+        // if (this._renderData) this._renderData.clear();
+        this.destroyRenderData();
     }
 
     public lateUpdate (dt: number): void {
@@ -238,6 +241,9 @@ export class MotionStreak extends UIRenderer {
      * @deprecated since v3.5.0, this is an engine private interface that will be removed in the future.
      */
     public _render (render: IBatcher): void {
-        render.commitComp(this, this._renderData, this._texture, this._assembler, null);
+        // lxm add if
+        if (this.renderData != null && this.renderData.chunk) {
+            render.commitComp(this, this._renderData, this._texture, this._assembler, null);
+        }
     }
 }

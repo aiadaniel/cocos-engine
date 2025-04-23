@@ -42,12 +42,13 @@ function normal (out: Vec2, dir: Vec2): Vec2 {
 }
 
 class MotionStreakAssembler implements IAssembler {
-    createData (comp: MotionStreak): RenderData {
-        const renderData = comp.requestRenderData();
-        renderData.dataLength = 4;
-        renderData.resize(16, (16 - 2) * 3);
-        return renderData;
-    }
+    // lxm delete
+    // createData (comp: MotionStreak): RenderData {
+    //     const renderData = comp.requestRenderData();
+    //     renderData.dataLength = 4;
+    //     renderData.resize(16, (16 - 2) * 3);
+    //     return renderData;
+    // }
 
     update (comp: MotionStreak, dt: number): void {
         const stroke = comp.stroke / 2;
@@ -172,14 +173,25 @@ class MotionStreakAssembler implements IAssembler {
         const stride = renderData.floatStride;
         const dataList = renderData.data;
         const vData = renderData.chunk.vb;
+        // lxm add
+        const c = renderData.atlasIndex;
+        const _color = comp.color;
+        const cr = _color.r / 255;
+        const cg = _color.g / 255;
+        const cb = _color.b / 255;
+
         for (let i  = 0; i < dataList.length; i++) {
             const offset = i * stride;
             vData[offset + 0] = dataList[i].x;
             vData[offset + 1] = dataList[i].y;
-            vData[offset + 2] = dataList[i].z;
+            vData[offset + 2] = c;//dataList[i].z; // lxm
             vData[offset + 3] = dataList[i].u;
             vData[offset + 4] = dataList[i].v;
-            Color.toArray(vData, dataList[i].color, offset + 5);
+            // Color.toArray(vData, dataList[i].color, offset + 5); // lxm 改成以下
+            vData[offset + 5] = cr;
+            vData[offset + 6] = cg;
+            vData[offset + 7] = cb;
+            vData[offset + 8] = dataList[i].color.a / 255;
         }
     }
 
