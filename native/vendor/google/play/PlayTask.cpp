@@ -102,6 +102,8 @@ void PlayTask::getResult(se::Object* listener) {
     if (cc::JniHelper::getStaticMethodInfo(t, JCLS_GOOGLE_PLAY_TASK_MANAGER, "getResult", "(I)Ljava/lang/Object;")) {
         jobject obj = t.env->CallStaticObjectMethod(t.classID, t.methodID, _taskId);
         callJSfuncWithJObject(listener, "onSuccess", reinterpret_cast<void*>(obj));
+    } else {
+        callJSfuncWithJObject(listener, "onSuccess", nullptr);
     }
     return;
 }
@@ -127,23 +129,33 @@ int PlayTask::addListener(se::Object* listener) {
 void PlayTask::onTaskCanceled(int listerId) {
     auto it = _listeners.find(listerId);
     if (it != _listeners.end()) {
-        cc::callJSfunc(it->second.get(), "onCanceled");
+        // When calling the JavaScript onComplete function, there is a possibility that PlayTask might be garbage collected.
+        // Therefore, it should be removed first.
+        scopedListener listener(it->second.get());
         _listeners.erase(it);
+        cc::callJSfunc(listener.get(), "onCanceled");
     }
 }
 
 void PlayTask::onTaskComplete(int listerId, int nextTaskId) {
     auto it = _listeners.find(listerId);
     if (it != _listeners.end()) {
-        PlayTask* newTask = PlayTaskManager::getInstance()->addTask(nextTaskId);
-        cc::callJSfunc(it->second.get(), "onComplete", newTask);
+        // When calling the JavaScript onComplete function, there is a possibility that PlayTask might be garbage collected.
+        // Therefore, it should be removed first.
+        scopedListener listener(it->second.get());
         _listeners.erase(it);
+        PlayTask* newTask = PlayTaskManager::getInstance()->addTask(nextTaskId);
+        cc::callJSfunc(listener.get(), "onComplete", newTask);
     }
 }
 
 void PlayTask::onTaskFailure(int listerId, void* obj, int exceptionId) {
     auto it = _listeners.find(listerId);
     if (it != _listeners.end()) {
+        // When calling the JavaScript onComplete function, there is a possibility that PlayTask might be garbage collected.
+        // Therefore, it should be removed first.
+        scopedListener listener(it->second.get());
+        _listeners.erase(it);
         auto* env = JniHelper::getEnv();
         jobject jobj = reinterpret_cast<jobject>(obj);
         jclass objClass = env->GetObjectClass(jobj);
@@ -154,17 +166,19 @@ void PlayTask::onTaskFailure(int listerId, void* obj, int exceptionId) {
             auto* taskException = new TaskException;
             taskException->_detailMessage = callStringMethod(env, objClass, jobj, "getMessage");
             taskException->_toString = callStringMethod(env, objClass, jobj, "toString");
-            cc::callJSfunc(it->second.get(), "onFailure", taskException);
+            cc::callJSfunc(listener.get(), "onFailure", taskException);
         }
-        _listeners.erase(it);
     }
 }
 
 void PlayTask::onTaskSuccess(int listerId, void* obj) {
     auto it = _listeners.find(listerId);
     if (it != _listeners.end()) {
-        callJSfuncWithJObject(it->second.get(), "onSuccess", obj);
+        // When calling the JavaScript onComplete function, there is a possibility that PlayTask might be garbage collected.
+        // Therefore, it should be removed first.
+        scopedListener listener(it->second.get());
         _listeners.erase(it);
+        callJSfuncWithJObject(it->second.get(), "onSuccess", obj);
     }
 }
 
@@ -172,15 +186,19 @@ void* PlayTask::onTaskContinueWith(int listerId, int nextTaskId) {
     void * ptr = nullptr;
     auto it = _listeners.find(listerId);
     if (it != _listeners.end()) {
-        se::Value r = callJSfunc(it->second.get(), "then");
+        // When calling the JavaScript onComplete function, there is a possibility that PlayTask might be garbage collected.
+        // Therefore, it should be removed first.
+        scopedListener listener(it->second.get());
+        _listeners.erase(it);
 
-        if(r.isNumber()) {
-            ptr = reinterpret_cast<void*>(intToJObject(JniHelper::getEnv(), r.toInt32()));
-        } else if(r.isBoolean()) {
-            ptr = reinterpret_cast<void*>(boolToJObject(JniHelper::getEnv(), r.toBoolean()));
-        } else if(r.isString()) {
-            ptr = reinterpret_cast<void*>(stringToJString(JniHelper::getEnv(), r.toString()));
-        } else if(r.isObject()) {
+        se::Value result = callJSfunc(listener.get(), "then");
+        if(result.isNumber()) {
+            ptr = reinterpret_cast<void*>(intToJObject(JniHelper::getEnv(), result.toInt32()));
+        } else if(result.isBoolean()) {
+            ptr = reinterpret_cast<void*>(boolToJObject(JniHelper::getEnv(), result.toBoolean()));
+        } else if(result.isString()) {
+            ptr = reinterpret_cast<void*>(stringToJString(JniHelper::getEnv(), result.toString()));
+        } else if(result.isObject()) {
             // Currently, there is no need to parse objects, and the implemented functional objects (such as AuthenticationResult) do not provide constructors.
             // If needed in the future, they can be parsed as follows :
             // se::Object* obj = r.toObject();
@@ -189,7 +207,6 @@ void* PlayTask::onTaskContinueWith(int listerId, int nextTaskId) {
             //     auto* result = reinterpret_cast<cc::AuthenticationResult*>(obj->getPrivateData());
             // }
         }
-        _listeners.erase(it);
     }
     return ptr;
 }
@@ -211,7 +228,54 @@ void PlayTask::callJSfuncWithJObject(se::Object* listener, const char* functionN
             recallAccess->_hashCode = callIntMethod(env, objClass, jobj, "hashCode");
             recallAccess->_sessionId = callStringMethod(env, objClass, jobj, "getSessionId");
             cc::callJSfunc(listener, functionName, recallAccess);
-        } else if(name == "java.lang.Integer") {
+        } else if(name == "com.google.android.gms.games.AnnotatedData") {
+            auto* annotatedData = new AnnotatedData;
+            annotatedData->_isStale = callBooleanMethod(env,  objClass, jobj, "isStale");
+            jmethodID methodId = env->GetMethodID(objClass, "get", "()Ljava/lang/Object;");
+            jobject achievementBufferObj = env->CallObjectMethod(jobj, methodId);
+            if (achievementBufferObj != nullptr) {
+                auto& achievementBuffer = annotatedData->_achievementBuffer;
+                jclass achievementBufferObjClass = env->GetObjectClass(achievementBufferObj);
+                int count = callIntMethod(env,  achievementBufferObjClass, achievementBufferObj, "getCount");
+                jmethodID methodId = env->GetMethodID(achievementBufferObjClass, "get", "(I)Ljava/lang/Object;");
+                for(int i = 0; i < count; ++i) {
+                    jobject achievementObj = env->CallObjectMethod(achievementBufferObj, methodId, i);
+                    jclass achievementObjClass = env->GetObjectClass(achievementObj);
+                    if (achievementObj != nullptr) {
+                        auto* achievement = achievementBuffer.createAchievement();
+                        achievement->_type = callIntMethod(env, achievementObjClass, achievementObj, "getType");
+                        if(achievement->_type == Achievement::TYPE_INCREMENTAL) {
+                            // Incremental achievements
+                            achievement->_currentSteps = callIntMethod(env, achievementObjClass, achievementObj, "getCurrentSteps");
+                            achievement->_totalSteps = callIntMethod(env, achievementObjClass, achievementObj, "getTotalSteps");
+                            achievement->_formattedCurrentSteps = callStringMethod(env, achievementObjClass, achievementObj, "getFormattedCurrentSteps");
+                            achievement->_formattedTotalSteps = callStringMethod(env, achievementObjClass, achievementObj, "getFormattedTotalSteps");
+                        } else {
+                            // Standard achievements
+                            achievement->_currentSteps = 0;
+                            achievement->_totalSteps = 0;
+                            achievement->_formattedCurrentSteps = "";
+                            achievement->_formattedTotalSteps = "";
+                        }
+                        achievement->_state = callIntMethod(env, achievementObjClass, achievementObj, "getState");
+                        achievement->_lastUpdatedTimestamp = callLongMethod(env, achievementObjClass, achievementObj, "getLastUpdatedTimestamp");
+                        achievement->_xpValue = callLongMethod(env, achievementObjClass, achievementObj, "getXpValue");
+                        achievement->_achievementId = callStringMethod(env, achievementObjClass, achievementObj, "getAchievementId");
+                        achievement->_description = callStringMethod(env, achievementObjClass, achievementObj, "getDescription");
+                        achievement->_name = callStringMethod(env, achievementObjClass, achievementObj, "getName");
+                        achievement->_revealedImageUrl = callStringMethod(env, achievementObjClass, achievementObj, "getRevealedImageUrl");
+                        achievement->_unlockedImageUrl = callStringMethod(env, achievementObjClass, achievementObj, "getUnlockedImageUrl");
+                        ccDeleteLocalRef(env, achievementObjClass);
+                        ccDeleteLocalRef(env, achievementObj);
+                    }
+                }
+                callVoidMethod(env, achievementBufferObjClass, achievementBufferObj, "release");
+                ccDeleteLocalRef(env, achievementBufferObjClass);
+                ccDeleteLocalRef(env, achievementBufferObj);
+            }
+            cc::callJSfunc(listener, functionName, annotatedData);
+        }
+        else if(name == "java.lang.Integer") {
             int value = integerObjectToInt(env, objClass, jobj);
             cc::callJSfunc(listener, functionName, value);
         } else if(name == "java.lang.Double") {
