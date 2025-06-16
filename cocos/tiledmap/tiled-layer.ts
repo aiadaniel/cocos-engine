@@ -64,17 +64,17 @@ let camera: Camera;
 let arr = new Array<TiledUserNodeData|null>(300);
 let arrIdx = 0;
 
-let renders = new Array(300);
+let renders = new Array(300);// RenderData
 let renIdx = 0;
 
 let _tempArrIdx = 0;
 
-function fTr (t, i, n = 300): any[] {
-    const r = new Array(i + n);
-    for (let s = 0; s < i; ++s) {
-        r[s] = t[s];
+function expandAndCopyArray (source, sourceLen, extraSpace = 300): any[] {
+    const newArr = new Array(sourceLen + extraSpace);
+    for (let s = 0; s < sourceLen; ++s) {
+        newArr[s] = source[s];
     }
-    return r;
+    return newArr;
 }
 
 @ccclass('cc.TiledUserNodeData')
@@ -151,7 +151,7 @@ export class TiledUserNodeData extends Component {
     removeRender (): void {
         if (this.renderData) {
             if (renders.length === renIdx) {
-                renders = fTr(renders, renIdx);
+                renders = expandAndCopyArray(renders, renIdx);
             }
             this.renderData.frame = null;
             renders[renIdx++] = this.renderData;
@@ -190,16 +190,16 @@ export class TiledUserNodeData extends Component {
         (this._up = 0);
         (this._down = 0);
         ((arr = arr.length === arrIdx
-            ? fTr(arr, arrIdx)
+            ? expandAndCopyArray(arr, arrIdx)
             : arr)[arrIdx++] = this);
         return true;
     }
-    setSpriteRect (t, i, n, r): void {
-        (r /= 2);
-        (this._right = t + (n /= 2));
-        (this._left = n - t);
-        (this._up = i + r);
-        (this._down = r - i);
+    setSpriteRect (centerX, centerY, w, h): void {
+        (h /= 2);
+        (this._right = centerX + (w /= 2));
+        (this._left = w - centerX);
+        (this._up = centerY + h);
+        (this._down = h - centerY);
     }
     _userNodePosChange (): void {
         this._tiledLayer!._userNodePosChange(this);
@@ -1827,7 +1827,7 @@ export class TiledLayer extends UIRenderer {
         for (let t, i = 0; i < this._tiledDataLen; ++i) {
             if (this._tiledDataArray[i] instanceof RenderData) {
                 (this._tiledDataPoolLen == this._tiledDataPool.length
-                    && (this._tiledDataPool = fTr(this._tiledDataPool, this._tiledDataPoolLen)),
+                    && (this._tiledDataPool = expandAndCopyArray(this._tiledDataPool, this._tiledDataPoolLen)),
                 ((t = this._tiledDataArray[i] as RenderData).frame = null),
                 (this._tiledDataPool[this._tiledDataPoolLen++] = t),
                 (this._tiledDataArray[i] = null));

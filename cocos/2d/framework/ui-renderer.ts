@@ -245,7 +245,7 @@ export class UIRenderer extends Renderer {
      * @engineInternal
      * @internal
      */
-    get srcBlendFactor (): BlendFactor { return this._srcBlendFactor; } // lxm todo 删掉?
+    get srcBlendFactor (): BlendFactor { return this._srcBlendFactor; }
     set srcBlendFactor (srcBlendFactor: BlendFactor) { this._srcBlendFactor = srcBlendFactor; }
     @serializable
     protected _dstBlendFactor = BlendFactor.ONE_MINUS_SRC_ALPHA;

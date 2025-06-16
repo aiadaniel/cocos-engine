@@ -658,7 +658,7 @@ export class AssetManager {
 
         opts.__isNative__ = true;
         opts.preset = opts.preset || 'remote';
-        console.log("--loadRemote " + url);
+        console.log(`--loadRemote ${url}`);
         this.loadAny({ url }, opts, null, (err, data): void => {
             if (err) {
                 error(err.message, err.stack);
