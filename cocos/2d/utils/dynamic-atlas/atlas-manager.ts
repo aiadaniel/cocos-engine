@@ -167,7 +167,7 @@ export class DynamicAtlasManager extends System {
     public init (t = true): void {
         // todo lxm 原本使能 this.enabled = !macro.CLEANUP_IMAGE_CACHE;
         const self = this;
-        // void 0 === t && (t = !0),//TNr: resources
+        // void 0 === t && (t = true),//TNr: resources
         resources.load('Shader/unitMaterial', (err1, asset) => {
             self._unitMaterial = asset as Material;
             resources.load(
@@ -431,7 +431,7 @@ export class DynamicAtlasManager extends System {
                     this.setTexture(
                         this._resetIndex,
                         n._texture,
-                        !0,
+                        true,
                     );
                     this._resetIndex = this.maxAtlasCount - this._resetIndex;
                     this.packToDynamicAtlas(frame);
@@ -461,7 +461,7 @@ export class DynamicAtlasManager extends System {
                 }
             }
         }
-        return !0;
+        return true;
     }
 
     CleanImage (t: Texture2D): void {

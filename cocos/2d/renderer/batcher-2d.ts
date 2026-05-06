@@ -946,7 +946,7 @@ export class Batcher2D implements IBatcher {
                     }
                     if (uiProps.colorDirty) {
                         this._opacityDirty--;
-                        uiProps.colorDirty = !1;
+                        uiProps.colorDirty = false;
                     }
                 }
                 this._pOpacity = parentOpacity;

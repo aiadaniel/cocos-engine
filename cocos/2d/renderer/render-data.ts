@@ -566,7 +566,7 @@ export class RenderData extends BaseRenderData {
     //         (this._height = i),
     //         (this._pivotX = n),
     //         (this._pivotY = r),
-    //         (this.vertDirty = !0));
+    //         (this.vertDirty = true));
     // }
 
     public clear (): void {

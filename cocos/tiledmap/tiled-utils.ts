@@ -224,7 +224,7 @@ export function fillTextureGrids (tileset: TMXTilesetInfo, texGrids: TiledTextur
     //                     (grid.b = (grid.y + grid.height) / texHeight)),
     //             (grid._rect = new Rect( grid.x, grid.y, grid.width, grid.height )))
     //             : spFrame.rotated
-    //             ? ((grid._rotated = !0),
+    //             ? ((grid._rotated = true),
     //             (grid._name = spFrame.name),
     //             (grid._rect = spFrame.getRect()),
     //             (grid.l = spFrame.unbiasUV[0]),

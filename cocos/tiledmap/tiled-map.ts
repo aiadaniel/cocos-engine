@@ -156,7 +156,7 @@ export class TiledMap extends Component {
 
     _gameCameraView;
     ratio = 0;
-    _isUpdateCulling = !1;
+    _isUpdateCulling = false;
 
     /**
      * @en Gets the map size.
@@ -758,11 +758,11 @@ export class TiledMap extends Component {
     updateCulling (): void {
         const t = this;
         if (this._gameCameraView && !this._isUpdateCulling) {
-            this._isUpdateCulling = !0;
+            this._isUpdateCulling = true;
             this.scheduleOnce(
                 () => {
                     t._updateCulling();
-                    t._isUpdateCulling = !1;
+                    t._isUpdateCulling = false;
                 },
             );
         }
@@ -782,7 +782,7 @@ export class TiledMap extends Component {
                     s.showRect.set(layer.showRect);
                     s.cullingRect.leftDown = layer.cullingRect.leftDown;
                     s.cullingRect.rightTop = layer.cullingRect.rightTop;
-                    s.setUserNodeDirty(!0);
+                    s.setUserNodeDirty(true);
                 }
             }
         }
@@ -790,9 +790,9 @@ export class TiledMap extends Component {
 
     updateLayers (): void {
         for (let i = 0; i < this._layers.length; i++) {
-            const n = this._layers[i];
-            n.clearCache();
-            n.setUserNodeDirty(!0);
+            const layer = this._layers[i];
+            layer.clearCache();
+            layer.setUserNodeDirty(true);
         }
     }
 

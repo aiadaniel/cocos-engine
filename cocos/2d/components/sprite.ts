@@ -490,7 +490,7 @@ export class Sprite extends UIRenderer {
             && this._assembler
             && (this._assembler.updateSpriteFrame
                 ? this._assembler.updateSpriteFrame(this)
-                : ((i.vertDirty = !0),
+                : ((i.vertDirty = true),
                 this._assembler.updateRenderData?.(this)));
     }
 

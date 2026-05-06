@@ -230,7 +230,7 @@ export class Simple implements IAssembler {
                 traverseGrids(leftDown, rightTop, 1, -1, layer);
             }
             _curLayer = null;
-            layer.setUserNodeDirty(!1);
+            layer.setUserNodeDirty(false);
             if (JSB) {
                 layer.prepareDrawData();
             }
@@ -677,12 +677,12 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
                     if (_curTexture !== tex) {
                         if (!_tiledLayer.hasUserNode && maxTexs) {
                             if (C === maxTexs - 1) {
-                                packRenderData(!1);
+                                packRenderData(false);
                                 reset();
                             }
                             C = _Index(tex);
                         } else {
-                            packRenderData(!0);
+                            packRenderData(true);
                         }
                         _curTexture = tex;
                         if (_tiledLayer.isGroundLayer) _tiledGrid = grid;
@@ -801,7 +801,7 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
             }
         }
         if (_tiledLayer.hasUserNode) {
-            dealUserNode(_tiledLayer.getSorttedNodesByRow(row, !0));
+            dealUserNode(_tiledLayer.getSorttedNodesByRow(row, true));
         }
     }
     if (_tiledLayer.hasUserNode) {
@@ -910,7 +910,7 @@ function traverseGrids (leftDown: {col: number, row: number}, rightTop: {col: nu
 
 function dealUserNode (t: TiledUserNodeData | null): void {
     if (t) {
-        packRenderData(!0);
+        packRenderData(true);
         _curLayer!.requestSubNodesData(t);
     }
 }

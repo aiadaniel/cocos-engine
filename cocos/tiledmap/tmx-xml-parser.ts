@@ -22,7 +22,6 @@
  THE SOFTWARE.
 */
 
-
 import { Label, HorizontalTextAlignment, VerticalTextAlignment } from '../2d/components/label.js';
 import codec from '../../external/compression/ZipUtils.js';
 import zlib from '../../external/compression/zlib.min.js';
@@ -140,7 +139,6 @@ function getPropertyList (node: Element, map?: PropertiesInfo): PropertiesInfo {
  */
 
 export class TMXMapInfo {
-
     staticMap: { [key: string]: TMXTilesetInfo; } = {};//property的unitID
 
     /**
@@ -204,7 +202,7 @@ export class TMXMapInfo {
     protected _spriteFrameMap: { [key: string]: SpriteFrame } | null = null;
     protected _spfSizeMap: { [key: string]: Size } = {};
 
-    cb: Function | undefined
+    cb: Function | undefined;
     // _ab: string;
     // _atlasMap: Map<string, SpriteAtlas> = new Map();
     // _tsxPath: string="";
@@ -218,10 +216,17 @@ export class TMXMapInfo {
     protected _imageLayerSPF: { [key: string]: SpriteFrame } | null = null;
 
     _bm: bmap.BMap | null = null;
-    _tss: Map<string, bmap.TileSet> | undefined ;
+    _tss: Map<string, bmap.TileSet> | undefined;
 
-    constructor (bin: bmap.BMap, tss: Map<string, bmap.TileSet>, tsxBins: { [key: string]: BufferAsset }, spfTexturesMap: { [key: string]: SpriteFrame },
-        textureSizes: { [key: string]: Size }, imageLayerTextures: { [key: string]: SpriteFrame }, cb) {
+    constructor (
+        bin: bmap.BMap,
+        tss: Map<string, bmap.TileSet>,
+        tsxBins: { [key: string]: BufferAsset },
+        spfTexturesMap: { [key: string]: SpriteFrame },
+        textureSizes: { [key: string]: Size },
+        imageLayerTextures: { [key: string]: SpriteFrame },
+        cb,
+    ) {
         // console.log("bin:" + bin);
         this.cb = cb;
         // const bb = new ByteBuf(bin);
@@ -283,13 +288,12 @@ export class TMXMapInfo {
     //     return this._bm.hexsidelength!;
     // }
 
-
     getMapSize (): Size {
         return new Size(this._mapSize.width, this._mapSize.height);
     }
     setMapSize (t) {
         (this._mapSize.width = t.width),
-            (this._mapSize.height = t.height);
+        (this._mapSize.height = t.height);
     }
 
     // get mapWidth (): number {
@@ -305,13 +309,12 @@ export class TMXMapInfo {
     //     this._mapSize.height = height;
     // }
 
-
     getTileSize (): Size {
         return new Size(this._tileSize.width, this._tileSize.height);
     }
     setTileSize (t) {
         (this._tileSize.width = t.width),
-            (this._tileSize.height = t.height);
+        (this._tileSize.height = t.height);
     }
 
     // get tileWidth (): number {
@@ -327,7 +330,6 @@ export class TMXMapInfo {
     // set tileHeight (height: number) {
     //     this._tileSize.height = height;
     // }
-
 
     getLayers (): TMXLayerInfo[] {
         return this._layers;
@@ -354,14 +356,12 @@ export class TMXMapInfo {
     //     this._imageLayers.push(value);
     // }
 
-
     getTilesets (): TMXTilesetInfo[] {
         return this._tilesets;
     }
     setTilesets (value: TMXTilesetInfo): void {
         this._tilesets.push(value);
     }
-
 
     getObjectGroups (): TMXObjectGroupInfo[] {
         return this._objectGroups;
@@ -375,14 +375,12 @@ export class TMXMapInfo {
         return this._allChildren;
     }
 
-
     getParentElement () {
         return this.parentElement;
     }
     setParentElement (t) {
         this.parentElement = t;
     }
-
 
     getParentGID (): number {
         return this.parentGID;
@@ -391,7 +389,6 @@ export class TMXMapInfo {
         this.parentGID = value;
     }
 
-
     getLayerAttribs (): number {
         return this.layerAttrs;
     }
@@ -399,14 +396,12 @@ export class TMXMapInfo {
         this.layerAttrs = value;
     }
 
-
     getStoringCharacters (): boolean {
         return this.storingCharacters;
     }
     setStoringCharacters (value): void {
         this.storingCharacters = value;
     }
-
 
     getProperties (): PropertiesInfo {
         return this.properties;
@@ -451,14 +446,14 @@ export class TMXMapInfo {
         this._tileSize.height = this._bm!.tileheight;
 
         // The parent element is the map
-        this.properties = {} //getPropertyList(map);
+        this.properties = {}; //getPropertyList(map);
 
         // 使用独立独立瓦片集的情况，每个瓦片集的source就是对应的bin资源文件名，按需加载
         let need = 0;
         const self = this;
-        for (let [key, value] of this._bm!.tileset) {
-            let firstGid = key;
-            let source = value;
+        for (const [key, value] of this._bm!.tileset) {
+            const firstGid = key;
+            const source = value;
             // console.log("ts source:" + source);
             let curTileset: bmap.TileSet = this._tss![source];
             if (!curTileset) {
@@ -469,8 +464,7 @@ export class TMXMapInfo {
                 this._tss![source] = curTileset;
             }
 
-            
-            let image = curTileset.image;//我们当前默认都只有一张图
+            const image = curTileset.image;//我们当前默认都只有一张图
 
             const tiles = curTileset.tiles;
             const tileCount = tiles?.length || 1;
@@ -478,24 +472,24 @@ export class TMXMapInfo {
             let tileset: TMXTilesetInfo | null = null;
             for (let tileIdx = 0; tileIdx < tileCount; tileIdx++) {
                 // parse tiles by tileIdx
-                let tile = tiles[tileIdx];// tiles && tiles[tileIdx];
+                const tile = tiles[tileIdx];// tiles && tiles[tileIdx];
                 if (!tile) {
                     continue;
                 }
 
                 const curImage = image ?? tile.image;//[tileIdx] ? images[tileIdx] : firstImage;//默认也一张
                 if (!curImage) continue;
-                let curImageName: string = curImage.source;//getAttribute('source')!;
+                const curImageName: string = curImage.source;//getAttribute('source')!;
                 // curImageName = curImageName.replace(/\\/g, '/');
-                
+
                 if (!tileset /*|| collection*/) {
                     tileset = new TMXTilesetInfo();
                     tileset.name = curTileset.name;
                     tileset.firstGid = firstGid & TileFlag.FLIPPED_MASK;
                     tileset.tileOffset.x = curTileset.tileoffset?.x ?? 0;
                     tileset.tileOffset.y = curTileset.tileoffset?.y ?? 0;
-                    
-                    tileset.collection = ( tile.image != undefined );//collection;
+
+                    tileset.collection = (tile.image != undefined);//collection;
                     // console.log("tileset:" + tileset.name + " curImageName:" + curImageName + " collect:" + tileset.collection);
                     if (!tileset.collection) {
                         tileset.imageName = curImageName;
@@ -515,7 +509,7 @@ export class TMXMapInfo {
                     // this._tss!.tss[source].push(tileset);
                 }
 
-                this.parentGID = (firstGid! + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
+                this.parentGID = (firstGid + tile.id) as any; // (parseInt(tile.getAttribute('id')!) || 0)) as any;
                 // if (tile.hasAttribute('x') && tile.hasAttribute('y')) {
                 //     tileset.imageOffset = new Vec2(parseFloat(tile.getAttribute('x')!) || 0, parseFloat(tile.getAttribute('y')!) || 0);
                 // }
@@ -527,7 +521,7 @@ export class TMXMapInfo {
                 const tileImages = tile.image;//tile.getElementsByTagName('image');
                 if (tileImages /*&& tileImages.length > 0*/) {
                     const image = tileImages;//[0];
-                    let imageName = image.source;//getAttribute('source')!;
+                    const imageName = image.source;//getAttribute('source')!;
                     // imageName = imageName.replace(/\\/g, '/');
 
                     tileset.imageName = imageName;
@@ -554,7 +548,7 @@ export class TMXMapInfo {
                 const pid = ((TileFlag.FLIPPED_MASK & this.parentGID as unknown as number) >>> 0) as unknown as GID;
                 // this._tileProperties.set(pid, getPropertyList(tile));//todo
                 // todo staticMap
-                
+
                 // const animations = tile.anis?.anilist;//tile.getElementsByTagName('animation');
                 // if (animations && animations.length > 0) {
                 //     // const animation = animations[0];
@@ -573,7 +567,7 @@ export class TMXMapInfo {
                 // }
             }//tiles
 
-            need ++;
+            need++;
         }// for tileset
 
         // PARSE <layer> & <objectgroup> in order
@@ -602,8 +596,9 @@ export class TMXMapInfo {
             }
         }
 
-        if(need == this._bm!.tileset.size) this.cb?.(self)
-
+        if (need === this._bm!.tileset.size) {
+            this.cb?.(self);
+        }
     }
     // 参考 https://baike.baidu.com/item/nodeType%20%E5%B1%9E%E6%80%A7/278300?fr=ge_ala
     // protected _shouldIgnoreNode (node: ChildNode): boolean {
@@ -666,7 +661,7 @@ export class TMXMapInfo {
         // const tintColor = selLayer.tintcolor;//.getAttribute('tintcolor');
         // layer.tintColor = tintColor ? strToColor(tintColor) : null;
 
-        let nodeValue = data!.bdata;//'';
+        const nodeValue = data!.bdata;//'';
         // for (let j = 0; j < data.childNodes.length; j++) {// 会有多个data节点吗？
         //     nodeValue += data.childNodes[j].nodeValue; // 数据是用子节点的nodeValue获取的
         // }
@@ -685,8 +680,8 @@ export class TMXMapInfo {
         //     tiles = codec.unzipBase64AsArray(nodeValue, 4);
         //     break;
         // case 'zlib': {
-            const inflator = new zlib.Inflate(codec.Base64.decodeAsArray(nodeValue, 1));
-            tiles = uint8ArrayToUint32Array(inflator.decompress());
+        const inflator = new zlib.Inflate(codec.Base64.decodeAsArray(nodeValue, 1));
+        tiles = uint8ArrayToUint32Array(inflator.decompress());
         //     break;
         // }
         // case null:
@@ -782,7 +777,7 @@ export class TMXMapInfo {
                     // console.log(selGroup.name + " =>text obj:" + texts);
                     objectProp.type = TMXObjectType.TEXT;
                     objectProp.wrap = true;//text.getAttribute('wrap') === '1';
-                    objectProp.color = new Color("#ffffff");//strToColor(text.getAttribute('color')!);
+                    objectProp.color = new Color('#ffffff');//strToColor(text.getAttribute('color')!);
                     objectProp.halign = Label.HorizontalAlign.LEFT;//strToHAlign(text.getAttribute('halign'));
                     objectProp.valign = Label.VerticalAlign.TOP;//strToVAlign(text.getAttribute('valign'));
                     objectProp.pixelsize = 16;//parseInt(text.getAttribute('pixelsize')!) || 16;
@@ -790,7 +785,7 @@ export class TMXMapInfo {
                 }
 
                 // image
-                
+
                 if (gid) {
                     objectProp.gid = (gid) as any;
                     objectProp.type = TMXObjectType.IMAGE;

@@ -79,7 +79,7 @@ function expandAndCopyArray (source, sourceLen, extraSpace = 300): any[] {
 
 @ccclass('cc.TiledUserNodeData')
 export class TiledUserNodeData extends Component {
-    _isNode = !0;
+    _isNode = true;
     _prev: TiledUserNodeData|null = null;
     _next: TiledUserNodeData|null = null;
     x = 0;
@@ -91,14 +91,14 @@ export class TiledUserNodeData extends Component {
     _up = 0;
     _down = 0;
 
-    isActive = !0;
-    isTiledNodeShow = !1;
-    isFloor = !1;
+    isActive = true;
+    isTiledNodeShow = false;
+    isFloor = false;
 
     node: Node;
     unit;
     _tiledLayer: TiledLayer|null;
-    isStaticUnit = !1;
+    isStaticUnit = false;
     renderData: RenderData|null;
     loadRes;
     onShow;
@@ -114,7 +114,7 @@ export class TiledUserNodeData extends Component {
         this.node = null!;
         this.unit = null;
         this._tiledLayer = null;
-        this.isStaticUnit = !1;
+        this.isStaticUnit = false;
         this.renderData = null;
         this.loadRes = null;
         this.onShow = null;
@@ -176,15 +176,15 @@ export class TiledUserNodeData extends Component {
         (this.onReset = null);
         (this.node = null!);
         (this.unit = null);
-        (this._isNode = !0);
+        (this._isNode = true);
         (this.x = 0);
         (this.y = 0);
         (this._row = -1);
         (this._tiledLayer = null);
-        (this.isTiledNodeShow = !1);
-        (this.isActive = !0);
-        (this.isFloor = !1);
-        (this.isStaticUnit = !1);
+        (this.isTiledNodeShow = false);
+        (this.isActive = true);
+        (this.isFloor = false);
+        (this.isStaticUnit = false);
         (this._left = 0);
         (this._right = 0);
         (this._up = 0);
@@ -206,7 +206,7 @@ export class TiledUserNodeData extends Component {
     }
     static chain (): TiledUserNodeData {
         const i = TiledUserNodeData.create();
-        i._isNode = !1;
+        i._isNode = false;
         i._next = i;
         i._prev = i;
         return i;
@@ -330,8 +330,8 @@ export class TiledLayer extends UIRenderer {
     // protected _rightOffset = 0;
     nodeUpRow = 0;
     nodeDownRow = 0;
-    hasUserNode = !1;
-    isGroundLayer = !1;
+    hasUserNode = false;
+    isGroundLayer = false;
     downRow = 1;
 
     // store the layer tiles, index is caculated by 'x + width * y', format likes '[0]=gid0,[1]=gid1, ...'
@@ -448,7 +448,7 @@ export class TiledLayer extends UIRenderer {
         this._tiledDataPool = [];
     }
     onDestroy (): void {
-        this.hasUserNode = !1;
+        this.hasUserNode = false;
         this.destroyRenderData();
         for (
             let t = this._tiledDataPoolLen - 1;
@@ -456,7 +456,9 @@ export class TiledLayer extends UIRenderer {
             t--
         ) this._tiledDataPool[t]!.clear();
     }
+    // 各MapView释放时调用
     ReleaseStaticRes (delay: number): void {}
+    // 在TiledLayerEx中实现该函数，完成后回调下面那个函数。而该函数本身也是simple在遍历时调用
     loadTileMapImage (tileset: TMXTilesetInfo, b: TiledTextureGrids, hasUserNode: boolean): void {}
     setTileMapImage (tileset: TMXTilesetInfo, texGrids: TiledTextureGrids, img: SpriteFrame): void {
         if (this.updateLayers) {
@@ -500,11 +502,12 @@ export class TiledLayer extends UIRenderer {
                     }
                 }
             }(tileset, texGrids, img));
-            this.updateLayers();
+            this.updateLayers();// 调用到tiledMap那边实现了该函数
         }
     }
+    // 在simple遍历时用到 处理用户节点
     getSorttedNodesByRow (row: number, i = false): TiledUserNodeData | null {
-        // void 0 === i && (i = !1);
+        // void 0 === i && (i = false);
         const n = (this.userNodeMap[row] = this.userNodeMap[row] || TiledUserNodeData.chain());
         let r = n.first();
         if (r) {
@@ -520,18 +523,18 @@ export class TiledLayer extends UIRenderer {
                 && r.y + r._up >= this.showRect.y
                 && r.y - r._down <= this.showRect.height) {
                     if (!r.isTiledNodeShow) {
-                        r.isTiledNodeShow = !0;
-                        if (r.loadRes) {
+                        r.isTiledNodeShow = true;
+                        if (r.loadRes) { //这个函数在BaseUnit StaticUnit及其子类分别由对应实现
                             r.loadRes();
                             r.loadRes = null;
                         }
-                        if (r.onShow) {
+                        if (r.onShow) { // 调用unit的onShow函数
                             r.onShow.call(f);
                         }
                     }
-                    (i = !0);
+                    (i = true);
                 } else if (r.isTiledNodeShow) {
-                    r.isTiledNodeShow = !1;
+                    r.isTiledNodeShow = false;
                     if (r.onHide) {
                         r.onHide.call(f);
                     }
@@ -622,31 +625,47 @@ export class TiledLayer extends UIRenderer {
         const h = t.node.position;
         const o = h.x - t.x;
         const u = h.y - t.y;
-        (o < 2
-            && o > -2
-            && u < 2
-            && u > -2)
-            || ((t.x = h.x),
-            (t.y = h.y),
-            (n = Math.floor((h.y + this._leftDownToCenterY) / 60)), //e4n
-            (r = this.showRect),
-            t.x + t._right >= r.x
-            && t.x - t._left <= r.width
-            && t.y + t._up >= r.y
-            && t.y - t._down <= r.height
-                ? t.isTiledNodeShow
-                    || ((t.isTiledNodeShow = !0),
-                    (i = t.onShow) == null) || i.call(t)
-                : t.isTiledNodeShow
-                    && ((t.isTiledNodeShow = !1),
-                    (e = t.onHide) != null) && e.call(t),
-            n == t._row
-                ? u < 0
-                    ? t.down()
-                    : u > 0 && t.up()
-                : ((this.userNodeMap[n] = (this.userNodeMap[n] || TiledUserNodeData.chain()).append(t)),
-                t.down()),
-            (t._row = n));
+        if (!(o < 2 && o > -2 && u < 2 && u > -2)) {
+            t.x = h.x;
+            t.y = h.y;
+            n = Math.floor((h.y + this._leftDownToCenterY) / 60); //e4n
+            r = this.showRect;
+            // 检查节点是否在显示区域内
+            const isInView = t.x + t._right >= r.x
+                            && t.x - t._left <= r.width
+                            && t.y + t._up >= r.y
+                            && t.y - t._down <= r.height;
+
+            // 处理节点显示/隐藏逻辑
+            if (isInView) {
+                if (!t.isTiledNodeShow) {
+                    t.isTiledNodeShow = true;
+                    if (t.onShow) {
+                        t.onShow.call(t);
+                    }
+                }
+            } else if (t.isTiledNodeShow) {
+                t.isTiledNodeShow = false;
+                if (t.onHide) {
+                    t.onHide.call(t);
+                }
+            }
+
+            // 处理节点位置更新逻辑
+            if (n === t._row) {
+                if (u < 0) {
+                    t.down();
+                } else if (u > 0) {
+                    t.up();
+                }
+            } else {
+                this.userNodeMap[n] = this.userNodeMap[n] || TiledUserNodeData.chain();
+                this.userNodeMap[n].append(t);
+                t.down();
+            }
+
+            t._row = n;
+        }
     }
 
     protected _removeUserNodeFromGrid (dataComp: TiledUserNodeData): void {
@@ -697,15 +716,17 @@ export class TiledLayer extends UIRenderer {
         // colData.list.push(dataComp);
         // this._userNodeDirty = true;
 
-        (this.hasUserNode = !0),
-        (dataComp._tiledLayer = this),
-        (dataComp._row = Math.floor((dataComp.y + this._leftDownToCenterY) / 60)), //e4n
-        (this.userNodeMap[dataComp._row] = (this.userNodeMap[dataComp._row] || TiledUserNodeData.chain()).append(dataComp)),
+        this.hasUserNode = true;
+        dataComp._tiledLayer = this;
+        dataComp._row = Math.floor((dataComp.y + this._leftDownToCenterY) / 60); //e4n
+        this.userNodeMap[dataComp._row] = (this.userNodeMap[dataComp._row] || TiledUserNodeData.chain()).append(dataComp);
         dataComp.down();
         const i = Math.ceil(dataComp._up / 60);
         const n = (this.nodeUpRow < i && (this.nodeUpRow = i), Math.ceil(dataComp._down / 60));
-        this.nodeDownRow < n && (this.nodeDownRow = n),
-        this.setUserNodeDirty(!0);
+        if (this.nodeDownRow < n) {
+            this.nodeDownRow = n;
+        }
+        this.setUserNodeDirty(true);
     }
 
     public isUserNodeDirty (): boolean {
@@ -714,9 +735,12 @@ export class TiledLayer extends UIRenderer {
 
     public setUserNodeDirty (value): void {
         // this._userNodeDirty = value;
-        value != this._userNodeDirty
-                && (this._userNodeDirty = value)
-                && this.markForUpdateRenderData();
+        if (value !== this._userNodeDirty) {
+            this._userNodeDirty = value;
+            if (value) {
+                this.markForUpdateRenderData();
+            }
+        }
     }
 
     // protected _reinstallCamera (): Camera | null {
@@ -772,13 +796,13 @@ export class TiledLayer extends UIRenderer {
         // this._leftDownToCenterY = trans.height * trans.anchorY * scale.y;
         // this._cullingDirty = true;
         // this.markForUpdateRenderData();
-        const t = this.node;
-        const i = t._uiProps.uiTransformComp!;
-        const n = t.scale;
-        (this._leftDownToCenterX = i.width * i.anchorX * n.x - this._offset!.x),
-        (this._leftDownToCenterY = i.height * i.anchorY * n.y - this._offset!.y),
-        (this.node._static = !0),
-        (this.worldPosition = this.node.worldPosition);
+        const node = this.node;
+        const trans = node._uiProps.uiTransformComp!;
+        const scale = node.scale;
+        this._leftDownToCenterX = trans.width * trans.anchorX * scale.x - this._offset!.x;
+        this._leftDownToCenterY = trans.height * trans.anchorY * scale.y - this._offset!.y;
+        this.node._static = true;//新增
+        this.worldPosition = this.node.worldPosition;
     }
 
     /**
@@ -804,8 +828,10 @@ export class TiledLayer extends UIRenderer {
       */
     public setLayerName (layerName: string): void {
         // this._layerName = layerName;
-        (this._layerName = layerName) == 'groundLayer'
-                                                && (this.isGroundLayer = !0);
+        this._layerName = layerName;
+        if (layerName === 'groundLayer') {
+            this.isGroundLayer = true;
+        }
     }
 
     /**
@@ -1274,7 +1300,7 @@ export class TiledLayer extends UIRenderer {
     }
 
     clearCache (): void {
-        this.tiledMapCurr.clear = !0;
+        this.tiledMapCurr.clear = true;
     }
 
     updateCullingRect (t): void {
@@ -1292,20 +1318,22 @@ export class TiledLayer extends UIRenderer {
         (_tempRowCol.row = Math.floor((e + this._leftDownToCenterY - 60) / 60)), //e4n
         _tempRowCol.row < 0 && (_tempRowCol.row = 0),
         _tempRowCol.col < 0 && (_tempRowCol.col = 0),
-        !1);
-        (_tempRowCol.col == h.col
-            && _tempRowCol.row == h.row)
-            || ((h.row = _tempRowCol.row),
-            (h.col = _tempRowCol.col),
-            (u = !0)),
-        (_tempRowCol.col = Math.floor((i + this._leftDownToCenterX) / 100)),
-        (_tempRowCol.row = Math.floor((n + this._leftDownToCenterY) / 60)),
-        (_tempRowCol.col == o.col
-                && _tempRowCol.row == o.row)
-                || ((o.row = _tempRowCol.row),
-                (o.col = _tempRowCol.col),
-                (u = !0)),
-        u && this.setUserNodeDirty(!0);
+        false);
+        if ((_tempRowCol.col !== h.col || _tempRowCol.row !== h.row)) {
+            h.row = _tempRowCol.row;
+            h.col = _tempRowCol.col;
+            u = true;
+        }
+        _tempRowCol.col = Math.floor((i + this._leftDownToCenterX) / 100);
+        _tempRowCol.row = Math.floor((n + this._leftDownToCenterY) / 60);
+        if (_tempRowCol.col !== o.col || _tempRowCol.row !== o.row) {
+            o.row = _tempRowCol.row;
+            o.col = _tempRowCol.col;
+            u = true;
+        }
+        if (u) {
+            this.setUserNodeDirty(true);
+        }
     }
 
     /**
@@ -1826,11 +1854,12 @@ export class TiledLayer extends UIRenderer {
         // super.destroyRenderData();
         for (let t, i = 0; i < this._tiledDataLen; ++i) {
             if (this._tiledDataArray[i] instanceof RenderData) {
-                (this._tiledDataPoolLen == this._tiledDataPool.length
-                    && (this._tiledDataPool = expandAndCopyArray(this._tiledDataPool, this._tiledDataPoolLen)),
-                ((t = this._tiledDataArray[i] as RenderData).frame = null),
-                (this._tiledDataPool[this._tiledDataPoolLen++] = t),
-                (this._tiledDataArray[i] = null));
+                if (this._tiledDataPoolLen === this._tiledDataPool.length) {
+                    this._tiledDataPool = expandAndCopyArray(this._tiledDataPool, this._tiledDataPoolLen);
+                }
+                (t = this._tiledDataArray[i] as RenderData).frame = null;
+                this._tiledDataPool[this._tiledDataPoolLen++] = t;
+                this._tiledDataArray[i] = null;
             }
         }
         this._tiledDataLen = 0;
@@ -1887,7 +1916,7 @@ export class TiledLayer extends UIRenderer {
                 ++n
             ) {
                 ui.commitComp(this, i, i.frame, null, null);
-                // this._assembler!.fillBuffers?.((this._tiledDataArray[n]), ui);// todo lxm
+                this._assembler!.fillBuffers?.(this._tiledDataArray[n], ui);// todo lxm
             }
         }
     }
